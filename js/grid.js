@@ -14,16 +14,21 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   let zoom = 1;
   const stage = board.parentElement;
 
-  function addSet(set) {
-    const id = 'p' + (seq++);
-    placed.push({
-      id, set_num: set.set_num, name: set.name, category: set.category, kind: set.kind || 'generic',
-      x: 0, y: 0, w: set.footprint.w, h: set.footprint.h, rot: 0,
+  function makeTile(set, x, y) {
+    return {
+      id: 'p' + (seq++), set_num: set.set_num, name: set.name, category: set.category, kind: set.kind || 'generic',
+      x, y, w: set.footprint.w, h: set.footprint.h, rot: 0,
       approx: set.footprint.source !== 'curated', img: set.img || null,
-      layer: set.layer ?? 2, color: set.color || null,
-    });
-    selectedId = id;
-    render(); onChange();
+      layer: set.layer ?? 2, z: set.layer ?? 2, color: set.color || null,
+    };
+  }
+  function addSet(set) { const t = makeTile(set, 0, 0); placed.push(t); selectedId = t.id; render(); onChange(); }
+  // Drop from the catalog at screen coordinates, centring the piece on the drop point.
+  function addSetAt(set, clientX, clientY) {
+    const rect = board.getBoundingClientRect();
+    const x = Math.max(0, Math.round((clientX - rect.left) / zoom / PX - set.footprint.w / 2));
+    const y = Math.max(0, Math.round((clientY - rect.top) / zoom / PX - set.footprint.h / 2));
+    const t = makeTile(set, x, y); placed.push(t); selectedId = t.id; render(); onChange();
   }
 
   function getPlaced() { return placed; }
@@ -32,6 +37,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       const t = { ...p };
       if (t.layer == null) t.layer = t.ground ? 0 : 2; // back-compat with pre-layer saved cities
       if (t.kind == null) t.kind = t.ground ? 'baseplate' : 'generic';
+      if (t.z == null) t.z = t.layer ?? 2;
       return t;
     });
     for (const p of placed) {
@@ -50,8 +56,9 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     }
     const over = anyOverlaps(placed);
     board.innerHTML = '';
-    // Paint by layer: baseplates (0) under roads/tracks (1) under buildings (2).
-    const paintOrder = [...placed].sort((a, b) => (a.layer ?? 2) - (b.layer ?? 2));
+    // Paint order: baseplates always at the bottom; everything else by its z (user-adjustable).
+    const paintKey = (p) => (p.layer === 0 ? -1000 : (p.z ?? p.layer ?? 2));
+    const paintOrder = [...placed].sort((a, b) => paintKey(a) - paintKey(b));
     for (const t of paintOrder) {
       const layer = t.layer ?? 2;
       const lightGround = /--g-(white|sand)/.test(t.color || '');
@@ -128,6 +135,16 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     if (!selectedId) return;
     placed = placed.filter((p) => p.id !== selectedId); selectedId = null; render(); onChange();
   }
+  // Move the selected tile to the front/back of the stacking order. Baseplates stay pinned bottom.
+  function moveZ(toFront) {
+    const t = placed.find((p) => p.id === selectedId);
+    if (!t || t.layer === 0) return;
+    const zs = placed.filter((p) => p.layer !== 0).map((p) => p.z ?? p.layer ?? 2);
+    t.z = toFront ? Math.max(2, ...zs) + 1 : Math.min(1, ...zs) - 1;
+    render(); onChange();
+  }
+  const bringForward = () => moveZ(true);
+  const sendBackward = () => moveZ(false);
   function applyZoom() { board.style.transform = `scale(${zoom})`; board.style.transformOrigin = '0 0'; }
   function setZoom(z) { zoom = Math.min(2, Math.max(0.25, z)); applyZoom(); }
   function zoomBy(d) { setZoom(zoom + d); }
@@ -187,11 +204,9 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       if (e.pointerId !== ev.pointerId) return;
       t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX / zoom));
       t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX / zoom));
-      // Snap-to-connect: road/rail pieces click flush against other same-layer pieces.
-      if (t.layer === 1) {
-        const s = snapConnect(t, placed.filter((p) => p.id !== t.id && (p.layer ?? 2) === 1), 6);
-        t.x = Math.max(0, s.x); t.y = Math.max(0, s.y);
-      }
+      // Snap-to-connect: ports for road/rail, 32-grid for baseplates, edge-align for the rest.
+      const s = snapConnect(t, placed.filter((p) => p.id !== t.id), 6);
+      t.x = Math.max(0, s.x); t.y = Math.max(0, s.y);
       const el = tileEl(t.id);
       if (el) { el.style.left = t.x * PX + 'px'; el.style.top = t.y * PX + 'px'; }
       refreshOverlaps();
@@ -223,8 +238,8 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   render();
   applyZoom();
   return {
-    addSet, getPlaced, setPlaced, render, select,
-    rotateSelected, deleteSelected,
+    addSet, addSetAt, getPlaced, setPlaced, render, select,
+    rotateSelected, deleteSelected, bringForward, sendBackward,
     setZoom, zoomBy, fit,
     _state: () => ({ placed, selectedId }),
   };

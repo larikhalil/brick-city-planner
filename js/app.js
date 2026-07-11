@@ -114,7 +114,22 @@ async function boot() {
     refresh();
   });
   $('btn-rotate').addEventListener('click', () => grid.rotateSelected());
+  $('btn-forward').addEventListener('click', () => grid.bringForward());
+  $('btn-back').addEventListener('click', () => grid.sendBackward());
   $('btn-delete').addEventListener('click', () => grid.deleteSelected());
+
+  // Drag a catalog item onto the grid to drop it there.
+  const gstage = $('grid-stage');
+  gstage.addEventListener('dragover', (e) => {
+    if ([...e.dataTransfer.types].includes('text/bcp-set')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }
+  });
+  gstage.addEventListener('drop', (e) => {
+    const num = e.dataTransfer.getData('text/bcp-set');
+    if (!num) return;
+    e.preventDefault();
+    const set = catalog.byNum.get(num);
+    if (set) grid.addSetAt(set, e.clientX, e.clientY);
+  });
   $('zoom-ctrl').addEventListener('click', (e) => {
     const z = e.target.dataset.zoom; if (!z) return;
     ({ in: () => grid.zoomBy(0.15), out: () => grid.zoomBy(-0.15),

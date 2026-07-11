@@ -117,9 +117,14 @@ export function snapConnect(t, others, threshold = 6) {
     // `|| 0` normalises -0 → 0.
     if (found) return { x: Math.round((t.x + dx) * 1e4) / 1e4 || 0, y: Math.round((t.y + dy) * 1e4) / 1e4 || 0 };
   }
+  // Baseplates snap to the 32-stud baseplate grid so the ground tiles cleanly.
+  if ((t.layer ?? 2) === 0) return { x: snap(t.x, 32), y: snap(t.y, 32) };
+  // Everything else edge-snaps to same-layer neighbours and to baseplates (the ground).
+  const layer = t.layer ?? 2;
+  const rel = others.filter((o) => { const l = o.layer ?? 2; return l === layer || l === 0; });
   const a = aabb(t);
   let dx = 0, dy = 0, bestX = threshold + 1e-6, bestY = threshold + 1e-6;
-  for (const o of others) {
+  for (const o of rel) {
     const b = aabb(o);
     const yNear = a.minY < b.maxY + threshold && a.maxY > b.minY - threshold;
     const xNear = a.minX < b.maxX + threshold && a.maxX > b.minX - threshold;

@@ -58,7 +58,7 @@ export function renderCatalog(els, sets, { onAdd }) {
     el.className = 'set';
     el.innerHTML = `
       <div class="swatch" style="background:${s.color || catColor(s.category)}">${
-        s.img ? `<img src="${s.img}" alt="" loading="lazy"
+        s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
           style="width:100%;height:100%;object-fit:cover"
           onerror="this.remove()">` : schematicSVG(s.kind, s.footprint, s.name)}</div>
       <div class="set-meta"><div class="set-name" title="${esc(s.name)}">${esc(s.name)}</div>
@@ -67,6 +67,11 @@ export function renderCatalog(els, sets, { onAdd }) {
         </div></div>
       <button class="add" aria-label="Add ${esc(s.name)}">＋</button>`;
     el.querySelector('.add').addEventListener('click', () => onAdd(s));
+    el.draggable = true;
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/bcp-set', s.set_num);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
     return el;
   }
 

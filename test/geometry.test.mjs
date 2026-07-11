@@ -60,6 +60,17 @@ test('snapConnect joins facing ports of a rotated piece', () => {
   assert.equal(s.x, 32); // rotated port meets the straight's right opening at x=32
   assert.equal(s.y, 0);
 });
+test('snapConnect snaps a baseplate to the 32-stud grid', () => {
+  const bp = { id: 'bp', x: 35, y: 30, w: 32, h: 32, rot: 0, kind: 'baseplate', layer: 0 };
+  assert.deepEqual(snapConnect(bp, [], 6), { x: 32, y: 32 });
+});
+test('snapConnect edge-snaps a building to a same-layer neighbour', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'building', layer: 2 };
+  const a = { id: 'a', x: 34, y: 1, w: 16, h: 16, rot: 0, kind: 'building', layer: 2 };
+  const s = snapConnect(a, [b], 6);
+  assert.equal(s.x, 32); // A.left snaps flush to B.right
+  assert.equal(s.y, 0); // A.top aligns to B.top
+});
 test('snapConnect falls back to edge-align when no ports face each other', () => {
   const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
   // straight road placed just below b: their L/R openings don't face up/down → AABB fallback
