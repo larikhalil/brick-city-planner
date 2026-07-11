@@ -1,0 +1,6 @@
+{
+  "_comment": "Optional explicit theme-name (lowercase) → category overrides; heuristics in category.mjs cover the rest.",
+  "coast guard": "harbor",
+  "off-road": "city",
+  "stuntz": "city"
+}
