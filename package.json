@@ -9,5 +9,8 @@
     "build:data": "node tools/build-catalog.mjs",
     "serve": "python -m http.server 8080"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "sharp": "^0.35.3"
+  }
 }
