@@ -78,12 +78,14 @@ export function clampedCanvas(reqW, reqH, right, bottom, maxStuds = 1024) {
   return { w: one(reqW, right), h: one(reqH, bottom) };
 }
 
-// Axis-aligned bounding box of a tile (centre-anchored), in studs.
-function aabb(t) {
+// Axis-aligned bounding box of a tile (centre-anchored), in studs. Exported for
+// marquee-select, align/distribute and group maths — accounts for rotation.
+export function tileAABB(t) {
   const e = extent(t);
   const cx = t.x + t.w / 2, cy = t.y + t.h / 2;
   return { minX: cx - e.w / 2, maxX: cx + e.w / 2, minY: cy - e.h / 2, maxY: cy + e.h / 2 };
 }
+const aabb = tileAABB; // internal alias kept for the snap maths below
 
 // Connection ports of a road/rail piece in LOCAL coords (before rotation): a point on an
 // opening edge with an outward unit direction. Matched port-to-port so pieces join
@@ -176,4 +178,73 @@ export function anyOverlaps(tiles) {
     }
   }
   return ids;
+}
+
+// Shed floating-point noise from rotation while keeping genuine fractions; -0 → 0.
+const round4 = (v) => Math.round(v * 1e4) / 1e4 || 0;
+
+// Ids of every tile whose rotated AABB intersects the rect {x,y,w,h} (studs) — the
+// rubber-band marquee hit-test. Edge-touching counts as a hit (loose, forgiving box-select).
+export function tilesInRect(tiles, rect) {
+  const rx2 = rect.x + rect.w, ry2 = rect.y + rect.h;
+  const ids = [];
+  for (const t of tiles) {
+    const a = tileAABB(t);
+    if (a.minX <= rx2 && a.maxX >= rect.x && a.minY <= ry2 && a.maxY >= rect.y) ids.push(t.id);
+  }
+  return ids;
+}
+
+// Align a set of tiles on one edge/centre of their shared bounding box. Operates on
+// each tile's rotated AABB so angled pieces line up by their true visual extent. Only
+// the relevant axis moves; returns [{id, x, y}] with the new un-rotated top-lefts.
+export function alignTiles(tiles, mode) {
+  if (tiles.length < 2) return tiles.map((t) => ({ id: t.id, x: t.x, y: t.y }));
+  const bs = tiles.map((t) => ({ t, a: tileAABB(t) }));
+  const minX = Math.min(...bs.map((b) => b.a.minX)), maxX = Math.max(...bs.map((b) => b.a.maxX));
+  const minY = Math.min(...bs.map((b) => b.a.minY)), maxY = Math.max(...bs.map((b) => b.a.maxY));
+  const gcx = (minX + maxX) / 2, gcy = (minY + maxY) / 2;
+  return bs.map(({ t, a }) => {
+    let x = t.x, y = t.y;
+    const cx = t.x + t.w / 2, cy = t.y + t.h / 2; // tile centre is rotation-invariant
+    if (mode === 'left') x = t.x + (minX - a.minX);
+    else if (mode === 'right') x = t.x + (maxX - a.maxX);
+    else if (mode === 'centerH') x = t.x + (gcx - cx);
+    else if (mode === 'top') y = t.y + (minY - a.minY);
+    else if (mode === 'bottom') y = t.y + (maxY - a.maxY);
+    else if (mode === 'centerV') y = t.y + (gcy - cy);
+    return { id: t.id, x: round4(Math.max(0, x)), y: round4(Math.max(0, y)) };
+  });
+}
+
+// Evenly space 3+ tiles along an axis by their centres, keeping the two extremes fixed.
+// axis: 'h' (horizontal) or 'v' (vertical). Returns [{id, x, y}].
+export function distributeTiles(tiles, axis) {
+  if (tiles.length < 3) return tiles.map((t) => ({ id: t.id, x: t.x, y: t.y }));
+  const centre = (t) => (axis === 'v' ? t.y + t.h / 2 : t.x + t.w / 2);
+  const sorted = [...tiles].sort((p, q) => centre(p) - centre(q));
+  const first = centre(sorted[0]), last = centre(sorted[sorted.length - 1]), n = sorted.length - 1;
+  const out = new Map();
+  sorted.forEach((t, i) => {
+    const delta = (first + (last - first) * (i / n)) - centre(t);
+    out.set(t.id, axis === 'v'
+      ? { id: t.id, x: t.x, y: round4(Math.max(0, t.y + delta)) }
+      : { id: t.id, x: round4(Math.max(0, t.x + delta)), y: t.y });
+  });
+  return tiles.map((t) => out.get(t.id));
+}
+
+// Rotate a whole group of tiles by `deg` about the group's bounding-box centre: each
+// tile's centre orbits the pivot and its own rotation advances by deg. Returns
+// [{id, x, y, rot}] (un-rotated top-lefts); the caller clamps back into the canvas.
+export function rotateGroup(tiles, deg) {
+  if (!tiles.length) return [];
+  const b = bbox(tiles), cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  const r = (deg * Math.PI) / 180, co = Math.cos(r), si = Math.sin(r);
+  return tiles.map((t) => {
+    const dx = (t.x + t.w / 2) - cx, dy = (t.y + t.h / 2) - cy;
+    const ncx = cx + dx * co - dy * si, ncy = cy + dx * si + dy * co;
+    const rot = ((Math.round((t.rot || 0) + deg) % 360) + 360) % 360;
+    return { id: t.id, x: round4(ncx - t.w / 2), y: round4(ncy - t.h / 2), rot };
+  });
 }

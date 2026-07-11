@@ -19,6 +19,14 @@ function toast(msg) {
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ---- QOL-9: autosave status pill --------------------------------------------
+function setSaveStatus(saving) {
+  const el = $('save-status');
+  if (!el) return;
+  el.classList.toggle('saving', saving);
+  el.querySelector('.lbl').textContent = saving ? 'Saving…' : 'All changes saved';
+}
+
 // The current city as a plain object for saving/exporting (includes the table size).
 function citySnapshot() {
   const g = grid.getGrid();
@@ -33,22 +41,131 @@ function drawGridSize() {
 
 let saveTimer = null;
 function autosave() {
+  setSaveStatus(true);
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveCity(serializeCity(citySnapshot()));
+    setSaveStatus(false);
   }, 600);
 }
 function flushAutosave() {
   clearTimeout(saveTimer);
   saveCity(serializeCity(citySnapshot()));
+  setSaveStatus(false);
 }
+
+// ---- UI-1: first-run guided empty state -------------------------------------
+const FIRST_RUN_KEY = 'bcp.firstRunSeen';
+function updateFirstRun() {
+  const el = $('first-run');
+  if (!el || !grid) return;
+  const seen = sessionStorage.getItem(FIRST_RUN_KEY) === '1';
+  const empty = grid.getPlaced().length === 0;
+  const show = empty && !seen;
+  el.hidden = !show;
+  $('catalog-search')?.closest('.search')?.classList.toggle('pulse', show);
+}
+// Dismissed by the ✕, by loading the sample city, or automatically once a tile is placed —
+// and never shown again for the rest of this browser session.
+function dismissFirstRun() {
+  try { sessionStorage.setItem(FIRST_RUN_KEY, '1'); } catch { /* private browsing, ignore */ }
+  updateFirstRun();
+}
+// A tiny hardcoded starter city: one baseplate, two straight roads snapped end-to-end, and a
+// building — just enough to show how sets connect together.
+function buildSampleCity() {
+  const building = catalog?.sets?.find((s) => s.kind === 'building' && s.footprint.w <= 32 && s.footprint.h <= 32);
+  const tiles = [
+    { id: 'p1', set_num: 'sample-baseplate', name: 'Baseplate', category: 'baseplate', kind: 'baseplate',
+      x: 0, y: 0, w: 64, h: 96, rot: 0, approx: false, img: null, layer: 0, z: 0, color: 'var(--g-green)' },
+    { id: 'p2', set_num: 'piece-road-straight', name: 'Road — Straight', category: 'road', kind: 'road',
+      x: 0, y: 0, w: 32, h: 32, rot: 0, approx: false, img: null, layer: 1, z: 1, color: 'var(--road)' },
+    { id: 'p3', set_num: 'piece-road-straight', name: 'Road — Straight', category: 'road', kind: 'road',
+      x: 32, y: 0, w: 32, h: 32, rot: 0, approx: false, img: null, layer: 1, z: 1, color: 'var(--road)' },
+  ];
+  tiles.push(building
+    ? { id: 'p4', set_num: building.set_num, name: building.name, category: building.category, kind: building.kind,
+        x: 4, y: 36, w: building.footprint.w, h: building.footprint.h, rot: 0,
+        approx: building.footprint.source !== 'curated', img: building.img || null,
+        layer: building.layer ?? 2, z: building.layer ?? 2, color: building.color || null }
+    : { id: 'p4', set_num: 'sample-building', name: 'City Building', category: 'city', kind: 'building',
+        x: 4, y: 36, w: 16, h: 16, rot: 0, approx: false, img: null, layer: 2, z: 2, color: null });
+  return tiles;
+}
+function loadSampleCity() {
+  cityName = 'Sample city';
+  grid.setPlaced(buildSampleCity());
+  refresh();
+  autosave();
+  dismissFirstRun();
+  toast('Loaded a sample city.');
+}
+
+// ---- UI-2: shortcuts & gestures modal ----------------------------------------
+function openShortcuts() {
+  $('shortcuts-backdrop').hidden = false;
+  $('btn-help')?.setAttribute('aria-expanded', 'true');
+  $('shortcuts-close')?.focus();
+}
+function closeShortcuts() {
+  $('shortcuts-backdrop').hidden = true;
+  $('btn-help')?.setAttribute('aria-expanded', 'false');
+  $('btn-help')?.focus();
+}
+function toggleShortcuts() { $('shortcuts-backdrop').hidden ? openShortcuts() : closeShortcuts(); }
 
 function drawSummary() { renderSummary($('summary'), grid.getPlaced(), catalog.byNum, unitState); wireSummaryButtons(); }
 function drawDims() {
   const b = bbox(grid.getPlaced());
   $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'empty';
 }
-function refresh() { drawSummary(); drawDims(); drawGridSize(); }
+function refresh() { drawSummary(); drawDims(); drawGridSize(); updateFirstRun(); }
+
+// Reflect undo/redo availability on the toolbar and rebuild the history dropdown.
+function drawHistory() {
+  const u = $('btn-undo'), r = $('btn-redo'), h = $('btn-history');
+  if (!u || !grid) return; // onHistory can fire during grid init, before `grid` is assigned
+  u.disabled = !grid.canUndo();
+  r.disabled = !grid.canRedo();
+  const { entries } = grid.getHistory();
+  h.disabled = entries.length <= 1;
+  if (!$('history-menu').hidden) buildHistoryMenu();
+}
+function buildHistoryMenu() {
+  const menu = $('history-menu');
+  const { entries, index } = grid.getHistory();
+  menu.textContent = '';
+  // newest first, so the current and recent states sit at the top
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const b = document.createElement('button');
+    b.className = 'hist-item' + (i === index ? ' on' : '');
+    b.setAttribute('role', 'menuitem');
+    b.textContent = entries[i];
+    b.addEventListener('click', () => { grid.jumpHistory(i); closeHistoryMenu(); });
+    menu.appendChild(b);
+  }
+}
+function openHistoryMenu() {
+  buildHistoryMenu();
+  $('history-menu').hidden = false;
+  $('btn-history').setAttribute('aria-expanded', 'true');
+}
+function closeHistoryMenu() {
+  $('history-menu').hidden = true;
+  $('btn-history').setAttribute('aria-expanded', 'false');
+}
+
+// Show the align/distribute/group bar only when a multi-selection is live.
+function drawSelection(ids = []) {
+  const bar = $('align-bar');
+  if (!bar) return;
+  bar.hidden = ids.length < 2;
+  if (!bar.hidden) {
+    $('ab-count').textContent = `${ids.length} selected`;
+    // Distribute needs 3+ tiles to do anything — disable it below that so the buttons don't no-op.
+    bar.querySelectorAll('[data-dist]').forEach((b) => { b.disabled = ids.length < 3; });
+  }
+}
 
 function wireSummaryButtons() {
   const s = $('summary').querySelector('#btn-save');
@@ -87,7 +204,9 @@ function doExportSetList() {
   toast('Set list exported.');
 }
 function doSave() {
+  clearTimeout(saveTimer);
   saveCity(serializeCity(citySnapshot()));
+  setSaveStatus(false);
   toast(`Saved “${cityName}”.`);
 }
 function doExport() {
@@ -116,6 +235,8 @@ async function boot() {
   grid = createGrid($('grid-board'), {
     onChange: () => { refresh(); autosave(); },
     onResize: (w, h) => { gridSize = { w, h, pw: w / 32, ph: h / 32 }; drawGridSize(); },
+    onHistory: drawHistory,
+    onSelect: drawSelection,
   });
 
   renderCatalog(
@@ -133,6 +254,26 @@ async function boot() {
   $('btn-forward').addEventListener('click', () => grid.bringForward());
   $('btn-back').addEventListener('click', () => grid.sendBackward());
 
+  // Undo / redo + history dropdown
+  $('btn-undo').addEventListener('click', () => grid.undo());
+  $('btn-redo').addEventListener('click', () => grid.redo());
+  $('btn-history').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('history-menu').hidden ? openHistoryMenu() : closeHistoryMenu();
+  });
+  document.addEventListener('click', (e) => {
+    if (!$('history-menu').hidden && !e.target.closest('.hist-group')) closeHistoryMenu();
+  });
+
+  // Align / distribute / group floating bar
+  $('align-bar').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.align) grid.alignSelection(b.dataset.align);
+    else if (b.dataset.dist) grid.distributeSelection(b.dataset.dist);
+    else if (b.dataset.grp === 'group') grid.groupSelection();
+    else if (b.dataset.grp === 'ungroup') grid.ungroup();
+  });
+
   // Table-size stepper: ± one baseplate per axis.
   $('grid-size').addEventListener('click', (e) => {
     const a = e.target.dataset.gs; if (!a) return;
@@ -141,6 +282,21 @@ async function boot() {
     if (next) grid.setGridPlates(next[0], next[1]);
   });
   $('btn-delete').addEventListener('click', () => grid.deleteSelected());
+
+  // First-run tips (UI-1)
+  $('fr-close')?.addEventListener('click', dismissFirstRun);
+  $('btn-sample')?.addEventListener('click', loadSampleCity);
+
+  // Shortcuts modal (UI-2)
+  $('btn-help')?.addEventListener('click', toggleShortcuts);
+  $('shortcuts-close')?.addEventListener('click', closeShortcuts);
+  $('shortcuts-backdrop')?.addEventListener('click', (e) => { if (e.target === $('shortcuts-backdrop')) closeShortcuts(); });
+  document.addEventListener('keydown', (e) => {
+    const tgt = e.target;
+    if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
+    if (e.key === '?' || (e.shiftKey && e.key === '/')) { e.preventDefault(); toggleShortcuts(); }
+    else if (e.key === 'Escape' && !$('shortcuts-backdrop').hidden) { closeShortcuts(); }
+  });
 
   // Drag a catalog item onto the grid to drop it there.
   const gstage = $('grid-stage');
@@ -190,5 +346,7 @@ async function boot() {
     console.warn('Could not restore saved city:', err.message);
   }
   refresh();
+  drawHistory();
+  drawSelection(grid.getSelection());
 }
 boot();

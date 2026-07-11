@@ -22,6 +22,9 @@
         <div><div class="wordmark">Brick<b>City</b> Planner</div></div>
       </div>
       <div class="toolbar">
+        <span class="save-status" id="save-status" role="status" aria-live="polite">
+          <i class="dot" aria-hidden="true"></i><span class="lbl">All changes saved</span>
+        </span>
         <div class="seg" id="unit-toggle" role="group" aria-label="Units">
           <button class="on" data-unit="studs">studs</button><button data-unit="cm">cm</button>
         </div>
@@ -45,7 +48,14 @@
         <div class="card-h"><h2>City grid</h2>
           <span class="muted" id="grid-dims" style="margin-left:auto"></span></div>
         <div class="canvas-tools">
-          <button class="btn icon" id="btn-rotate" title="Rotate selected">⟳</button>
+          <div class="hist-group">
+            <button class="btn icon" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
+            <button class="btn icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷</button>
+            <button class="btn icon" id="btn-history" title="History" aria-label="Edit history" aria-haspopup="true" aria-expanded="false" disabled>🕘</button>
+            <div class="hist-menu" id="history-menu" role="menu" aria-label="Edit history" hidden></div>
+          </div>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <button class="btn icon" id="btn-rotate" title="Rotate selected (R)">⟳</button>
           <button class="btn icon" id="btn-forward" title="Bring to front">⬆</button>
           <button class="btn icon" id="btn-back" title="Send to back (above baseplates)">⬇</button>
           <button class="btn icon" id="btn-delete" title="Delete selected">🗑</button>
@@ -63,8 +73,36 @@
           <div class="seg" id="zoom-ctrl" style="margin-left:auto">
             <button data-zoom="out">−</button><button class="on" data-zoom="reset">100%</button>
             <button data-zoom="in">＋</button><button data-zoom="fit">Fit</button></div>
+          <button class="btn icon" id="btn-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">?</button>
         </div>
-        <div class="stage" id="grid-stage"><div class="board" id="grid-board"></div></div>
+        <div class="stage" id="grid-stage">
+          <div class="board" id="grid-board"></div>
+          <div class="first-run" id="first-run" hidden>
+            <button class="fr-close" id="fr-close" aria-label="Dismiss tips">✕</button>
+            <div class="fr-steps">
+              <div class="fr-step"><span class="fr-num">1</span>Search a set</div>
+              <div class="fr-step"><span class="fr-num">2</span>Drag it onto the grid</div>
+              <div class="fr-step"><span class="fr-num">3</span>Snap roads together</div>
+            </div>
+            <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
+          </div>
+        </div>
+        <div class="align-bar" id="align-bar" role="toolbar" aria-label="Align, distribute and group selection" hidden>
+          <span class="ab-count" id="ab-count"></span>
+          <span class="ab-sep" aria-hidden="true"></span>
+          <button class="ab-btn" data-align="left" title="Align left" aria-label="Align left">⇤</button>
+          <button class="ab-btn" data-align="centerH" title="Align centres horizontally" aria-label="Align horizontal centres">⇔</button>
+          <button class="ab-btn" data-align="right" title="Align right" aria-label="Align right">⇥</button>
+          <button class="ab-btn" data-align="top" title="Align top" aria-label="Align top">⤒</button>
+          <button class="ab-btn" data-align="centerV" title="Align centres vertically" aria-label="Align vertical centres">⇕</button>
+          <button class="ab-btn" data-align="bottom" title="Align bottom" aria-label="Align bottom">⤓</button>
+          <span class="ab-sep" aria-hidden="true"></span>
+          <button class="ab-btn" data-dist="h" title="Distribute horizontally" aria-label="Distribute horizontally">⇹</button>
+          <button class="ab-btn" data-dist="v" title="Distribute vertically" aria-label="Distribute vertically">⤄</button>
+          <span class="ab-sep" aria-hidden="true"></span>
+          <button class="ab-btn" data-grp="group" title="Group (Ctrl+G)" aria-label="Group selection">⛓</button>
+          <button class="ab-btn" data-grp="ungroup" title="Ungroup (Ctrl+Shift+G)" aria-label="Ungroup selection">⛓⃠</button>
+        </div>
       </section>
 
       <aside class="card" aria-label="City summary">
@@ -79,6 +117,43 @@
     </div>
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
+
+  <div class="modal-backdrop" id="shortcuts-backdrop" hidden>
+    <div class="modal" id="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+      <div class="modal-h">
+        <h2 id="shortcuts-title">Shortcuts &amp; gestures</h2>
+        <button class="modal-close" id="shortcuts-close" aria-label="Close shortcuts">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="sc-group">
+          <h3>Mouse &amp; touch</h3>
+          <div class="sc-row"><span>Drag a set from the catalog onto the grid</span><kbd>drag &amp; drop</kbd></div>
+          <div class="sc-row"><span>Drag a tile</span><kbd>move</kbd></div>
+          <div class="sc-row"><span>Alt-drag a tile</span><kbd>Alt + drag</kbd></div>
+          <div class="sc-row"><span>Drag the node above a selected tile</span><kbd>free rotate</kbd></div>
+          <div class="sc-row"><span>Drag the bottom-right corner grip</span><kbd>resize table</kbd></div>
+          <div class="sc-row"><span>Drag on empty canvas</span><kbd>box-select</kbd></div>
+          <div class="sc-row"><span>Shift/Ctrl-click a tile</span><kbd>add/remove selection</kbd></div>
+          <div class="sc-row"><span>Ctrl + scroll over the canvas</span><kbd>zoom</kbd></div>
+        </div>
+        <div class="sc-group">
+          <h3>Keyboard</h3>
+          <div class="sc-row"><span>Nudge selection 1 stud</span><kbd>↑ ↓ ← →</kbd></div>
+          <div class="sc-row"><span>Rotate selection 90°</span><kbd>R</kbd></div>
+          <div class="sc-row"><span>Delete selection</span><kbd>Delete</kbd></div>
+          <div class="sc-row"><span>Clear selection</span><kbd>Esc</kbd></div>
+          <div class="sc-row"><span>Select all</span><kbd>Ctrl+A</kbd></div>
+          <div class="sc-row"><span>Undo / Redo</span><kbd>Ctrl+Z / Ctrl+Shift+Z</kbd></div>
+          <div class="sc-row"><span>Redo (alt)</span><kbd>Ctrl+Y</kbd></div>
+          <div class="sc-row"><span>Copy / Paste</span><kbd>Ctrl+C / Ctrl+V</kbd></div>
+          <div class="sc-row"><span>Duplicate</span><kbd>Ctrl+D</kbd></div>
+          <div class="sc-row"><span>Group / Ungroup</span><kbd>Ctrl+G / Ctrl+Shift+G</kbd></div>
+          <div class="sc-row"><span>This help</span><kbd>?</kbd></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

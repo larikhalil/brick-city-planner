@@ -2,11 +2,11 @@
 :root{
   /* cool drafting-paper neutrals, biased toward blueprint blue */
   --bg:#e7ecf4; --panel:#ffffff; --panel-2:#f3f6fb; --sunk:#eef2f8;
-  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#8493a9;
+  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#5e6d84;  /* AA-checked ≥4.5:1 on panel/sunk */
   --line:#d5ddeb; --line-2:#c2cddd; --plate:#9fb0cb;      /* baseplate rule */
   --accent:#ffcf33;                                        /* construction yellow */
   --accent-ink:#241905; --accent-deep:#e0a900;
-  --ok:#1f9d54; --warn:#e07d10; --danger:#d8382a;
+  --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;          /* warn darkened for AA text contrast */
   /* theme (set category) colours — semantic legend */
   --t-police:#2f7fe0; --t-fire:#e8463a; --t-train:#1f9d76;
   --t-city:#4d7194; --t-modular:#c9993c; --t-road:#7a869a;
@@ -23,7 +23,7 @@
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#0b1220; --panel:#131f31; --panel-2:#0f1826; --sunk:#0d1522;
-    --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#647794;
+    --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#7789a5;
     --line:#243449; --line-2:#2c3f58; --plate:#3d5779;
     --accent:#ffd23f; --accent-ink:#241905; --accent-deep:#ffbe1a;
     --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
@@ -36,9 +36,9 @@
 }
 :root[data-theme="light"]{
   --bg:#e7ecf4; --panel:#ffffff; --panel-2:#f3f6fb; --sunk:#eef2f8;
-  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#8493a9;
+  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#5e6d84;
   --line:#d5ddeb; --line-2:#c2cddd; --plate:#9fb0cb;
-  --accent:#ffcf33; --accent-deep:#e0a900; --ok:#1f9d54; --warn:#e07d10; --danger:#d8382a;
+  --accent:#ffcf33; --accent-deep:#e0a900; --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;
   --t-police:#2f7fe0; --t-fire:#e8463a; --t-train:#1f9d76; --t-city:#4d7194;
   --t-modular:#c9993c; --t-road:#7a869a; --t-park:#7ba838; --t-space:#7b5bd6;
   --grid-fine:#dfe6f1; --grid-stud:#cbd6e6; --canvas:#f6f8fc;
@@ -46,7 +46,7 @@
 }
 :root[data-theme="dark"]{
   --bg:#0b1220; --panel:#131f31; --panel-2:#0f1826; --sunk:#0d1522;
-  --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#647794;
+  --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#7789a5;
   --line:#243449; --line-2:#2c3f58; --plate:#3d5779;
   --accent:#ffd23f; --accent-deep:#ffbe1a; --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
   --t-police:#4a92ec; --t-fire:#ef5a4e; --t-train:#2fb98d; --t-city:#6f92b6;
@@ -61,6 +61,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
 h1,h2,h3,p{margin:0}
 button{font-family:inherit;cursor:pointer}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* High-contrast keyboard focus ring (ACC-3), everywhere except .tile (which gets its own halo
+   below, since it needs to stay visible over any tile colour and survive overflow:hidden). */
+:focus-visible{outline:3px solid var(--accent-deep);outline-offset:2px;border-radius:4px}
 
 /* ============ APP SHELL ============ */
 .app{max-width:1240px;margin:0 auto;padding:18px 18px 40px}
@@ -78,13 +81,21 @@ button{font-family:inherit;cursor:pointer}
 .preview-tag{margin-left:2px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--accent-ink);background:var(--accent);
   padding:4px 9px;border-radius:999px;font-weight:600}
-.toolbar{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.toolbar{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+/* ---- Autosave status pill (QOL-9) ---- */
+.save-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-faint);
+  padding:0 4px;transition:color .15s}
+.save-status .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);transition:background .15s}
+.save-status.saving{color:var(--ink-soft)}
+.save-status.saving .dot{background:var(--warn);animation:save-pulse 1s ease-in-out infinite}
+@keyframes save-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.save-status.saving .dot{animation:none}}
 .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);
   background:var(--panel-2);color:var(--ink);padding:8px 12px;border-radius:9px;
   font-size:13px;font-weight:600;transition:transform .08s,border-color .12s,background .12s}
 .btn:hover{transform:translateY(-1px);border-color:var(--plate)}
 .btn.primary{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
-.btn.icon{padding:8px 10px}
+.btn.icon{padding:8px 10px;font-size:15.5px;line-height:1}
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
 .seg button{border:0;background:var(--panel-2);color:var(--ink-soft);padding:8px 11px;font-weight:600}
 .seg button+button{border-left:1px solid var(--line-2)}
@@ -102,8 +113,12 @@ button{font-family:inherit;cursor:pointer}
 .search{margin:12px 14px 8px;display:flex;align-items:center;gap:8px;background:var(--sunk);
   border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;color:var(--ink-faint)}
 .search input{border:0;background:transparent;color:var(--ink);width:100%;font-size:13px;outline:none}
+/* Gentle nudge toward the search box during the first-run tip (UI-1) */
+.search.pulse{animation:search-pulse 1.7s ease-in-out infinite}
+@keyframes search-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,207,51,.45)}50%{box-shadow:0 0 0 5px rgba(255,207,51,0)}}
+@media (prefers-reduced-motion:reduce){.search.pulse{animation:none}}
 .chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
-.chip{font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid var(--line-2);
+.chip{font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid var(--line-2);
   background:var(--panel-2);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px}
 .chip.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
 .dot{width:8px;height:8px;border-radius:2px;flex:none}
@@ -117,8 +132,8 @@ button{font-family:inherit;cursor:pointer}
   background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.55) 1.6px,transparent 2px);
   background-size:9px 9px;background-position:2px 2px;opacity:.5}
 .set-meta{min-width:0;flex:1}
-.set-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.set-sub{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-top:2px;
+.set-name{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-sub{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-top:2px;
   display:flex;gap:8px;align-items:center}
 .fp{color:var(--ink-soft)}
 .approx{color:var(--warn)}
@@ -127,10 +142,67 @@ button{font-family:inherit;cursor:pointer}
 .set:hover .add{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
 
 /* ---- Canvas ---- */
-.canvas-wrap{padding:0}
+.canvas-wrap{padding:0;position:relative}
 .canvas-tools{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tool-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
+/* undo / redo + history dropdown */
+.hist-group{position:relative;display:inline-flex;gap:8px}
+.btn.icon:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn.icon:disabled:hover{transform:none;border-color:var(--line-2)}
+.hist-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:190px;max-height:280px;overflow:auto;
+  background:var(--panel);border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow);padding:5px}
+.hist-item{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--ink);
+  font-size:12.5px;padding:7px 9px;border-radius:7px;font-weight:500}
+.hist-item:hover{background:var(--sunk)}
+.hist-item.on{background:var(--accent);color:var(--accent-ink);font-weight:700}
+/* rubber-band marquee + multi-selection bounding box (both drawn inside the board) */
+.marquee{position:absolute;z-index:7;pointer-events:none;border-radius:2px;
+  background:rgba(255,207,51,.14)}
+.sel-box{position:absolute;z-index:6;pointer-events:none;border-radius:3px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+/* Animated dashed "marching ants" outline (MOTION-6): four thin repeating-gradient strips
+   (one per edge) whose background-position is shifted by the animation — a pure-CSS technique
+   that never touches `transform`, so it can't collide with the rotation gotcha. */
+.marquee::before, .sel-box::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(90deg, var(--accent-deep) 50%, transparent 50%),
+    linear-gradient(90deg, var(--accent-deep) 50%, transparent 50%),
+    linear-gradient(0deg, var(--accent-deep) 50%, transparent 50%),
+    linear-gradient(0deg, var(--accent-deep) 50%, transparent 50%);
+  background-repeat:repeat-x, repeat-x, repeat-y, repeat-y;
+  background-size:10px 2px, 10px 2px, 2px 10px, 2px 10px;
+  background-position:0 0, 0 100%, 0 0, 100% 0;
+  animation:marching-ants .5s linear infinite;
+}
+@keyframes marching-ants{to{background-position:10px 0, -10px 100%, 0 -10px, 100% 10px}}
+@media (prefers-reduced-motion:reduce){.marquee::before,.sel-box::before{animation:none}}
+/* floating align / distribute / group bar, top-centre of the canvas when 2+ selected */
+.align-bar{position:absolute;top:106px;left:50%;transform:translateX(-50%);z-index:20;display:flex;
+  align-items:center;gap:3px;background:var(--panel);border:1px solid var(--line-2);border-radius:11px;
+  padding:5px 7px;box-shadow:var(--shadow)}
+.align-bar[hidden]{display:none}
+.ab-count{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);padding:0 5px;white-space:nowrap}
+.ab-sep{width:1px;height:20px;background:var(--line);margin:0 2px}
+.ab-btn{width:28px;height:28px;padding:0;border:1px solid transparent;border-radius:7px;background:transparent;
+  color:var(--ink-soft);font-size:16px;line-height:1;display:grid;place-items:center}
+.ab-btn:hover:not(:disabled){background:var(--sunk);border-color:var(--line-2);color:var(--ink)}
+.ab-btn:disabled{opacity:.35;cursor:default}
 .canvas-tools .muted{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
 .stage{position:relative;overflow:auto;background:var(--canvas);border-radius:0 0 12px 12px}
+/* ---- First-run guided empty state (UI-1) ---- */
+.first-run{position:absolute;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:18px;background:var(--canvas);text-align:center;padding:24px}
+.first-run[hidden]{display:none}
+.fr-close{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
+  border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-soft);font-size:13px;display:grid;place-items:center}
+.fr-close:hover{color:var(--ink);border-color:var(--plate)}
+.fr-steps{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:420px}
+.fr-step{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12.5px;
+  color:var(--ink-soft);max-width:120px;font-weight:600}
+.fr-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+  font-weight:800;font-family:var(--mono);display:grid;place-items:center;font-size:13px}
+.first-run .btn{padding:10px 18px}
 .ruler-x{position:sticky;top:0;height:22px;margin-left:26px;display:flex;
   font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);z-index:3;
   background:linear-gradient(var(--canvas),var(--canvas))}
@@ -150,11 +222,18 @@ button{font-family:inherit;cursor:pointer}
 .ruler-y span{position:absolute;right:4px;transform:translateY(-50%)}
 .ruler-x span{position:absolute;transform:translateX(-2px)}
 
-.tile{position:absolute;border-radius:3px;padding:8px 9px;color:#fff;overflow:hidden;
+.tile{--rot:0deg;position:absolute;border-radius:3px;padding:8px 9px;color:#fff;overflow:hidden;
   border:1px solid rgba(0,0,0,.22);box-shadow:0 2px 5px rgba(0,0,0,.22);
   display:flex;flex-direction:column;justify-content:space-between;cursor:grab;
-  transition:transform .1s,box-shadow .1s;animation:pop .35s ease both}
+  transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .1s,opacity .1s;animation:pop .38s cubic-bezier(.2,.9,.3,1.2)}
 .tile:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.3);z-index:5}
+/* drag-lift: brief, tasteful shadow/opacity while a tile is actively being dragged (MOTION-6) */
+.tile.dragging{opacity:.88;box-shadow:0 12px 26px rgba(0,0,0,.38);z-index:7;cursor:grabbing;transition:box-shadow .1s,opacity .1s}
+.tile.dragging:hover{transform:none}
+/* free-rotate drag: kill the elastic transform tween so rotation tracks the pointer 1:1 (keep it for
+   discrete R-key/90° snaps, which don't set this class) */
+.tile.rotating{transition:box-shadow .1s,opacity .1s}
+.tile.rotating:hover{transform:none}
 .tile::before{content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(circle,rgba(255,255,255,.4) 1.5px,transparent 2px);
   background-size:12px 12px;background-position:6px 6px;opacity:.35}
@@ -170,6 +249,10 @@ button{font-family:inherit;cursor:pointer}
 .tile:hover .rot{opacity:1}
 .tile.warn{outline:2px solid var(--danger);outline-offset:1px;box-shadow:0 0 0 4px rgba(216,56,42,.22),0 2px 5px rgba(0,0,0,.22)}
 .tile.selected{outline:2px solid var(--accent-deep);outline-offset:1px;z-index:6;overflow:visible}
+/* High-contrast keyboard focus ring (ACC-3): a "halo" — a thin ring matching the panel colour
+   (so it reads on both light and dark surfaces) inside a thick accent ring outside it. outline/
+   box-shadow both paint outside the box regardless of the tile's own overflow:hidden. */
+.tile:focus-visible{outline:none;box-shadow:0 0 0 2px var(--panel),0 0 0 5px var(--accent-deep),0 2px 5px rgba(0,0,0,.22);z-index:6}
 /* label layer counter-rotates so text stays upright on angled tiles */
 .tlabel{position:absolute;inset:0;padding:8px 9px;display:flex;flex-direction:column;justify-content:space-between;
   transform-origin:center;pointer-events:none;z-index:1}
@@ -188,9 +271,27 @@ button{font-family:inherit;cursor:pointer}
   font-family:var(--mono);padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);white-space:nowrap}
 .empty-hint{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-faint);
   font-size:14px;text-align:center;padding:24px}
-/* fade-only entrance — must NOT animate transform, or it overrides tile rotation (fill:both) */
-@keyframes pop{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){.tile{animation:none}}
+/* Disposable fading clone left behind by a delete (MOTION-6) — never a real tile, never
+   interactive, and its rotation lives in a custom property so nothing ever fights an inline
+   `transform`. Spawned/removed by grid.js, entirely decoupled from the real deletion (which
+   stays fully synchronous). */
+.tile-ghost{--rot:0deg;position:absolute;border-radius:3px;pointer-events:none;z-index:9;
+  border:1px solid rgba(0,0,0,.22);box-shadow:0 2px 5px rgba(0,0,0,.22);
+  opacity:1;transform:scale(1) rotate(var(--rot));
+  transition:opacity .22s ease,transform .22s ease}
+.tile-ghost.flat{box-shadow:none;border-color:rgba(0,0,0,.14)}
+.tile-ghost.out{opacity:0;transform:scale(.7) rotate(var(--rot))}
+@media (prefers-reduced-motion:reduce){.tile-ghost{transition:none}}
+/* Scale-in-with-overshoot entrance (MOTION-6). The keyframe reads the tile's own --rot custom
+   property rather than a literal angle, and the animation has NO fill-mode (not `both`/`forwards`),
+   so once it finishes control reverts to the element's normal inline `transform` — it can never
+   freeze the wrong rotation onto a tile the way an animated literal `rotate()` value would. */
+@keyframes pop{
+  0%{opacity:0;transform:scale(.55) rotate(var(--rot))}
+  65%{opacity:1;transform:scale(1.06) rotate(var(--rot))}
+  100%{opacity:1;transform:scale(1) rotate(var(--rot))}
+}
+@media (prefers-reduced-motion:reduce){.tile{animation:none;transition:none}}
 
 /* ---- Summary ---- */
 .sum{padding:14px;display:flex;flex-direction:column;gap:14px}
@@ -200,10 +301,10 @@ button{font-family:inherit;cursor:pointer}
 .stat-lead .v small{font-size:13px;color:var(--ink-faint);font-weight:500}
 .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px}
-.stat .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
-.stat .v{font-family:var(--mono);font-size:18px;font-weight:600;margin-top:3px}
+.stat .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.stat .v{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:3px}
 .breakdown{display:flex;flex-direction:column;gap:7px}
-.brow{display:flex;align-items:center;gap:9px;font-size:12.5px}
+.brow{display:flex;align-items:center;gap:9px;font-size:13px}
 .brow .nm{flex:1;color:var(--ink-soft)}
 .brow .ct{font-family:var(--mono);color:var(--ink-faint)}
 .bar{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:8px;display:flex}
@@ -232,12 +333,16 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   border-right:2px solid var(--plate);border-bottom:2px solid var(--plate);border-bottom-right-radius:3px}
 .grip:hover{opacity:1;border-color:var(--accent)}
 .grip:hover::after{border-color:var(--accent)}
+/* One-time subtle pulse the first time the board renders, so the resize affordance gets noticed (UI-2) */
+.grip.intro{animation:grip-intro 1s ease-in-out 2}
+@keyframes grip-intro{0%,100%{border-color:var(--plate)}50%{border-color:var(--accent);opacity:1}}
+@media (prefers-reduced-motion:reduce){.grip.intro{animation:none}}
 
 /* ---- Table-size stepper (baseplates) ---- */
 .gsize{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
 .gsize .lab{text-transform:uppercase;letter-spacing:.08em}
 .gstep{width:22px;height:24px;padding:0;border:1px solid var(--line-2);border-radius:6px;
-  background:var(--panel-2);color:var(--ink-soft);font-weight:700;font-size:14px;line-height:1;cursor:pointer}
+  background:var(--panel-2);color:var(--ink-soft);font-weight:700;font-size:15px;line-height:1;cursor:pointer}
 .gstep:hover{border-color:var(--plate);color:var(--ink);transform:translateY(-1px)}
 .gsize .v{min-width:14px;text-align:center;font-weight:700;color:var(--ink)}
 .gsize .x{opacity:.6}
@@ -246,6 +351,27 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   .grid3{grid-template-columns:1fr}
   .stage{max-height:460px}
 }
+
+/* ============ SHORTCUTS MODAL (UI-2) ============ */
+.modal-backdrop{position:fixed;inset:0;z-index:60;background:rgba(9,14,24,.55);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-backdrop[hidden]{display:none}
+.modal{background:var(--panel);border:1px solid var(--line-2);border-radius:14px;box-shadow:var(--shadow);
+  max-width:520px;width:100%;max-height:85vh;overflow:auto}
+.modal-h{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--line)}
+.modal-h h2{font-size:14px;font-weight:700}
+.modal-close{width:30px;height:30px;flex:none;border-radius:8px;border:1px solid var(--line-2);
+  background:var(--panel-2);color:var(--ink-soft);font-size:14px}
+.modal-close:hover{color:var(--ink);border-color:var(--plate)}
+.modal-body{padding:6px 16px 16px;display:flex;flex-direction:column;gap:16px}
+.sc-group h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+  font-weight:700;margin:14px 0 6px}
+.sc-row{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:6px 0;font-size:12.5px;color:var(--ink);border-bottom:1px dashed var(--line)}
+.sc-row:last-child{border-bottom:0}
+.sc-row kbd{font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--sunk);
+  border:1px solid var(--line-2);border-radius:5px;padding:2px 7px;white-space:nowrap}
 
 /* ============ TOAST ============ */
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);

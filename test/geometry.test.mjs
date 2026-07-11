@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extent, overlaps, bbox, snap, anyOverlaps, snapConnect, grownCanvas, clampedCanvas, BP } from '../js/geometry.js';
+import {
+  extent, overlaps, bbox, snap, anyOverlaps, snapConnect, grownCanvas, clampedCanvas, BP,
+  tileAABB, tilesInRect, alignTiles, distributeTiles, rotateGroup,
+} from '../js/geometry.js';
 
 test('extent swaps on 90/270', () => {
   assert.deepEqual(extent({ w: 48, h: 32, rot: 0 }), { w: 48, h: 32 });
@@ -110,4 +113,64 @@ test('anyOverlaps only flags same-layer overlaps (baseplate/road/building layeri
   // tiles with no layer default to buildings (layer 2)
   const plain = { id: 'plain', x: 8, y: 8, w: 16, h: 16, rot: 0 };
   assert.deepEqual([...anyOverlaps([house, plain])].sort(), ['house', 'plain']);
+});
+
+test('tileAABB accounts for rotation (90° swaps the extent)', () => {
+  assert.deepEqual(tileAABB({ x: 0, y: 0, w: 48, h: 32, rot: 0 }),
+    { minX: 0, maxX: 48, minY: 0, maxY: 32 });
+  // 48×32 rotated 90° about its centre (24,16) → 32×48 AABB centred the same
+  assert.deepEqual(tileAABB({ x: 0, y: 0, w: 48, h: 32, rot: 90 }),
+    { minX: 8, maxX: 40, minY: -8, maxY: 40 });
+});
+test('tilesInRect returns ids whose AABB intersects the marquee', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'b', x: 100, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'c', x: 20, y: 20, w: 32, h: 32, rot: 0 },
+  ];
+  // box over the top-left corner catches a and c, not the far b
+  assert.deepEqual(tilesInRect(tiles, { x: -5, y: -5, w: 40, h: 40 }).sort(), ['a', 'c']);
+  // a box out in empty space catches nothing
+  assert.deepEqual(tilesInRect(tiles, { x: 200, y: 200, w: 10, h: 10 }), []);
+});
+test('alignTiles lines tiles up by their rotated AABB', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'b', x: 10, y: 50, w: 16, h: 16, rot: 0 },
+  ];
+  const left = alignTiles(tiles, 'left');
+  assert.equal(left.find((r) => r.id === 'a').x, 0);
+  assert.equal(left.find((r) => r.id === 'b').x, 0); // b.left snaps to the shared min (0)
+  const right = alignTiles(tiles, 'right');
+  assert.equal(right.find((r) => r.id === 'b').x, 16); // b.right (x16+16=32) meets a.right (32)
+  const cH = alignTiles(tiles, 'centerH'); // group centre x = 16
+  assert.equal(cH.find((r) => r.id === 'a').x, 0); // a centre already 16
+  assert.equal(cH.find((r) => r.id === 'b').x, 8); // b centre → 16 ⇒ x = 8
+  // aligning left leaves the other axis untouched
+  assert.equal(left.find((r) => r.id === 'b').y, 50);
+});
+test('distributeTiles evenly spaces 3+ tiles by centre, extremes fixed', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 10, h: 10, rot: 0 },   // centre 5
+    { id: 'b', x: 15, y: 0, w: 10, h: 10, rot: 0 },  // centre 20
+    { id: 'c', x: 40, y: 0, w: 10, h: 10, rot: 0 },  // centre 45
+  ];
+  const d = distributeTiles(tiles, 'h'); // targets 5,25,45
+  assert.equal(d.find((r) => r.id === 'a').x, 0);   // first fixed
+  assert.equal(d.find((r) => r.id === 'c').x, 40);  // last fixed
+  assert.equal(d.find((r) => r.id === 'b').x, 20);  // centre 25 ⇒ x 20
+  // fewer than 3 tiles is a no-op
+  assert.deepEqual(distributeTiles(tiles.slice(0, 2), 'h').map((r) => r.x), [0, 15]);
+});
+test('rotateGroup orbits tile centres about the group centre and advances rot', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'b', x: 32, y: 0, w: 32, h: 32, rot: 0 },
+  ];
+  const r = rotateGroup(tiles, 90);
+  const a = r.find((t) => t.id === 'a'), b = r.find((t) => t.id === 'b');
+  assert.equal(a.rot, 90); assert.equal(b.rot, 90);
+  // a horizontal pair rotated 90° becomes a vertical pair (same x, 32 apart in y)
+  assert.equal(a.x, b.x);
+  assert.equal(Math.abs(b.y - a.y), 32);
 });
