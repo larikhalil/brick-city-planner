@@ -1,6 +1,7 @@
 import { bbox, anyOverlaps } from './geometry.js';
 import { fmtDims, fmtArea, studsToCm } from './units.js';
 import { catColor } from './catalog.js';
+import { esc } from './util.js';
 
 export function renderSummary(el, placed, byNum, unit = 'studs') {
   const box = bbox(placed);
@@ -29,7 +30,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs') {
       <h2 class="sec" style="margin-bottom:8px">By category</h2>
       <div class="breakdown">${cats.map(([c, n]) =>
         `<div class="brow"><i class="dot" style="background:${catColor(c)}"></i>
-          <span class="nm">${c[0].toUpperCase() + c.slice(1)}</span><span class="ct">${n}</span></div>`).join('') ||
+          <span class="nm">${esc(c[0].toUpperCase() + c.slice(1))}</span><span class="ct">${n}</span></div>`).join('') ||
         '<div class="note">No sets yet — add some from the catalog.</div>'}</div>
       ${cats.length ? `<div class="bar">${cats.map(([c, n]) =>
         `<i style="width:${(n / total * 100).toFixed(1)}%;background:${catColor(c)}"></i>`).join('')}</div>` : ''}

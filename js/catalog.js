@@ -1,3 +1,5 @@
+import { esc } from './util.js';
+
 const CATS = [
   ['all', 'All', null], ['police', 'Police', 'var(--t-police)'],
   ['fire', 'Fire', 'var(--t-fire)'], ['train', 'Trains', 'var(--t-train)'],
@@ -55,11 +57,11 @@ export function renderCatalog(els, sets, { onAdd }) {
         s.img ? `<img src="${s.img}" alt="" loading="lazy"
           style="width:100%;height:100%;object-fit:cover"
           onerror="this.remove()">` : ''}</div>
-      <div class="set-meta"><div class="set-name" title="${s.name}">${s.name}</div>
-        <div class="set-sub"><span>${s.num}</span><span>${s.year || ''}</span>
+      <div class="set-meta"><div class="set-name" title="${esc(s.name)}">${esc(s.name)}</div>
+        <div class="set-sub"><span>${esc(s.num)}</span><span>${s.year || ''}</span>
           <span class="fp${approx ? ' approx' : ''}">${approx ? '≈ ' : ''}${s.footprint.w}×${s.footprint.h}</span>
         </div></div>
-      <button class="add" aria-label="Add ${s.name}">＋</button>`;
+      <button class="add" aria-label="Add ${esc(s.name)}">＋</button>`;
     el.querySelector('.add').addEventListener('click', () => onAdd(s));
     return el;
   }

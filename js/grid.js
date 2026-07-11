@@ -1,5 +1,6 @@
 import { catColor } from './catalog.js';
 import { anyOverlaps, bbox, extent, snap } from './geometry.js';
+import { esc } from './util.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
@@ -60,8 +61,8 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       el.dataset.id = t.id;
       el.tabIndex = 0;
       el.innerHTML = `
-        <div class="tn">${t.name}${t.approx ? ' <span style="opacity:.8;font-weight:400">≈</span>' : ''}</div>
-        <div class="tsub"><span>${t.set_num.replace(/-\d+$/, '')}</span><span>${e.w}×${e.h}</span></div>`;
+        <div class="tn">${esc(t.name)}${t.approx ? ' <span style="opacity:.8;font-weight:400">≈</span>' : ''}</div>
+        <div class="tsub"><span>${esc(t.set_num.replace(/-\d+$/, ''))}</span><span>${e.w}×${e.h}</span></div>`;
       if (t.id === selectedId) {
         const h = document.createElement('div');
         h.className = 'resize-handle';
@@ -69,6 +70,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       }
       board.appendChild(el);
     }
+    if (selectedId) board.querySelector(`.tile[data-id="${selectedId}"]`)?.focus({ preventScroll: true });
   }
 
   function select(id) { selectedId = id; render(); }
