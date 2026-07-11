@@ -169,7 +169,14 @@ button{font-family:inherit;cursor:pointer}
   background:rgba(0,0,0,.28);display:grid;place-items:center;font-size:11px;opacity:0;transition:opacity .12s}
 .tile:hover .rot{opacity:1}
 .tile.warn{outline:2px solid var(--danger);outline-offset:1px;box-shadow:0 0 0 4px rgba(216,56,42,.22),0 2px 5px rgba(0,0,0,.22)}
-.tile.selected{outline:2px solid var(--accent-deep);outline-offset:1px;z-index:6}
+.tile.selected{outline:2px solid var(--accent-deep);outline-offset:1px;z-index:6;overflow:visible}
+/* label layer counter-rotates so text stays upright on angled tiles */
+.tlabel{position:absolute;inset:0;padding:8px 9px;display:flex;flex-direction:column;justify-content:space-between;
+  transform-origin:center;pointer-events:none;z-index:1}
+/* drag-node above the selected tile to rotate it to any angle */
+.rotate-handle{position:absolute;left:50%;top:-24px;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--accent-deep);cursor:grab;z-index:8;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.rotate-handle::after{content:"";position:absolute;left:50%;top:100%;width:2px;height:11px;background:var(--accent-deep);margin-left:-1px}
 /* baseplates, roads & tracks are the ground: flat, no shadow, no hover-lift, stay beneath buildings */
 .tile.flat{box-shadow:none;border-color:rgba(0,0,0,.14)}
 .tile.flat:hover{transform:none;box-shadow:none;z-index:auto}
@@ -182,7 +189,8 @@ button{font-family:inherit;cursor:pointer}
   font-family:var(--mono);padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);white-space:nowrap}
 .empty-hint{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-faint);
   font-size:14px;text-align:center;padding:24px}
-@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+/* fade-only entrance — must NOT animate transform, or it overrides tile rotation (fill:both) */
+@keyframes pop{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.tile{animation:none}}
 
 /* ---- Summary ---- */

@@ -30,6 +30,17 @@ test('anyOverlaps returns ids of overlapping tiles', () => {
   ]);
   assert.deepEqual([...ids].sort(), ['a', 'b']);
 });
+test('overlaps handles rotated rectangles (SAT)', () => {
+  const a = { x: 0, y: 0, w: 30, h: 30, rot: 45 };
+  const b = { x: 10, y: 10, w: 30, h: 30, rot: 0 };
+  assert.equal(overlaps(a, b), true); // overlapping, one rotated 45°
+  const far = { x: 200, y: 0, w: 30, h: 30, rot: 45 };
+  assert.equal(overlaps(a, far), false); // clearly apart
+  // edge-adjacent rotated pieces (share an edge) must NOT warn
+  const c = { x: 0, y: 0, w: 20, h: 20, rot: 0 };
+  const d = { x: 20, y: 0, w: 20, h: 20, rot: 0 };
+  assert.equal(overlaps(c, d), false);
+});
 test('anyOverlaps only flags same-layer overlaps (baseplate/road/building layering)', () => {
   const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };
   const road = { id: 'road', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };

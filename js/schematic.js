@@ -68,8 +68,8 @@ function vehicle(wide) {
     : '<rect x="28" y="14" width="44" height="72" rx="12" fill="rgba(0,0,0,.28)"/><rect x="35" y="24" width="30" height="22" rx="4" fill="rgba(255,255,255,.82)"/>';
 }
 
-export function schematicSVG(kind, e, name, rot = 0) {
-  const wide = e.w >= e.h;
+export function schematicSVG(kind, e, name) {
+  const wide = e.w >= e.h; // orient by the piece's own footprint; the whole tile rotates via CSS
   let inner = '';
   switch (kind) {
     case 'road': inner = road(name, wide); break;
@@ -79,8 +79,5 @@ export function schematicSVG(kind, e, name, rot = 0) {
     case 'vehicle': inner = vehicle(wide); break;
     default: return ''; // baseplate (flat colour) / generic (photo)
   }
-  // Square tiles orient via the rotate button (rot 0/90/180/270); non-square tiles
-  // reorient by swapping w/h (extent), so they must NOT double-rotate here.
-  const spin = e.w === e.h && rot ? ` style="transform:rotate(${rot}deg)"` : '';
-  return `<svg class="schem" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"${spin}>${inner}</svg>`;
+  return `<svg class="schem" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${inner}</svg>`;
 }

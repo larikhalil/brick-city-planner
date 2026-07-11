@@ -7,7 +7,7 @@ export function studsToCm(studs) {
 
 export function fmtDims(w, h, unit = 'studs') {
   if (unit === 'cm') return `${studsToCm(w)} × ${studsToCm(h)} cm`;
-  return `${w} × ${h} studs`;
+  return `${Math.round(w)} × ${Math.round(h)} studs`;
 }
 
 export function fmtArea(w, h, unit = 'studs') {
@@ -15,5 +15,5 @@ export function fmtArea(w, h, unit = 'studs') {
     const cm2 = studsToCm(w) * studsToCm(h);
     return cm2 >= 10000 ? `${(cm2 / 10000).toFixed(2)} m²` : `${Math.round(cm2)} cm²`;
   }
-  return `${w * h} studs²`;
+  return `${Math.round(w * h)} studs²`;
 }

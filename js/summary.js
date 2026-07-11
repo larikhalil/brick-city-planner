@@ -18,7 +18,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs') {
   el.innerHTML = `
     <div class="stat-lead">
       <span class="k">Total footprint</span>
-      <span class="v">${box.w} × ${box.h} <small>studs</small></span>
+      <span class="v">${Math.round(box.w)} × ${Math.round(box.h)} <small>studs</small></span>
       <span class="mono" style="color:var(--ink-faint);font-size:12px">${
         studsToCm(box.w)} × ${studsToCm(box.h)} cm · ${fmtArea(box.w, box.h, 'cm')}</span>
     </div>
