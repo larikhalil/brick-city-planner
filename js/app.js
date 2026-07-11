@@ -1,6 +1,7 @@
 import { loadCatalog } from './data.js';
 import { renderCatalog } from './catalog.js';
 import { createGrid } from './grid.js';
+import { renderSummary } from './summary.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -12,7 +13,10 @@ async function boot() {
     $('catalog-list').innerHTML = `<div class="note">Couldn't load the set catalog. ${e.message}</div>`;
     return;
   }
-  const grid = createGrid($('grid-board'), { onChange: () => {/* summary in Task 17 */} });
+  let unitState = 'studs';
+  const autosave = () => {/* real save in Task 18 */};
+  const drawSummary = () => renderSummary($('summary'), grid.getPlaced(), catalog.byNum, unitState);
+  const grid = createGrid($('grid-board'), { onChange: () => { drawSummary(); autosave(); } });
   renderCatalog(
     { list: $('catalog-list'), search: $('catalog-search'), chips: $('catalog-chips'), count: $('catalog-count') },
     catalog.sets,
@@ -27,5 +31,6 @@ async function boot() {
     else if (z === 'reset') grid.setZoom(1);
     else if (z === 'fit') grid.fit();
   });
+  drawSummary();
 }
 boot();
