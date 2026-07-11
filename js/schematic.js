@@ -16,15 +16,18 @@ function road(name, wide) {
       `<path d="M68 100 A32 32 0 0 1 100 68" ${W}/>` +
       `<path d="M50 100 A50 50 0 0 1 100 50" ${Y}/>`;
   }
-  const junction = /cross|junction|t-|t &|and t|crossroad/.test(n);
+  const cross = /cross/.test(n);
+  const tee = !cross && /junction|t-|t &|and t/.test(n); // T = full one way + a half spur
   if (wide) {
-    return `<line x1="0" y1="9" x2="100" y2="9" ${W}/><line x1="0" y1="91" x2="100" y2="91" ${W}/>` +
-      `<line x1="0" y1="50" x2="100" y2="50" ${Y}/>` +
-      (junction ? `<line x1="50" y1="0" x2="50" y2="100" ${Y}/>` : '');
+    let s = `<line x1="0" y1="9" x2="100" y2="9" ${W}/><line x1="0" y1="91" x2="100" y2="91" ${W}/><line x1="0" y1="50" x2="100" y2="50" ${Y}/>`;
+    if (cross) s += `<line x1="50" y1="0" x2="50" y2="100" ${Y}/>`;
+    else if (tee) s += `<line x1="50" y1="50" x2="50" y2="100" ${Y}/>`;
+    return s;
   }
-  return `<line x1="9" y1="0" x2="9" y2="100" ${W}/><line x1="91" y1="0" x2="91" y2="100" ${W}/>` +
-    `<line x1="50" y1="0" x2="50" y2="100" ${Y}/>` +
-    (junction ? `<line x1="0" y1="50" x2="100" y2="50" ${Y}/>` : '');
+  let s = `<line x1="9" y1="0" x2="9" y2="100" ${W}/><line x1="91" y1="0" x2="91" y2="100" ${W}/><line x1="50" y1="0" x2="50" y2="100" ${Y}/>`;
+  if (cross) s += `<line x1="0" y1="50" x2="100" y2="50" ${Y}/>`;
+  else if (tee) s += `<line x1="50" y1="50" x2="100" y2="50" ${Y}/>`;
+  return s;
 }
 
 function track(name, wide) {
@@ -38,6 +41,16 @@ function track(name, wide) {
       ties += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#4b4038" stroke-width="4"/>`;
     }
     return ties + `<path d="M38 100 A62 62 0 0 1 100 38" ${RAIL}/><path d="M62 100 A38 38 0 0 1 100 62" ${RAIL}/>`;
+  }
+  if (/cross|crossover|diamond/.test(n)) { // two tracks crossing
+    return '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' +
+      '<rect x="0" y="33" width="100" height="4" fill="#2b2b30"/><rect x="0" y="63" width="100" height="4" fill="#2b2b30"/>';
+  }
+  if (/switch|points|junction/.test(n)) { // straight track with a diverging branch
+    let ties = '';
+    for (let y = 6; y < 100; y += 12) ties += `<rect x="10" y="${y}" width="62" height="4" fill="#4b4038"/>`;
+    return ties + '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' +
+      `<path d="M63 44 Q90 52 100 84" ${RAIL}/>`;
   }
   let s = '';
   if (wide) {

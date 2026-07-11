@@ -1,4 +1,5 @@
 import { esc } from './util.js';
+import { schematicSVG } from './schematic.js';
 
 const CATS = [
   ['all', 'All', null], ['baseplate', 'Baseplates', 'var(--g-green)'],
@@ -59,7 +60,7 @@ export function renderCatalog(els, sets, { onAdd }) {
       <div class="swatch" style="background:${s.color || catColor(s.category)}">${
         s.img ? `<img src="${s.img}" alt="" loading="lazy"
           style="width:100%;height:100%;object-fit:cover"
-          onerror="this.remove()">` : ''}</div>
+          onerror="this.remove()">` : schematicSVG(s.kind, s.footprint, s.name)}</div>
       <div class="set-meta"><div class="set-name" title="${esc(s.name)}">${esc(s.name)}</div>
         <div class="set-sub"><span>${esc(s.num)}</span><span>${s.year || ''}</span>
           <span class="fp${approx ? ' approx' : ''}">${approx ? '≈ ' : ''}${s.footprint.w}×${s.footprint.h}</span>
