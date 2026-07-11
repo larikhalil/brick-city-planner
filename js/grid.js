@@ -73,7 +73,29 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     if (selectedId) board.querySelector(`.tile[data-id="${selectedId}"]`)?.focus({ preventScroll: true });
   }
 
-  function select(id) { selectedId = id; render(); }
+  function tileEl(id) { return board.querySelector(`.tile[data-id="${id}"]`); }
+
+  // Live overlap-highlight refresh without rebuilding the DOM (used during drag/resize).
+  function refreshOverlaps() {
+    const over = anyOverlaps(placed);
+    for (const p of placed) tileEl(p.id)?.classList.toggle('warn', over.has(p.id));
+  }
+
+  // Toggle selection highlight + resize handle in place — no full rebuild, so tile
+  // background images are never re-decoded (avoids the drag/selection flash).
+  function select(id) {
+    selectedId = id;
+    for (const p of placed) {
+      const el = tileEl(p.id);
+      if (!el) continue;
+      const isSel = p.id === id;
+      el.classList.toggle('selected', isSel);
+      const handle = el.querySelector('.resize-handle');
+      if (isSel && !handle) { const h = document.createElement('div'); h.className = 'resize-handle'; el.appendChild(h); }
+      else if (!isSel && handle) handle.remove();
+    }
+    if (id) tileEl(id)?.focus({ preventScroll: true });
+  }
 
   function rotateSelected() {
     const t = placed.find((p) => p.id === selectedId); if (!t) return;
@@ -118,7 +140,17 @@ export function createGrid(board, { onChange = () => {} } = {}) {
         t.w = Math.max(1, snap(ow + (e.clientX - sx) / PX / zoom));
         t.h = Math.max(1, snap(oh + (e.clientY - sy) / PX / zoom));
         t.approx = true;
-        render();
+        const el = tileEl(t.id);
+        if (el) {
+          const en = extent(t);
+          el.style.width = en.w * PX + 'px';
+          el.style.height = en.h * PX + 'px';
+          const sizeSpan = el.querySelector('.tsub span:last-child');
+          if (sizeSpan) sizeSpan.textContent = `${en.w}×${en.h}`;
+          const tn = el.querySelector('.tn');
+          if (tn && !tn.querySelector('span')) tn.insertAdjacentHTML('beforeend', ' <span style="opacity:.8;font-weight:400">≈</span>');
+        }
+        refreshOverlaps();
       }
       function rend(e) {
         if (e.pointerId !== ev.pointerId) return;
@@ -133,9 +165,9 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       ev.preventDefault();
       return;
     }
-    const tileEl = ev.target.closest('.tile');
-    if (!tileEl) { select(null); return; }
-    const id = tileEl.dataset.id;
+    const hit = ev.target.closest('.tile');
+    if (!hit) { select(null); return; }
+    const id = hit.dataset.id;
     select(id);
     const t = placed.find((p) => p.id === id);
     if (!t) return;
@@ -145,7 +177,9 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       if (e.pointerId !== ev.pointerId) return;
       t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX / zoom));
       t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX / zoom));
-      render();
+      const el = tileEl(t.id);
+      if (el) { el.style.left = t.x * PX + 'px'; el.style.top = t.y * PX + 'px'; }
+      refreshOverlaps();
     }
     function end(e) {
       if (e.pointerId !== ev.pointerId) return;
