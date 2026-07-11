@@ -59,6 +59,25 @@ export function snap(value, step = 1) {
   return Math.round(value / step) * step;
 }
 
+export const BP = 32; // studs per baseplate — the canvas always sizes in whole baseplates
+const ceilPlate = (studs) => Math.ceil(Math.max(0, studs) / BP) * BP;
+
+// Auto-grow: the smallest whole-baseplate canvas that keeps `margin` studs clear past the
+// content's right/bottom edge. Expand-only — never returns smaller than the current size.
+export function grownCanvas(right, bottom, curW, curH, margin = 16) {
+  return {
+    w: Math.max(curW, ceilPlate(right + margin)),
+    h: Math.max(curH, ceilPlate(bottom + margin)),
+  };
+}
+
+// Manual resize: snap a requested canvas (studs) to whole baseplates, never smaller than the
+// content already placed (so a piece can't be cut off) nor below one plate, capped at `maxStuds`.
+export function clampedCanvas(reqW, reqH, right, bottom, maxStuds = 1024) {
+  const one = (req, content) => Math.min(maxStuds, Math.max(BP, ceilPlate(content), ceilPlate(req)));
+  return { w: one(reqW, right), h: one(reqH, bottom) };
+}
+
 // Axis-aligned bounding box of a tile (centre-anchored), in studs.
 function aabb(t) {
   const e = extent(t);

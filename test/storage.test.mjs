@@ -34,6 +34,12 @@ test('export → import round-trips', () => {
 test('import rejects non-JSON', () => {
   assert.equal(importCityJson('{nope').ok, false);
 });
+test('grid size round-trips when present, is omitted when absent', () => {
+  assert.equal('grid' in serializeCity({ name: 'T', placed }), false);
+  const c = serializeCity({ name: 'T', placed, grid: { w: 256, h: 192 } });
+  const back = importCityJson(exportCityJson(c));
+  assert.deepEqual(back.city.grid, { w: 256, h: 192 });
+});
 test('save then load via localStorage', () => {
   saveCity(serializeCity({ name: 'Town A', placed }));
   assert.equal(currentCityName(), 'Town A');

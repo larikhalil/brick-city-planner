@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extent, overlaps, bbox, snap, anyOverlaps, snapConnect } from '../js/geometry.js';
+import { extent, overlaps, bbox, snap, anyOverlaps, snapConnect, grownCanvas, clampedCanvas, BP } from '../js/geometry.js';
 
 test('extent swaps on 90/270', () => {
   assert.deepEqual(extent({ w: 48, h: 32, rot: 0 }), { w: 48, h: 32 });
@@ -78,6 +78,22 @@ test('snapConnect falls back to edge-align when no ports face each other', () =>
   const s = snapConnect(a, [b], 6);
   assert.equal(s.y, 32); // top edge snaps flush to b's bottom
   assert.equal(s.x, 0);
+});
+test('grownCanvas expands to content + margin in whole baseplates, never shrinks', () => {
+  // content reaches x=200; +16 margin = 216 → rounds up to 224 (7 plates)
+  assert.deepEqual(grownCanvas(200, 50, 128, 96), { w: 224, h: 96 });
+  // content well inside the current canvas → stays put (expand-only)
+  assert.deepEqual(grownCanvas(40, 30, 128, 96), { w: 128, h: 96 });
+  // empty content keeps the current size
+  assert.deepEqual(grownCanvas(0, 0, 128, 96), { w: 128, h: 96 });
+});
+test('clampedCanvas snaps to plates, floors at content, caps at max', () => {
+  // request 5×3 plates on empty content → exact
+  assert.deepEqual(clampedCanvas(5 * BP, 3 * BP, 0, 0), { w: 160, h: 96 });
+  // try to shrink below placed content (right edge at 100) → clamped up to 4 plates (128)
+  assert.deepEqual(clampedCanvas(BP, BP, 100, 20), { w: 128, h: 32 });
+  // absurd request is capped at 1024 studs (32 plates)
+  assert.equal(clampedCanvas(9999, BP, 0, 0).w, 1024);
 });
 test('anyOverlaps only flags same-layer overlaps (baseplate/road/building layering)', () => {
   const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };

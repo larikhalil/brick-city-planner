@@ -11,6 +11,7 @@ import { bbox } from './geometry.js';
 const $ = (id) => document.getElementById(id);
 let unitState = 'studs';
 let cityName = 'Untitled city';
+let gridSize = { w: 128, h: 96, pw: 4, ph: 3 };
 let catalog, grid;
 
 function toast(msg) {
@@ -18,16 +19,28 @@ function toast(msg) {
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// The current city as a plain object for saving/exporting (includes the table size).
+function citySnapshot() {
+  const g = grid.getGrid();
+  return { name: cityName, units: unitState, placed: grid.getPlaced(), grid: { w: g.w, h: g.h } };
+}
+// Reflect the canvas size in the toolbar: baseplate steppers + a studs/cm readout.
+function drawGridSize() {
+  $('gs-w').textContent = gridSize.pw;
+  $('gs-h').textContent = gridSize.ph;
+  $('canvas-size').textContent = `Canvas ${fmtDims(gridSize.w, gridSize.h, unitState)}`;
+}
+
 let saveTimer = null;
 function autosave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    saveCity(serializeCity({ name: cityName, units: unitState, placed: grid.getPlaced() }));
+    saveCity(serializeCity(citySnapshot()));
   }, 600);
 }
 function flushAutosave() {
   clearTimeout(saveTimer);
-  saveCity(serializeCity({ name: cityName, units: unitState, placed: grid.getPlaced() }));
+  saveCity(serializeCity(citySnapshot()));
 }
 
 function drawSummary() { renderSummary($('summary'), grid.getPlaced(), catalog.byNum, unitState); wireSummaryButtons(); }
@@ -35,7 +48,7 @@ function drawDims() {
   const b = bbox(grid.getPlaced());
   $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'empty';
 }
-function refresh() { drawSummary(); drawDims(); }
+function refresh() { drawSummary(); drawDims(); drawGridSize(); }
 
 function wireSummaryButtons() {
   const s = $('summary').querySelector('#btn-save');
@@ -74,11 +87,11 @@ function doExportSetList() {
   toast('Set list exported.');
 }
 function doSave() {
-  saveCity(serializeCity({ name: cityName, units: unitState, placed: grid.getPlaced() }));
+  saveCity(serializeCity(citySnapshot()));
   toast(`Saved “${cityName}”.`);
 }
 function doExport() {
-  const city = serializeCity({ name: cityName, units: unitState, placed: grid.getPlaced() });
+  const city = serializeCity(citySnapshot());
   const blob = new Blob([exportCityJson(city)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -100,7 +113,10 @@ async function boot() {
     l.insertAdjacentHTML('beforeend', `<br><span style="opacity:.7">Catalog snapshot: ${meta.built} · ${meta.counts.sets} sets</span>`);
   } catch { /* non-fatal */ }
 
-  grid = createGrid($('grid-board'), { onChange: () => { refresh(); autosave(); } });
+  grid = createGrid($('grid-board'), {
+    onChange: () => { refresh(); autosave(); },
+    onResize: (w, h) => { gridSize = { w, h, pw: w / 32, ph: h / 32 }; drawGridSize(); },
+  });
 
   renderCatalog(
     { list: $('catalog-list'), search: $('catalog-search'), chips: $('catalog-chips'), count: $('catalog-count') },
@@ -116,6 +132,14 @@ async function boot() {
   $('btn-rotate').addEventListener('click', () => grid.rotateSelected());
   $('btn-forward').addEventListener('click', () => grid.bringForward());
   $('btn-back').addEventListener('click', () => grid.sendBackward());
+
+  // Table-size stepper: ± one baseplate per axis.
+  $('grid-size').addEventListener('click', (e) => {
+    const a = e.target.dataset.gs; if (!a) return;
+    const { pw, ph } = gridSize;
+    const next = { wdec: [pw - 1, ph], winc: [pw + 1, ph], hdec: [pw, ph - 1], hinc: [pw, ph + 1] }[a];
+    if (next) grid.setGridPlates(next[0], next[1]);
+  });
   $('btn-delete').addEventListener('click', () => grid.deleteSelected());
 
   // Drag a catalog item onto the grid to drop it there.
@@ -148,7 +172,7 @@ async function boot() {
     flushAutosave();
     cityName = res.city.name || 'Imported city';
     unitState = res.city.units || 'studs';
-    grid.setPlaced(res.city.placed);
+    grid.setPlaced(res.city.placed, res.city.grid);
     $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
     refresh(); toast(`Loaded “${cityName}”.`); e.target.value = '';
   });
@@ -159,7 +183,7 @@ async function boot() {
     if (last && Array.isArray(last.placed)) {
       cityName = last.name || 'Untitled city';
       unitState = last.units || 'studs';
-      grid.setPlaced(last.placed);
+      grid.setPlaced(last.placed, last.grid);
       $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
     }
   } catch (err) {

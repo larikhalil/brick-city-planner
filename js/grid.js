@@ -1,18 +1,47 @@
 import { catColor } from './catalog.js';
-import { anyOverlaps, bbox, snap, snapConnect } from './geometry.js';
+import { anyOverlaps, bbox, snap, snapConnect, grownCanvas, clampedCanvas, BP } from './geometry.js';
 import { esc } from './util.js';
 import { schematicSVG } from './schematic.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
 const HANDLES = '<div class="rotate-handle" title="Drag to rotate"></div>';
+const DEFAULT_W = 128, DEFAULT_H = 96; // studs — a 4×3 baseplate table to start
 
-export function createGrid(board, { onChange = () => {} } = {}) {
+export function createGrid(board, { onChange = () => {}, onResize = () => {} } = {}) {
   let placed = [];
   let selectedId = null;
   let seq = 1;
   let zoom = 1;
+  let gridW = DEFAULT_W, gridH = DEFAULT_H; // canvas size in studs (always whole baseplates)
   const stage = board.parentElement;
+
+  // Bottom-right corner grip for dragging the canvas bigger/smaller (snaps to baseplates).
+  const grip = document.createElement('div');
+  grip.className = 'grip';
+  grip.title = 'Drag to resize the table';
+
+  // Right/bottom edge of everything placed, in studs (0,0 when empty).
+  function contentExtent() { const b = bbox(placed); return { right: b.x + b.w, bottom: b.y + b.h }; }
+
+  function applySize() {
+    board.style.width = gridW * PX + 'px';
+    board.style.height = gridH * PX + 'px';
+    onResize(gridW, gridH);
+  }
+  // Auto-expand so the canvas always contains the content plus a margin (never shrinks here).
+  function growToFit() {
+    const { right, bottom } = contentExtent();
+    const g = grownCanvas(right, bottom, gridW, gridH);
+    if (g.w !== gridW || g.h !== gridH) { gridW = g.w; gridH = g.h; applySize(); }
+  }
+  // Manual resize (stepper), in whole baseplates. Won't cut off placed content.
+  function setGridPlates(pw, ph) {
+    const { right, bottom } = contentExtent();
+    const g = clampedCanvas(Math.round(pw) * BP, Math.round(ph) * BP, right, bottom);
+    gridW = g.w; gridH = g.h; applySize(); onChange();
+  }
+  function getGrid() { return { w: gridW, h: gridH, pw: gridW / BP, ph: gridH / BP }; }
 
   function makeTile(set, x, y) {
     return {
@@ -22,17 +51,17 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       layer: set.layer ?? 2, z: set.layer ?? 2, color: set.color || null,
     };
   }
-  function addSet(set) { const t = makeTile(set, 0, 0); placed.push(t); selectedId = t.id; render(); onChange(); }
+  function addSet(set) { const t = makeTile(set, 0, 0); placed.push(t); selectedId = t.id; render(); growToFit(); onChange(); }
   // Drop from the catalog at screen coordinates, centring the piece on the drop point.
   function addSetAt(set, clientX, clientY) {
     const rect = board.getBoundingClientRect();
     const x = Math.max(0, Math.round((clientX - rect.left) / zoom / PX - set.footprint.w / 2));
     const y = Math.max(0, Math.round((clientY - rect.top) / zoom / PX - set.footprint.h / 2));
-    const t = makeTile(set, x, y); placed.push(t); selectedId = t.id; render(); onChange();
+    const t = makeTile(set, x, y); placed.push(t); selectedId = t.id; render(); growToFit(); onChange();
   }
 
   function getPlaced() { return placed; }
-  function setPlaced(arr) {
+  function setPlaced(arr, size) {
     placed = arr.map((p) => {
       const t = { ...p };
       if (t.layer == null) t.layer = t.ground ? 0 : 2; // back-compat with pre-layer saved cities
@@ -45,13 +74,20 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       if (Number.isFinite(n) && n >= seq) seq = n + 1;
     }
     selectedId = null;
+    // Restore the saved table size if given, else reset to the default; growToFit then
+    // guarantees the canvas is never smaller than the content it now holds.
+    gridW = (size && Number.isFinite(size.w)) ? size.w : DEFAULT_W;
+    gridH = (size && Number.isFinite(size.h)) ? size.h : DEFAULT_H;
     render();
+    growToFit();
+    applySize();
     onChange();
   }
 
   function render() {
     if (!placed.length) {
       board.innerHTML = `<div class="empty-hint">Add sets from the catalog to start your city →</div>`;
+      board.appendChild(grip);
       return;
     }
     const over = anyOverlaps(placed);
@@ -90,6 +126,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       if (t.id === selectedId) el.insertAdjacentHTML('beforeend', HANDLES);
       board.appendChild(el);
     }
+    board.appendChild(grip);
     if (selectedId) board.querySelector(`.tile[data-id="${selectedId}"]`)?.focus({ preventScroll: true });
   }
 
@@ -129,7 +166,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   function rotateSelected() {
     const t = placed.find((p) => p.id === selectedId); if (!t) return;
     t.rot = ((t.rot || 0) + 90) % 360;
-    applyRot(t); refreshOverlaps(); onChange();
+    applyRot(t); refreshOverlaps(); growToFit(); onChange();
   }
   function deleteSelected() {
     if (!selectedId) return;
@@ -165,6 +202,30 @@ export function createGrid(board, { onChange = () => {} } = {}) {
 
   board.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return;
+    if (ev.target === grip) { // drag the bottom-right corner to resize the table
+      ev.preventDefault();
+      const rect = board.getBoundingClientRect(); // top-left stays fixed while resizing SE corner
+      const { right, bottom } = contentExtent();
+      try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+      function rsz(e) {
+        if (e.pointerId !== ev.pointerId) return;
+        const wStuds = (e.clientX - rect.left) / zoom / PX;
+        const hStuds = (e.clientY - rect.top) / zoom / PX;
+        const g = clampedCanvas(Math.round(wStuds), Math.round(hStuds), right, bottom);
+        gridW = g.w; gridH = g.h; applySize();
+      }
+      function rszEnd(e) {
+        if (e.pointerId !== ev.pointerId) return;
+        board.removeEventListener('pointermove', rsz);
+        board.removeEventListener('pointerup', rszEnd);
+        board.removeEventListener('pointercancel', rszEnd);
+        onChange();
+      }
+      board.addEventListener('pointermove', rsz);
+      board.addEventListener('pointerup', rszEnd);
+      board.addEventListener('pointercancel', rszEnd);
+      return;
+    }
     if (ev.target.classList.contains('rotate-handle')) {
       const t = placed.find((p) => p.id === selectedId);
       if (!t) return;
@@ -184,7 +245,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
         board.removeEventListener('pointermove', rot);
         board.removeEventListener('pointerup', rend);
         board.removeEventListener('pointercancel', rend);
-        onChange();
+        growToFit(); onChange();
       }
       board.addEventListener('pointermove', rot);
       board.addEventListener('pointerup', rend);
@@ -216,7 +277,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       board.removeEventListener('pointermove', move);
       board.removeEventListener('pointerup', end);
       board.removeEventListener('pointercancel', end);
-      onChange();
+      growToFit(); onChange();
     }
     board.addEventListener('pointermove', move);
     board.addEventListener('pointerup', end);
@@ -229,17 +290,19 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     const t = placed.find((p) => p.id === selectedId);
     if (!t) return;
     const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
-    if (step) { t.x = Math.max(0, t.x + step[0]); t.y = Math.max(0, t.y + step[1]); render(); onChange(); ev.preventDefault(); }
+    if (step) { t.x = Math.max(0, t.x + step[0]); t.y = Math.max(0, t.y + step[1]); render(); growToFit(); onChange(); ev.preventDefault(); }
     else if (ev.key === 'Escape') select(null);
     else if (ev.key === 'Delete' || ev.key === 'Backspace') { deleteSelected(); ev.preventDefault(); }
     else if (ev.key.toLowerCase() === 'r') { rotateSelected(); }
   });
 
   render();
+  applySize();
   applyZoom();
   return {
     addSet, addSetAt, getPlaced, setPlaced, render, select,
     rotateSelected, deleteSelected, bringForward, sendBackward,
+    setGridPlates, getGrid,
     setZoom, zoomBy, fit,
     _state: () => ({ placed, selectedId }),
   };

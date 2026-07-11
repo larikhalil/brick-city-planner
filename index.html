@@ -49,7 +49,17 @@
           <button class="btn icon" id="btn-forward" title="Bring to front">⬆</button>
           <button class="btn icon" id="btn-back" title="Send to back (above baseplates)">⬇</button>
           <button class="btn icon" id="btn-delete" title="Delete selected">🗑</button>
-          <span class="muted">bold line = baseplate (32 studs)</span>
+          <div class="gsize" id="grid-size" title="Table size in baseplates — or drag the corner grip">
+            <span class="lab">Table</span>
+            <button class="gstep" data-gs="wdec" aria-label="Fewer baseplates wide">−</button>
+            <span class="v" id="gs-w">4</span>
+            <button class="gstep" data-gs="winc" aria-label="More baseplates wide">＋</button>
+            <span class="x">×</span>
+            <button class="gstep" data-gs="hdec" aria-label="Fewer baseplates tall">−</button>
+            <span class="v" id="gs-h">3</span>
+            <button class="gstep" data-gs="hinc" aria-label="More baseplates tall">＋</button>
+          </div>
+          <span class="muted" id="canvas-size"></span>
           <div class="seg" id="zoom-ctrl" style="margin-left:auto">
             <button data-zoom="out">−</button><button class="on" data-zoom="reset">100%</button>
             <button data-zoom="in">＋</button><button data-zoom="fit">Fit</button></div>

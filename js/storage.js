@@ -1,9 +1,10 @@
 const KEY = 'bcp.cities';
 const CUR = 'bcp.current';
 
-export function serializeCity({ name, units = 'studs', placed = [] }) {
+export function serializeCity({ name, units = 'studs', placed = [], grid = null }) {
   return {
     app: 'brick-city-planner', version: 1, name, units, placed,
+    ...(grid ? { grid } : {}),
     updated: new Date().toISOString(),
   };
 }
