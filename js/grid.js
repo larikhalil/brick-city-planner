@@ -1,5 +1,5 @@
 import { catColor } from './catalog.js';
-import { anyOverlaps, extent } from './geometry.js';
+import { anyOverlaps, extent, snap } from './geometry.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
@@ -54,6 +54,39 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     }
   }
 
+  function select(id) { selectedId = id; render(); }
+
+  board.addEventListener('pointerdown', (ev) => {
+    const tileEl = ev.target.closest('.tile');
+    if (!tileEl) { select(null); return; }
+    const id = tileEl.dataset.id;
+    select(id);
+    const t = placed.find((p) => p.id === id);
+    const startX = ev.clientX, startY = ev.clientY, ox = t.x, oy = t.y;
+    tileEl.setPointerCapture(ev.pointerId);
+    function move(e) {
+      t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX));
+      t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX));
+      render();
+    }
+    function up() {
+      tileEl.removeEventListener('pointermove', move);
+      tileEl.removeEventListener('pointerup', up);
+      onChange();
+    }
+    tileEl.addEventListener('pointermove', move);
+    tileEl.addEventListener('pointerup', up);
+  });
+
+  board.addEventListener('keydown', (ev) => {
+    if (!selectedId) return;
+    const t = placed.find((p) => p.id === selectedId);
+    if (!t) return;
+    const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
+    if (step) { t.x = Math.max(0, t.x + step[0]); t.y = Math.max(0, t.y + step[1]); render(); onChange(); ev.preventDefault(); }
+    else if (ev.key === 'Escape') select(null);
+  });
+
   render();
-  return { addSet, getPlaced, setPlaced, render, _state: () => ({ placed, selectedId }) };
+  return { addSet, getPlaced, setPlaced, render, select, _state: () => ({ placed, selectedId }) };
 }
