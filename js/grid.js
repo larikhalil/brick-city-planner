@@ -57,6 +57,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   function select(id) { selectedId = id; render(); }
 
   board.addEventListener('pointerdown', (ev) => {
+    if (ev.button !== 0) return;
     const tileEl = ev.target.closest('.tile');
     if (!tileEl) { select(null); return; }
     const id = tileEl.dataset.id;
@@ -64,18 +65,24 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     const t = placed.find((p) => p.id === id);
     if (!t) return;
     const startX = ev.clientX, startY = ev.clientY, ox = t.x, oy = t.y;
+    try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
     function move(e) {
+      if (e.pointerId !== ev.pointerId) return;
       t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX));
       t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX));
       render();
     }
-    function up() {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+    function end(e) {
+      if (e.pointerId !== ev.pointerId) return;
+      board.removeEventListener('pointermove', move);
+      board.removeEventListener('pointerup', end);
+      board.removeEventListener('pointercancel', end);
       onChange();
     }
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
+    board.addEventListener('pointermove', move);
+    board.addEventListener('pointerup', end);
+    board.addEventListener('pointercancel', end);
+    ev.preventDefault();
   });
 
   board.addEventListener('keydown', (ev) => {
