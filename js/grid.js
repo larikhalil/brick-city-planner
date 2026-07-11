@@ -35,6 +35,10 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   }
 
   function render() {
+    if (!placed.length) {
+      board.innerHTML = `<div class="empty-hint">Add sets from the catalog to start your city →</div>`;
+      return;
+    }
     const over = anyOverlaps(placed);
     board.innerHTML = '';
     for (const t of placed) {
@@ -47,6 +51,12 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       el.style.width = e.w * PX + 'px';
       el.style.height = e.h * PX + 'px';
       el.style.background = catColor(t.category);
+      if (t.img) {
+        el.style.backgroundImage =
+          `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundBlendMode = 'multiply';
+      }
       el.dataset.id = t.id;
       el.tabIndex = 0;
       el.innerHTML = `

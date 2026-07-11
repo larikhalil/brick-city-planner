@@ -64,6 +64,12 @@ async function boot() {
   try { catalog = await loadCatalog(); }
   catch (e) { $('catalog-list').innerHTML = `<div class="note">Couldn't load the set catalog. ${e.message}</div>`; return; }
 
+  try {
+    const meta = await (await fetch('data/meta.json')).json();
+    const l = document.querySelector('.legal');
+    l.insertAdjacentHTML('beforeend', `<br><span style="opacity:.7">Catalog snapshot: ${meta.built} · ${meta.counts.sets} sets</span>`);
+  } catch { /* non-fatal */ }
+
   grid = createGrid($('grid-board'), { onChange: () => { refresh(); autosave(); } });
 
   renderCatalog(
