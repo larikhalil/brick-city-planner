@@ -25,6 +25,10 @@ function autosave() {
     saveCity(serializeCity({ name: cityName, units: unitState, placed: grid.getPlaced() }));
   }, 600);
 }
+function flushAutosave() {
+  clearTimeout(saveTimer);
+  saveCity(serializeCity({ name: cityName, units: unitState, placed: grid.getPlaced() }));
+}
 
 function drawSummary() { renderSummary($('summary'), grid.getPlaced(), catalog.byNum, unitState); wireSummaryButtons(); }
 function drawDims() {
@@ -49,7 +53,10 @@ function doExport() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `${cityName.replace(/[^\w-]+/g, '_')}.json`;
-  a.click(); URL.revokeObjectURL(a.href);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
   toast('Exported city file.');
 }
 
@@ -78,7 +85,7 @@ async function boot() {
        reset: () => grid.setZoom(1), fit: () => grid.fit() }[z] || (() => {}))();
   });
   $('btn-new').addEventListener('click', () => {
-    if (grid.getPlaced().length && !confirm('Start a new city? Unsaved changes stay in the current autosave.')) return;
+    if (grid.getPlaced().length && !confirm('Start a new city? This clears the current grid.')) return;
     cityName = 'Untitled city'; grid.setPlaced([]); refresh(); toast('New city.');
   });
   $('btn-export').addEventListener('click', doExport);
@@ -87,6 +94,7 @@ async function boot() {
     const file = e.target.files[0]; if (!file) return;
     const res = importCityJson(await file.text());
     if (!res.ok) { toast(res.error); e.target.value = ''; return; }
+    flushAutosave();
     cityName = res.city.name || 'Imported city';
     unitState = res.city.units || 'studs';
     grid.setPlaced(res.city.placed);
@@ -95,8 +103,17 @@ async function boot() {
   });
 
   // restore last autosaved city
-  const last = currentCityName() && loadCity(currentCityName());
-  if (last) { cityName = last.name; unitState = last.units || 'studs'; grid.setPlaced(last.placed); }
+  try {
+    const last = currentCityName() && loadCity(currentCityName());
+    if (last && Array.isArray(last.placed)) {
+      cityName = last.name || 'Untitled city';
+      unitState = last.units || 'studs';
+      grid.setPlaced(last.placed);
+      $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
+    }
+  } catch (err) {
+    console.warn('Could not restore saved city:', err.message);
+  }
   refresh();
 }
 boot();
