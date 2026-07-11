@@ -18,6 +18,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       id, set_num: set.set_num, name: set.name, category: set.category,
       x: 0, y: 0, w: set.footprint.w, h: set.footprint.h, rot: 0,
       approx: set.footprint.source !== 'curated', img: set.img || null,
+      ground: !!set.ground, color: set.color || null,
     });
     selectedId = id;
     render(); onChange();
@@ -42,17 +43,21 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     }
     const over = anyOverlaps(placed);
     board.innerHTML = '';
-    for (const t of placed) {
+    // Paint ground tiles (baseplates) first so buildings render on top of them.
+    const paintOrder = [...placed].sort((a, b) => (a.ground === b.ground ? 0 : a.ground ? -1 : 1));
+    for (const t of paintOrder) {
       const e = extent(t);
+      const lightGround = t.ground && /--g-(white|sand)/.test(t.color || '');
       const el = document.createElement('div');
-      el.className = 'tile' + (DARK_TXT.has(t.category) ? ' dark-txt' : '') +
+      el.className = 'tile' + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
+        (t.ground ? ' ground' : '') +
         (over.has(t.id) ? ' warn' : '') + (t.id === selectedId ? ' selected' : '');
       el.style.left = t.x * PX + 'px';
       el.style.top = t.y * PX + 'px';
       el.style.width = e.w * PX + 'px';
       el.style.height = e.h * PX + 'px';
-      el.style.background = catColor(t.category);
-      if (t.img) {
+      el.style.background = t.color || catColor(t.category);
+      if (t.img && !t.ground) {
         el.style.backgroundImage =
           `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
         el.style.backgroundSize = 'cover';

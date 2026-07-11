@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import sharp from 'sharp';
 import { parseCsv } from './lib/csv.mjs';
@@ -12,6 +13,21 @@ const THEMES_URL = 'https://cdn.rebrickable.com/media/downloads/themes.csv.gz';
 const MIN_PARTS = 5;
 const IMAGE_CONCURRENCY = 12; // controller-authorized: bounded-concurrency pool instead of strictly sequential downloads
 const THUMB_SIZE = 256; // fit within THUMB_SIZE x THUMB_SIZE, no enlargement
+
+// LEGO Classic 32x32 baseplates — the "ground" of a city. They live in the Classic
+// theme (which we otherwise exclude, as it's mostly generic brick boxes), so we pull
+// these specific set numbers by allowlist and tag them as ground tiles.
+const BASEPLATE_NUMS = new Set(['10699', '10700', '10701', '10714', '11010', '11023', '11024', '11025', '11026']);
+
+function baseplateColor(name) {
+  const n = name.toLowerCase();
+  if (n.includes('green')) return 'var(--g-green)';
+  if (n.includes('blue')) return 'var(--g-blue)';
+  if (n.includes('gray') || n.includes('grey')) return 'var(--g-gray)';
+  if (n.includes('sand')) return 'var(--g-sand)';
+  if (n.includes('white')) return 'var(--g-white)';
+  return 'var(--g-gray)';
+}
 
 async function fetchCsvGz(url) {
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -43,11 +59,14 @@ function rootLabel(themeId, themeById, roots) {
 
 async function downloadImage(url, setNum) {
   if (!url) return null;
+  const ext = (url.match(/\.(jpg|jpeg|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
+  const path = `img/sets/${setNum}.${ext}`;
+  // Incremental: keep already-downloaded (already-thumbnailed) images so re-runs only
+  // fetch new sets. Delete img/sets to force a full refresh.
+  if (existsSync(path)) return path;
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
-    const ext = (url.match(/\.(jpg|jpeg|png|webp|gif)(\?|$)/i)?.[1] || 'jpg').toLowerCase();
-    const path = `img/sets/${setNum}.${ext}`;
     const bytes = Buffer.from(await res.arrayBuffer());
     // Thumbnail to fit within THUMB_SIZE x THUMB_SIZE (no enlargement of smaller
     // source images); the output encoder is chosen from the destination extension.
@@ -96,6 +115,17 @@ async function main() {
     (s) => includedIds.has(Number(s.theme_id)) && Number(s.num_parts) >= MIN_PARTS);
   console.log(`Filtered ${chosen.length} sets from ${setRows.length}.`);
 
+  // Add allowlisted baseplates (ground tiles) even though their Classic theme is excluded.
+  const chosenNums = new Set(chosen.map((s) => s.set_num));
+  let baseplateCount = 0;
+  for (const s of setRows) {
+    const base = s.set_num.replace(/-\d+$/, '');
+    if (BASEPLATE_NUMS.has(base) && !chosenNums.has(s.set_num)) {
+      chosen.push(s); chosenNums.add(s.set_num); baseplateCount++;
+    }
+  }
+  console.log(`+ ${baseplateCount} baseplates.`);
+
   // Downloads images with bounded concurrency (pool of IMAGE_CONCURRENCY) instead of one-at-a-time,
   // to keep the run within CI/shell time limits. Output is identical in shape/content to the
   // sequential version: same records, same image paths, img:null on miss.
@@ -103,11 +133,16 @@ async function main() {
     const themeId = Number(raw.theme_id);
     const themeName = themeById.get(themeId)?.name || 'City';
     const root = rootLabel(themeId, themeById, ROOT_LABELS);
-    const category = categoryFor(themeName, root, catMap);
     const num = raw.set_num.replace(/-\d+$/, '');
-    const footprint = resolveFootprint({ num, num_parts: Number(raw.num_parts), category }, curated);
+    const isBaseplate = BASEPLATE_NUMS.has(num);
+    const category = isBaseplate ? 'baseplate' : categoryFor(themeName, root, catMap);
+    const footprint = isBaseplate
+      ? { w: 32, h: 32, source: 'curated' }
+      : resolveFootprint({ num, num_parts: Number(raw.num_parts), category }, curated);
     const img = await downloadImage(raw.img_url, raw.set_num);
-    return buildSetRecord(raw, { themeName, root, category, footprint, img });
+    const rec = buildSetRecord(raw, { themeName, root, category, footprint, img });
+    if (isBaseplate) { rec.ground = true; rec.color = baseplateColor(raw.name); }
+    return rec;
   });
 
   records.sort((a, b) => (b.year - a.year) || a.name.localeCompare(b.name));

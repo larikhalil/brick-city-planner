@@ -1,7 +1,8 @@
 import { esc } from './util.js';
 
 const CATS = [
-  ['all', 'All', null], ['police', 'Police', 'var(--t-police)'],
+  ['all', 'All', null], ['baseplate', 'Baseplates', 'var(--g-green)'],
+  ['police', 'Police', 'var(--t-police)'],
   ['fire', 'Fire', 'var(--t-fire)'], ['train', 'Trains', 'var(--t-train)'],
   ['modular', 'Modular', 'var(--t-modular)'], ['city', 'Town', 'var(--t-city)'],
 ];
@@ -9,7 +10,8 @@ const CAT_VAR = {
   police: 'var(--t-police)', fire: 'var(--t-fire)', train: 'var(--t-train)',
   modular: 'var(--t-modular)', city: 'var(--t-city)', road: 'var(--t-road)',
   park: 'var(--t-park)', space: 'var(--t-space)', arctic: 'var(--t-police)',
-  harbor: 'var(--t-city)', farm: 'var(--t-park)', airport: 'var(--t-city)', other: 'var(--t-city)',
+  harbor: 'var(--t-city)', farm: 'var(--t-park)', airport: 'var(--t-city)',
+  baseplate: 'var(--g-gray)', other: 'var(--t-city)',
 };
 
 export function catColor(category) { return CAT_VAR[category] || 'var(--t-city)'; }
@@ -53,7 +55,7 @@ export function renderCatalog(els, sets, { onAdd }) {
     const el = document.createElement('div');
     el.className = 'set';
     el.innerHTML = `
-      <div class="swatch" style="background:${catColor(s.category)}">${
+      <div class="swatch" style="background:${s.color || catColor(s.category)}">${
         s.img ? `<img src="${s.img}" alt="" loading="lazy"
           style="width:100%;height:100%;object-fit:cover"
           onerror="this.remove()">` : ''}</div>

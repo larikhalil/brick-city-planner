@@ -28,7 +28,11 @@ export function anyOverlaps(tiles) {
   const ids = new Set();
   for (let i = 0; i < tiles.length; i++) {
     for (let j = i + 1; j < tiles.length; j++) {
-      if (overlaps(tiles[i], tiles[j])) { ids.add(tiles[i].id); ids.add(tiles[j].id); }
+      const a = tiles[i], b = tiles[j];
+      // A set resting on a baseplate is intended, not an overlap: skip pairs where
+      // exactly one tile is ground. Two buildings, or two baseplates, still flag.
+      if (!!a.ground !== !!b.ground) continue;
+      if (overlaps(a, b)) { ids.add(a.id); ids.add(b.id); }
     }
   }
   return ids;
