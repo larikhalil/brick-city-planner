@@ -1,0 +1,13 @@
+{
+  "name": "brick-city-planner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Top-down city planner for LEGO sets",
+  "scripts": {
+    "test": "node --test",
+    "build:data": "node tools/build-catalog.mjs",
+    "serve": "python -m http.server 8080"
+  },
+  "license": "MIT"
+}
