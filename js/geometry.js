@@ -66,10 +66,57 @@ function aabb(t) {
   return { minX: cx - e.w / 2, maxX: cx + e.w / 2, minY: cy - e.h / 2, maxY: cy + e.h / 2 };
 }
 
-// Snap-to-connect: nudge a dragged tile so its edges sit flush with / aligned to a
-// nearby tile from `others` (same-layer road/rail pieces). Returns adjusted {x, y}.
-// Each axis snaps independently to the closest edge match within `threshold` studs.
+// Connection ports of a road/rail piece in LOCAL coords (before rotation): a point on an
+// opening edge with an outward unit direction. Matched port-to-port so pieces join
+// opening-to-opening at any angle.
+function localPorts(kind, name, w, h) {
+  const n = (name || '').toLowerCase();
+  const L = { x: 0, y: h / 2, dx: -1, dy: 0 }, R = { x: w, y: h / 2, dx: 1, dy: 0 };
+  const T = { x: w / 2, y: 0, dx: 0, dy: -1 }, B = { x: w / 2, y: h, dx: 0, dy: 1 };
+  if (kind === 'road') {
+    if (/curve/.test(n)) return /left/.test(n) ? [B, L] : [B, R];
+    if (/cross/.test(n)) return [L, R, T, B];
+    if (/junction|t-|t &|and t/.test(n)) return [L, R, B];
+    return [L, R];
+  }
+  if (kind === 'track') {
+    if (/curve/.test(n)) return /left/.test(n) ? [B, L] : [B, R];
+    if (/cross|crossover|diamond/.test(n)) return [L, R, T, B];
+    if (/switch|points/.test(n)) return [T, B];
+    return [L, R];
+  }
+  return [];
+}
+
+// Ports transformed to world coords by the tile's position + rotation.
+function worldPorts(t) {
+  const cx = t.x + t.w / 2, cy = t.y + t.h / 2;
+  const r = ((t.rot || 0) * Math.PI) / 180, co = Math.cos(r), si = Math.sin(r);
+  return localPorts(t.kind, t.name, t.w, t.h).map((p) => {
+    const ox = p.x - t.w / 2, oy = p.y - t.h / 2;
+    return { x: cx + ox * co - oy * si, y: cy + ox * si + oy * co, dx: p.dx * co - p.dy * si, dy: p.dx * si + p.dy * co };
+  });
+}
+
+// Snap-to-connect: first join the closest pair of FACING ports (rotation-aware); if no
+// facing port is near, fall back to snapping AABB edges flush/aligned. Returns {x, y}.
 export function snapConnect(t, others, threshold = 6) {
+  const aPorts = worldPorts(t);
+  if (aPorts.length) {
+    let dx = 0, dy = 0, best = threshold + 1e-6, found = false;
+    for (const o of others) {
+      for (const bp of worldPorts(o)) {
+        for (const ap of aPorts) {
+          if (ap.dx * bp.dx + ap.dy * bp.dy > -0.6) continue; // ports must face each other
+          const d = Math.hypot(ap.x - bp.x, ap.y - bp.y);
+          if (d < best) { best = d; dx = bp.x - ap.x; dy = bp.y - ap.y; found = true; }
+        }
+      }
+    }
+    // round to 4dp to shed floating-point noise from rotation (keeps genuine fractions);
+    // `|| 0` normalises -0 → 0.
+    if (found) return { x: Math.round((t.x + dx) * 1e4) / 1e4 || 0, y: Math.round((t.y + dy) * 1e4) / 1e4 || 0 };
+  }
   const a = aabb(t);
   let dx = 0, dy = 0, bestX = threshold + 1e-6, bestY = threshold + 1e-6;
   for (const o of others) {

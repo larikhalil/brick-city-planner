@@ -52,6 +52,22 @@ test('snapConnect snaps a piece flush + aligned to a neighbour, ignores far ones
   const far = { id: 'a', x: 100, y: 100, w: 32, h: 32, rot: 0, layer: 1 };
   assert.deepEqual(snapConnect(far, [b], 6), { x: 100, y: 100 });
 });
+test('snapConnect joins facing ports of a rotated piece', () => {
+  const straight = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
+  // a curve rotated 180° so its right-opening faces left, dropped near the straight's right port
+  const curve = { id: 'a', x: 35, y: 2, w: 32, h: 32, rot: 180, kind: 'road', name: 'Road — Curve (Right)', layer: 1 };
+  const s = snapConnect(curve, [straight], 8);
+  assert.equal(s.x, 32); // rotated port meets the straight's right opening at x=32
+  assert.equal(s.y, 0);
+});
+test('snapConnect falls back to edge-align when no ports face each other', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
+  // straight road placed just below b: their L/R openings don't face up/down → AABB fallback
+  const a = { id: 'a', x: 1, y: 35, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
+  const s = snapConnect(a, [b], 6);
+  assert.equal(s.y, 32); // top edge snaps flush to b's bottom
+  assert.equal(s.x, 0);
+});
 test('anyOverlaps only flags same-layer overlaps (baseplate/road/building layering)', () => {
   const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };
   const road = { id: 'road', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };
