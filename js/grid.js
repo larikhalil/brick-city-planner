@@ -64,7 +64,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       el.style.width = e.w * PX + 'px';
       el.style.height = e.h * PX + 'px';
       el.style.background = t.color || catColor(t.category);
-      const schem = schematicSVG(t.kind || 'generic', e, t.name);
+      const schem = schematicSVG(t.kind || 'generic', e, t.name, t.rot);
       if (t.img && !schem) { // generic sets keep the tinted box photo
         el.style.backgroundImage =
           `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;

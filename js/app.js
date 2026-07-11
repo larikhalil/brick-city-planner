@@ -40,8 +40,38 @@ function refresh() { drawSummary(); drawDims(); }
 function wireSummaryButtons() {
   const s = $('summary').querySelector('#btn-save');
   const e = $('summary').querySelector('#btn-export2');
+  const l = $('summary').querySelector('#btn-setlist');
   if (s) s.addEventListener('click', doSave);
   if (e) e.addEventListener('click', doExport);
+  if (l) l.addEventListener('click', doExportSetList);
+}
+// A shopping list of the sets placed: quantity × set number + name, grouped.
+function doExportSetList() {
+  const placed = grid.getPlaced();
+  if (!placed.length) { toast('No sets placed yet.'); return; }
+  const counts = new Map();
+  for (const t of placed) {
+    const num = t.set_num.replace(/-\d+$/, '');
+    const e = counts.get(num) || { num, name: t.name, qty: 0 };
+    e.qty += 1;
+    counts.set(num, e);
+  }
+  const rows = [...counts.values()].sort((a, b) => a.num.localeCompare(b.num, undefined, { numeric: true }));
+  const lines = [
+    `Brick City Planner — set list: ${cityName}`,
+    `${rows.length} unique set${rows.length === 1 ? '' : 's'} · ${placed.length} to buy`,
+    '',
+    ...rows.map((r) => `${String(r.qty).padStart(2)} ×  ${r.num.padEnd(8)} ${r.name}`),
+  ];
+  const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${cityName.replace(/[^\w-]+/g, '_')}-setlist.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+  toast('Set list exported.');
 }
 function doSave() {
   saveCity(serializeCity({ name: cityName, units: unitState, placed: grid.getPlaced() }));

@@ -42,5 +42,6 @@ export function renderSummary(el, placed, byNum, unit = 'studs') {
     <div style="display:flex;gap:8px">
       <button class="btn" id="btn-save" style="flex:1">💾 Save</button>
       <button class="btn primary" id="btn-export2" style="flex:1">⭱ Export</button>
-    </div>`;
+    </div>
+    <button class="btn" id="btn-setlist" style="width:100%;margin-top:8px" title="Download a shopping list of the sets you've placed">🧾 Export set list (.txt)</button>`;
 }
