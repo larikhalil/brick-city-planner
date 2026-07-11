@@ -1,0 +1,4 @@
+{
+  "roots": [52, 50, 233, 155],
+  "_comment": "52=City 50=Town 233=Train(vintage) 155=Modular Buildings. Optional big-build roots 673 (Creator Expert) / 721 (Icons) intentionally omitted from v1 to avoid non-city noise."
+}
