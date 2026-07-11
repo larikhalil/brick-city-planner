@@ -21,7 +21,16 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   }
 
   function getPlaced() { return placed; }
-  function setPlaced(arr) { placed = arr.map((p) => ({ ...p })); selectedId = null; render(); onChange(); }
+  function setPlaced(arr) {
+    placed = arr.map((p) => ({ ...p }));
+    for (const p of placed) {
+      const n = parseInt(String(p.id).replace(/^p/, ''), 10);
+      if (Number.isFinite(n) && n >= seq) seq = n + 1;
+    }
+    selectedId = null;
+    render();
+    onChange();
+  }
 
   function render() {
     const over = anyOverlaps(placed);
