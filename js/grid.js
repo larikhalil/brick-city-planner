@@ -50,14 +50,57 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       el.innerHTML = `
         <div class="tn">${t.name}${t.approx ? ' <span style="opacity:.8;font-weight:400">≈</span>' : ''}</div>
         <div class="tsub"><span>${t.set_num.replace(/-\d+$/, '')}</span><span>${e.w}×${e.h}</span></div>`;
+      if (t.id === selectedId) {
+        const h = document.createElement('div');
+        h.className = 'resize-handle';
+        el.appendChild(h);
+      }
       board.appendChild(el);
     }
   }
 
   function select(id) { selectedId = id; render(); }
 
+  function rotateSelected() {
+    const t = placed.find((p) => p.id === selectedId); if (!t) return;
+    t.rot = (t.rot + 90) % 360; render(); onChange();
+  }
+  function deleteSelected() {
+    if (!selectedId) return;
+    placed = placed.filter((p) => p.id !== selectedId); selectedId = null; render(); onChange();
+  }
+  function resizeSelected(w, h) {
+    const t = placed.find((p) => p.id === selectedId); if (!t) return;
+    t.w = Math.max(1, w); t.h = Math.max(1, h); t.approx = true; render(); onChange();
+  }
+
   board.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return;
+    if (ev.target.classList.contains('resize-handle')) {
+      const t = placed.find((p) => p.id === selectedId);
+      if (!t) return;
+      const sx = ev.clientX, sy = ev.clientY, ow = t.w, oh = t.h;
+      try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+      function rmove(e) {
+        if (e.pointerId !== ev.pointerId) return;
+        t.w = Math.max(1, snap(ow + (e.clientX - sx) / PX));
+        t.h = Math.max(1, snap(oh + (e.clientY - sy) / PX));
+        t.approx = true;
+        render();
+      }
+      function rend(e) {
+        if (e.pointerId !== ev.pointerId) return;
+        board.removeEventListener('pointermove', rmove);
+        board.removeEventListener('pointerup', rend);
+        board.removeEventListener('pointercancel', rend);
+        onChange();
+      }
+      board.addEventListener('pointermove', rmove);
+      board.addEventListener('pointerup', rend);
+      board.addEventListener('pointercancel', rend);
+      ev.preventDefault();
+      return;
+    }
     const tileEl = ev.target.closest('.tile');
     if (!tileEl) { select(null); return; }
     const id = tileEl.dataset.id;
@@ -92,8 +135,14 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     const step = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[ev.key];
     if (step) { t.x = Math.max(0, t.x + step[0]); t.y = Math.max(0, t.y + step[1]); render(); onChange(); ev.preventDefault(); }
     else if (ev.key === 'Escape') select(null);
+    else if (ev.key === 'Delete' || ev.key === 'Backspace') { deleteSelected(); ev.preventDefault(); }
+    else if (ev.key.toLowerCase() === 'r') { rotateSelected(); }
   });
 
   render();
-  return { addSet, getPlaced, setPlaced, render, select, _state: () => ({ placed, selectedId }) };
+  return {
+    addSet, getPlaced, setPlaced, render, select,
+    rotateSelected, deleteSelected, resizeSelected,
+    _state: () => ({ placed, selectedId }),
+  };
 }

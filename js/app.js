@@ -18,5 +18,7 @@ async function boot() {
     catalog.sets,
     { onAdd: (s) => grid.addSet(s) },
   );
+  $('btn-rotate').addEventListener('click', () => grid.rotateSelected());
+  $('btn-delete').addEventListener('click', () => grid.deleteSelected());
 }
 boot();
