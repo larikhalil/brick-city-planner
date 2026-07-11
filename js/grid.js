@@ -103,8 +103,8 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
       function rmove(e) {
         if (e.pointerId !== ev.pointerId) return;
-        t.w = Math.max(1, snap(ow + (e.clientX - sx) / PX));
-        t.h = Math.max(1, snap(oh + (e.clientY - sy) / PX));
+        t.w = Math.max(1, snap(ow + (e.clientX - sx) / PX / zoom));
+        t.h = Math.max(1, snap(oh + (e.clientY - sy) / PX / zoom));
         t.approx = true;
         render();
       }
@@ -131,8 +131,8 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
     function move(e) {
       if (e.pointerId !== ev.pointerId) return;
-      t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX));
-      t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX));
+      t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX / zoom));
+      t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX / zoom));
       render();
     }
     function end(e) {
