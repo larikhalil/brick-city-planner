@@ -65,5 +65,13 @@ export function renderCatalog(els, sets, { onAdd }) {
   }
 
   draw();
-  return { setFilter(t, c) { text = t; category = c; draw(); } };
+  return {
+    setFilter(t, c) {
+      text = t;
+      category = c;
+      els.search.value = t;
+      els.chips.querySelectorAll('.chip').forEach((chip) => chip.classList.toggle('on', chip.dataset.cat === c));
+      draw();
+    },
+  };
 }
