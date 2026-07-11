@@ -5,8 +5,7 @@ import { schematicSVG } from './schematic.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
-const HANDLES = '<div class="rotate-handle" title="Drag to rotate"></div>' +
-  '<div class="resize-handle" title="Drag to resize"></div>';
+const HANDLES = '<div class="rotate-handle" title="Drag to rotate"></div>';
 
 export function createGrid(board, { onChange = () => {} } = {}) {
   let placed = [];
@@ -89,13 +88,13 @@ export function createGrid(board, { onChange = () => {} } = {}) {
 
   function tileEl(id) { return board.querySelector(`.tile[data-id="${id}"]`); }
 
-  // Live overlap-highlight refresh without rebuilding the DOM (used during drag/resize).
+  // Live overlap-highlight refresh without rebuilding the DOM (used during drag/rotate).
   function refreshOverlaps() {
     const over = anyOverlaps(placed);
     for (const p of placed) tileEl(p.id)?.classList.toggle('warn', over.has(p.id));
   }
 
-  // Toggle selection highlight + resize handle in place — no full rebuild, so tile
+  // Toggle selection highlight + rotate handle in place — no full rebuild, so tile
   // background images are never re-decoded (avoids the drag/selection flash).
   function select(id) {
     selectedId = id;
@@ -106,7 +105,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       el.classList.toggle('selected', isSel);
       const hasHandles = !!el.querySelector('.rotate-handle');
       if (isSel && !hasHandles) el.insertAdjacentHTML('beforeend', HANDLES);
-      else if (!isSel && hasHandles) el.querySelectorAll('.rotate-handle,.resize-handle').forEach((h) => h.remove());
+      else if (!isSel && hasHandles) el.querySelectorAll('.rotate-handle').forEach((h) => h.remove());
     }
     if (id) tileEl(id)?.focus({ preventScroll: true });
   }
@@ -129,11 +128,6 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     if (!selectedId) return;
     placed = placed.filter((p) => p.id !== selectedId); selectedId = null; render(); onChange();
   }
-  function resizeSelected(w, h) {
-    const t = placed.find((p) => p.id === selectedId); if (!t) return;
-    t.w = Math.max(1, w); t.h = Math.max(1, h); t.approx = true; render(); onChange();
-  }
-
   function applyZoom() { board.style.transform = `scale(${zoom})`; board.style.transformOrigin = '0 0'; }
   function setZoom(z) { zoom = Math.min(2, Math.max(0.25, z)); applyZoom(); }
   function zoomBy(d) { setZoom(zoom + d); }
@@ -176,43 +170,6 @@ export function createGrid(board, { onChange = () => {} } = {}) {
         onChange();
       }
       board.addEventListener('pointermove', rot);
-      board.addEventListener('pointerup', rend);
-      board.addEventListener('pointercancel', rend);
-      ev.preventDefault();
-      return;
-    }
-    if (ev.target.classList.contains('resize-handle')) {
-      const t = placed.find((p) => p.id === selectedId);
-      if (!t) return;
-      const sx = ev.clientX, sy = ev.clientY, ow = t.w, oh = t.h;
-      try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
-      function rmove(e) {
-        if (e.pointerId !== ev.pointerId) return;
-        // Rotate the screen delta into the tile's own axes so resize follows the corner.
-        const r = -((t.rot || 0) * Math.PI) / 180, co = Math.cos(r), si = Math.sin(r);
-        const dx = (e.clientX - sx) / PX / zoom, dy = (e.clientY - sy) / PX / zoom;
-        t.w = Math.max(1, snap(ow + dx * co - dy * si));
-        t.h = Math.max(1, snap(oh + dx * si + dy * co));
-        t.approx = true;
-        const el = tileEl(t.id);
-        if (el) {
-          el.style.width = t.w * PX + 'px';
-          el.style.height = t.h * PX + 'px';
-          const sizeSpan = el.querySelector('.tsub span:last-child');
-          if (sizeSpan) sizeSpan.textContent = `${t.w}×${t.h}`;
-          const tn = el.querySelector('.tn');
-          if (tn && !tn.querySelector('span')) tn.insertAdjacentHTML('beforeend', ' <span style="opacity:.8;font-weight:400">≈</span>');
-        }
-        refreshOverlaps();
-      }
-      function rend(e) {
-        if (e.pointerId !== ev.pointerId) return;
-        board.removeEventListener('pointermove', rmove);
-        board.removeEventListener('pointerup', rend);
-        board.removeEventListener('pointercancel', rend);
-        onChange();
-      }
-      board.addEventListener('pointermove', rmove);
       board.addEventListener('pointerup', rend);
       board.addEventListener('pointercancel', rend);
       ev.preventDefault();
@@ -267,7 +224,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   applyZoom();
   return {
     addSet, getPlaced, setPlaced, render, select,
-    rotateSelected, deleteSelected, resizeSelected,
+    rotateSelected, deleteSelected,
     setZoom, zoomBy, fit,
     _state: () => ({ placed, selectedId }),
   };

@@ -6,6 +6,7 @@ import { esc } from './util.js';
 export function renderSummary(el, placed, byNum, unit = 'studs') {
   const box = bbox(placed);
   const pieces = placed.reduce((n, t) => n + (byNum.get(t.set_num)?.pieces || 0), 0);
+  const estCost = Math.round(pieces * 0.11); // very rough: LEGO retail averages ~$0.11/piece
   const over = anyOverlaps(placed);
   const overlapCount = over.size ? Math.ceil(over.size / 2) : 0;
   const approxCount = placed.filter((t) => t.approx).length;
@@ -26,6 +27,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs') {
       <div class="stat"><div class="k">Sets placed</div><div class="v">${placed.length}</div></div>
       <div class="stat"><div class="k">Total pieces</div><div class="v">${pieces.toLocaleString()}</div></div>
     </div>
+    ${pieces ? `<div class="note" style="margin-top:-2px">≈ <b style="color:var(--ink-soft)">$${estCost.toLocaleString()}</b> estimated retail · rough (~$0.11/piece)</div>` : ''}
     <div>
       <h2 class="sec" style="margin-bottom:8px">By category</h2>
       <div class="breakdown">${cats.map(([c, n]) =>
@@ -38,7 +40,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs') {
     ${overlapCount ? `<div class="alert"><span class="ic">⚠</span>
       <span class="tx"><b>${overlapCount} overlap${overlapCount > 1 ? 's' : ''}.</b> Move a tile to clear it.</span></div>` : ''}
     ${approxCount ? `<div class="note"><span class="approx" style="color:var(--warn)">≈</span>
-      <span>${approxCount} set${approxCount > 1 ? 's use' : ' uses'} an <b style="color:var(--ink-soft)">estimated</b> footprint — drag a corner to adjust.</span></div>` : ''}
+      <span>${approxCount} set${approxCount > 1 ? 's show' : ' shows'} an <b style="color:var(--ink-soft)">estimated</b> footprint.</span></div>` : ''}
     <div style="display:flex;gap:8px">
       <button class="btn" id="btn-save" style="flex:1">💾 Save</button>
       <button class="btn primary" id="btn-export2" style="flex:1">⭱ Export</button>

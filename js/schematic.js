@@ -11,10 +11,10 @@ const RAIL = 'fill="none" stroke="#2b2b30" stroke-width="3"';
 function road(name, wide) {
   const n = (name || '').toLowerCase();
   if (/curve|curved/.test(n)) {
-    // quarter-turn road: bottom edge → right edge
-    return `<path d="M32 100 A68 68 0 0 1 100 32" ${W}/>` +
-      `<path d="M68 100 A32 32 0 0 1 100 68" ${W}/>` +
-      `<path d="M50 100 A50 50 0 0 1 100 50" ${Y}/>`;
+    // quarter-turn road from the bottom edge to the right (or mirrored left) edge
+    return /left/.test(n)
+      ? `<path d="M68 100 A68 68 0 0 0 0 32" ${W}/><path d="M32 100 A32 32 0 0 0 0 68" ${W}/><path d="M50 100 A50 50 0 0 0 0 50" ${Y}/>`
+      : `<path d="M32 100 A68 68 0 0 1 100 32" ${W}/><path d="M68 100 A32 32 0 0 1 100 68" ${W}/><path d="M50 100 A50 50 0 0 1 100 50" ${Y}/>`;
   }
   const cross = /cross/.test(n);
   const tee = !cross && /junction|t-|t &|and t/.test(n); // T = full one way + a half spur
@@ -33,24 +33,28 @@ function road(name, wide) {
 function track(name, wide) {
   const n = (name || '').toLowerCase();
   if (/curve|curved/.test(n)) {
+    const left = /left/.test(n);
     let ties = '';
     for (const a of [195, 225, 255]) {
       const r = (a * Math.PI) / 180;
-      const x1 = (100 + 38 * Math.cos(r)).toFixed(1), y1 = (100 + 38 * Math.sin(r)).toFixed(1);
-      const x2 = (100 + 62 * Math.cos(r)).toFixed(1), y2 = (100 + 62 * Math.sin(r)).toFixed(1);
-      ties += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#4b4038" stroke-width="4"/>`;
+      let x1 = 100 + 38 * Math.cos(r), y1 = 100 + 38 * Math.sin(r);
+      let x2 = 100 + 62 * Math.cos(r), y2 = 100 + 62 * Math.sin(r);
+      if (left) { x1 = 100 - x1; x2 = 100 - x2; }
+      ties += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#4b4038" stroke-width="4"/>`;
     }
-    return ties + `<path d="M38 100 A62 62 0 0 1 100 38" ${RAIL}/><path d="M62 100 A38 38 0 0 1 100 62" ${RAIL}/>`;
+    return ties + (left
+      ? `<path d="M62 100 A62 62 0 0 0 0 38" ${RAIL}/><path d="M38 100 A38 38 0 0 0 0 62" ${RAIL}/>`
+      : `<path d="M38 100 A62 62 0 0 1 100 38" ${RAIL}/><path d="M62 100 A38 38 0 0 1 100 62" ${RAIL}/>`);
   }
   if (/cross|crossover|diamond/.test(n)) { // two tracks crossing
     return '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' +
       '<rect x="0" y="33" width="100" height="4" fill="#2b2b30"/><rect x="0" y="63" width="100" height="4" fill="#2b2b30"/>';
   }
-  if (/switch|points|junction/.test(n)) { // straight track with a diverging branch
+  if (/switch|points/.test(n)) { // straight track with a diverging branch (left or right)
     let ties = '';
     for (let y = 6; y < 100; y += 12) ties += `<rect x="10" y="${y}" width="62" height="4" fill="#4b4038"/>`;
-    return ties + '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' +
-      `<path d="M63 44 Q90 52 100 84" ${RAIL}/>`;
+    const branch = /left/.test(n) ? `<path d="M37 44 Q10 52 0 84" ${RAIL}/>` : `<path d="M63 44 Q90 52 100 84" ${RAIL}/>`;
+    return ties + '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' + branch;
   }
   let s = '';
   if (wide) {
