@@ -1,5 +1,5 @@
 import { catColor } from './catalog.js';
-import { anyOverlaps, bbox, snap } from './geometry.js';
+import { anyOverlaps, bbox, snap, snapConnect } from './geometry.js';
 import { esc } from './util.js';
 import { schematicSVG } from './schematic.js';
 
@@ -230,6 +230,11 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       if (e.pointerId !== ev.pointerId) return;
       t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX / zoom));
       t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX / zoom));
+      // Snap-to-connect: road/rail pieces click flush against other same-layer pieces.
+      if (t.layer === 1) {
+        const s = snapConnect(t, placed.filter((p) => p.id !== t.id && (p.layer ?? 2) === 1), 6);
+        t.x = Math.max(0, s.x); t.y = Math.max(0, s.y);
+      }
       const el = tileEl(t.id);
       if (el) { el.style.left = t.x * PX + 'px'; el.style.top = t.y * PX + 'px'; }
       refreshOverlaps();

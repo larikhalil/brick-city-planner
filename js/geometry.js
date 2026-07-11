@@ -59,6 +59,39 @@ export function snap(value, step = 1) {
   return Math.round(value / step) * step;
 }
 
+// Axis-aligned bounding box of a tile (centre-anchored), in studs.
+function aabb(t) {
+  const e = extent(t);
+  const cx = t.x + t.w / 2, cy = t.y + t.h / 2;
+  return { minX: cx - e.w / 2, maxX: cx + e.w / 2, minY: cy - e.h / 2, maxY: cy + e.h / 2 };
+}
+
+// Snap-to-connect: nudge a dragged tile so its edges sit flush with / aligned to a
+// nearby tile from `others` (same-layer road/rail pieces). Returns adjusted {x, y}.
+// Each axis snaps independently to the closest edge match within `threshold` studs.
+export function snapConnect(t, others, threshold = 6) {
+  const a = aabb(t);
+  let dx = 0, dy = 0, bestX = threshold + 1e-6, bestY = threshold + 1e-6;
+  for (const o of others) {
+    const b = aabb(o);
+    const yNear = a.minY < b.maxY + threshold && a.maxY > b.minY - threshold;
+    const xNear = a.minX < b.maxX + threshold && a.maxX > b.minX - threshold;
+    if (yNear) {
+      for (const [ae, be] of [[a.maxX, b.minX], [a.minX, b.maxX], [a.minX, b.minX], [a.maxX, b.maxX]]) {
+        const d = Math.abs(ae - be);
+        if (d < bestX) { bestX = d; dx = be - ae; }
+      }
+    }
+    if (xNear) {
+      for (const [ae, be] of [[a.maxY, b.minY], [a.minY, b.maxY], [a.minY, b.minY], [a.maxY, b.maxY]]) {
+        const d = Math.abs(ae - be);
+        if (d < bestY) { bestY = d; dy = be - ae; }
+      }
+    }
+  }
+  return { x: t.x + dx, y: t.y + dy };
+}
+
 export function anyOverlaps(tiles) {
   const ids = new Set();
   for (let i = 0; i < tiles.length; i++) {

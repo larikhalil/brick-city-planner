@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extent, overlaps, bbox, snap, anyOverlaps } from '../js/geometry.js';
+import { extent, overlaps, bbox, snap, anyOverlaps, snapConnect } from '../js/geometry.js';
 
 test('extent swaps on 90/270', () => {
   assert.deepEqual(extent({ w: 48, h: 32, rot: 0 }), { w: 48, h: 32 });
@@ -40,6 +40,17 @@ test('overlaps handles rotated rectangles (SAT)', () => {
   const c = { x: 0, y: 0, w: 20, h: 20, rot: 0 };
   const d = { x: 20, y: 0, w: 20, h: 20, rot: 0 };
   assert.equal(overlaps(c, d), false);
+});
+test('snapConnect snaps a piece flush + aligned to a neighbour, ignores far ones', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };
+  // dragged near b's right edge with a 3-stud gap and 1-stud vertical offset
+  const a = { id: 'a', x: 35, y: 1, w: 32, h: 32, rot: 0, layer: 1 };
+  const s = snapConnect(a, [b], 6);
+  assert.equal(s.x, 32); // A.left snaps flush to B.right (x=32)
+  assert.equal(s.y, 0); // A.top aligns to B.top
+  // far piece → no snap
+  const far = { id: 'a', x: 100, y: 100, w: 32, h: 32, rot: 0, layer: 1 };
+  assert.deepEqual(snapConnect(far, [b], 6), { x: 100, y: 100 });
 });
 test('anyOverlaps only flags same-layer overlaps (baseplate/road/building layering)', () => {
   const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };
