@@ -166,6 +166,7 @@ button{font-family:inherit;cursor:pointer}
   background:rgba(0,0,0,.28);display:grid;place-items:center;font-size:11px;opacity:0;transition:opacity .12s}
 .tile:hover .rot{opacity:1}
 .tile.warn{outline:2px solid var(--danger);outline-offset:1px;box-shadow:0 0 0 4px rgba(216,56,42,.22),0 2px 5px rgba(0,0,0,.22)}
+.tile.selected{outline:2px solid var(--accent-deep);outline-offset:1px;z-index:6}
 .ov-flag{position:absolute;z-index:6;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
   font-family:var(--mono);padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);white-space:nowrap}
 @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
