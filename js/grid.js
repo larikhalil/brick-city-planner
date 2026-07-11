@@ -1,5 +1,5 @@
 import { catColor } from './catalog.js';
-import { anyOverlaps, extent, snap } from './geometry.js';
+import { anyOverlaps, bbox, extent, snap } from './geometry.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
@@ -8,6 +8,8 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   let placed = [];
   let selectedId = null;
   let seq = 1;
+  let zoom = 1;
+  const stage = board.parentElement;
 
   function addSet(set) {
     const id = 'p' + (seq++);
@@ -73,6 +75,24 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     const t = placed.find((p) => p.id === selectedId); if (!t) return;
     t.w = Math.max(1, w); t.h = Math.max(1, h); t.approx = true; render(); onChange();
   }
+
+  function applyZoom() { board.style.transform = `scale(${zoom})`; board.style.transformOrigin = '0 0'; }
+  function setZoom(z) { zoom = Math.min(2, Math.max(0.25, z)); applyZoom(); }
+  function zoomBy(d) { setZoom(zoom + d); }
+  function fit() {
+    const b = bbox(placed);
+    if (!b.w) { setZoom(1); return; }
+    const pad = 40;
+    const zx = (stage.clientWidth - pad) / (b.w * PX);
+    const zy = (stage.clientHeight - pad) / (b.h * PX);
+    setZoom(Math.min(2, Math.max(0.25, Math.min(zx, zy))));
+    stage.scrollTo(b.x * PX * zoom - 20, b.y * PX * zoom - 20);
+  }
+
+  stage.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault(); zoomBy(e.deltaY < 0 ? 0.1 : -0.1);
+  }, { passive: false });
 
   board.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return;
@@ -140,9 +160,11 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   });
 
   render();
+  applyZoom();
   return {
     addSet, getPlaced, setPlaced, render, select,
     rotateSelected, deleteSelected, resizeSelected,
+    setZoom, zoomBy, fit,
     _state: () => ({ placed, selectedId }),
   };
 }

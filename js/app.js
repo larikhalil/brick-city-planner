@@ -20,5 +20,12 @@ async function boot() {
   );
   $('btn-rotate').addEventListener('click', () => grid.rotateSelected());
   $('btn-delete').addEventListener('click', () => grid.deleteSelected());
+  $('zoom-ctrl').addEventListener('click', (e) => {
+    const z = e.target.dataset.zoom;
+    if (z === 'in') grid.zoomBy(0.15);
+    else if (z === 'out') grid.zoomBy(-0.15);
+    else if (z === 'reset') grid.setZoom(1);
+    else if (z === 'fit') grid.fit();
+  });
 }
 boot();
