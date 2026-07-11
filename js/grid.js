@@ -62,20 +62,20 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     const id = tileEl.dataset.id;
     select(id);
     const t = placed.find((p) => p.id === id);
+    if (!t) return;
     const startX = ev.clientX, startY = ev.clientY, ox = t.x, oy = t.y;
-    tileEl.setPointerCapture(ev.pointerId);
     function move(e) {
       t.x = Math.max(0, snap(ox + (e.clientX - startX) / PX));
       t.y = Math.max(0, snap(oy + (e.clientY - startY) / PX));
       render();
     }
     function up() {
-      tileEl.removeEventListener('pointermove', move);
-      tileEl.removeEventListener('pointerup', up);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
       onChange();
     }
-    tileEl.addEventListener('pointermove', move);
-    tileEl.addEventListener('pointerup', up);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
   });
 
   board.addEventListener('keydown', (ev) => {
