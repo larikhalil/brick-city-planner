@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brick City Planner</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="4" y="14" width="32" height="20" rx="3" fill="var(--t-police)"/>
+          <rect x="4" y="14" width="32" height="20" rx="3" fill="none" stroke="rgba(0,0,0,.25)"/>
+          <circle cx="12" cy="12" r="4" fill="var(--accent)"/><rect x="8" y="10" width="8" height="6" rx="2" fill="var(--accent)"/>
+          <circle cx="24" cy="12" r="4" fill="var(--t-fire)"/><rect x="20" y="10" width="8" height="6" rx="2" fill="var(--t-fire)"/>
+          <circle cx="12" cy="24" r="2.3" fill="rgba(255,255,255,.7)"/>
+          <circle cx="20" cy="24" r="2.3" fill="rgba(255,255,255,.7)"/>
+          <circle cx="28" cy="24" r="2.3" fill="rgba(255,255,255,.7)"/>
+        </svg>
+        <div><div class="wordmark">Brick<b>City</b> Planner</div></div>
+      </div>
+      <div class="toolbar">
+        <div class="seg" id="unit-toggle" role="group" aria-label="Units">
+          <button class="on" data-unit="studs">studs</button><button data-unit="cm">cm</button>
+        </div>
+        <button class="btn" id="btn-new">＋ New city</button>
+        <button class="btn" id="btn-import">⭳ Import</button>
+        <input type="file" id="file-import" accept="application/json" hidden>
+        <button class="btn primary" id="btn-export">⭱ Export</button>
+      </div>
+    </div>
+
+    <div class="grid3">
+      <section class="card" aria-label="Set catalog">
+        <div class="card-h"><h2>Catalog</h2><span class="count-pill" id="catalog-count"></span></div>
+        <div class="search"><span>🔍</span>
+          <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
+        <div class="chips" id="catalog-chips"></div>
+        <div class="catalog" id="catalog-list"></div>
+      </section>
+
+      <section class="card canvas-wrap" aria-label="City grid">
+        <div class="card-h"><h2>City grid</h2>
+          <span class="muted" id="grid-dims" style="margin-left:auto"></span></div>
+        <div class="canvas-tools">
+          <button class="btn icon" id="btn-rotate" title="Rotate selected">⟳</button>
+          <button class="btn icon" id="btn-delete" title="Delete selected">🗑</button>
+          <span class="muted">bold line = baseplate (32 studs)</span>
+          <div class="seg" id="zoom-ctrl" style="margin-left:auto">
+            <button data-zoom="out">−</button><button class="on" data-zoom="reset">100%</button>
+            <button data-zoom="in">＋</button><button data-zoom="fit">Fit</button></div>
+        </div>
+        <div class="stage" id="grid-stage"><div class="board" id="grid-board"></div></div>
+      </section>
+
+      <aside class="card" aria-label="City summary">
+        <div class="card-h"><h2>City summary</h2></div>
+        <div class="sum" id="summary"></div>
+      </aside>
+    </div>
+
+    <div class="legal">
+      <b>LEGO®</b> is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this site.<br>
+      Set data &amp; imagery sourced from <b>Rebrickable</b>. A free, non-commercial fan project — not affiliated with the LEGO Group.
+    </div>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
