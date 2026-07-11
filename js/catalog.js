@@ -2,16 +2,17 @@ import { esc } from './util.js';
 
 const CATS = [
   ['all', 'All', null], ['baseplate', 'Baseplates', 'var(--g-green)'],
+  ['road', 'Roads', 'var(--road)'], ['track', 'Tracks', 'var(--track)'],
   ['police', 'Police', 'var(--t-police)'],
   ['fire', 'Fire', 'var(--t-fire)'], ['train', 'Trains', 'var(--t-train)'],
   ['modular', 'Modular', 'var(--t-modular)'], ['city', 'Town', 'var(--t-city)'],
 ];
 const CAT_VAR = {
   police: 'var(--t-police)', fire: 'var(--t-fire)', train: 'var(--t-train)',
-  modular: 'var(--t-modular)', city: 'var(--t-city)', road: 'var(--t-road)',
+  modular: 'var(--t-modular)', city: 'var(--t-city)',
   park: 'var(--t-park)', space: 'var(--t-space)', arctic: 'var(--t-police)',
   harbor: 'var(--t-city)', farm: 'var(--t-park)', airport: 'var(--t-city)',
-  baseplate: 'var(--g-gray)', other: 'var(--t-city)',
+  baseplate: 'var(--g-gray)', road: 'var(--road)', track: 'var(--track)', other: 'var(--t-city)',
 };
 
 export function catColor(category) { return CAT_VAR[category] || 'var(--t-city)'; }

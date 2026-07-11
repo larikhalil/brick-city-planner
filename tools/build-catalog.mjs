@@ -29,6 +29,29 @@ function baseplateColor(name) {
   return 'var(--g-gray)';
 }
 
+// Road-plate / train-track infrastructure. These sets are only 2-4 pieces, so they'd
+// be dropped by MIN_PARTS — we keep them (in included themes) because they're the
+// streets and rails a city planner needs.
+const INFRA_RE = /road plates?|road baseplate|t-junction|crossroad|cross[- ]?road|straight (and|&|road)|curve (and|&)|curved road|straight rails?|curved rails?|straight track|curved track|switch tracks?|train tracks?|level crossing|flexible.*track|\btracks?\b|\brails\b/i;
+const ROAD_RE = /road plate|road baseplate|cross[- ]?road|t-?junction|straight (and|&) (t-|crossroad)|curve (and|&) crossroad/i;
+const TRACK_RE = /train track|\brails?\b|switch track|level crossing|crossover|flexible (track|rail)|straight (track|rails)|curved (track|rails)|monorail|points \(switch|\btracks?\b/i;
+const PARK_RE = /\bpark\b|garden|playground|fountain|plaza|botanic/i;
+const BUILDING_RE = /police|fire|hospital|station|store|shop|\bhouse\b|hotel|bank|market|hall|office|garage|restaurant|cafe|café|cinema|museum|school|library|headquarters|\bhq\b|apartment|building|tower|\bcenter\b|\bcentre\b|barn|warehouse|factory|prison|jail|academy|diner|bakery|pizzeria|dealership|depot|terminal|arena|stadium|lighthouse|windmill|castle|temple|church|firehouse/i;
+const VEHICLE_RE = /\bcar\b|truck|\bvan\b|bike|motorcycle|helicopter|\bplane\b|airplane|\bboat\b|\bship\b|\bbus\b|\btram\b|buggy|racer|racing|\batv\b|quad|\bjet\b|chopper|ambulance|dozer|excavator|loader|crane|mixer|tractor|forklift|speedboat|submarine|\brover\b|drone|scooter|kart|\bcart\b|wagon|dump|hauler|transporter|\btrain\b|locomotive|patrol|cruiser|\bunit\b/i;
+
+// Classify a set into a shape 'kind' and stacking 'layer' (0 baseplate, 1 road/track, 2 building).
+function classify(name, category, isBaseplate) {
+  const n = (name || '').toLowerCase();
+  if (isBaseplate) return { kind: 'baseplate', layer: 0 };
+  if (ROAD_RE.test(n)) return { kind: 'road', layer: 1 };
+  // "track"/"rails" is also used by race/ramp/off-road vehicle sets — exclude those.
+  if (TRACK_RE.test(n) && !/race|ramp|off[- ]?road|stunt|monster/.test(n)) return { kind: 'track', layer: 1 };
+  if (PARK_RE.test(n) || category === 'park') return { kind: 'park', layer: 2 };
+  if (BUILDING_RE.test(n) || category === 'modular') return { kind: 'building', layer: 2 };
+  if (VEHICLE_RE.test(n)) return { kind: 'vehicle', layer: 2 };
+  return { kind: 'generic', layer: 2 };
+}
+
 async function fetchCsvGz(url) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -111,8 +134,11 @@ async function main() {
   const themeById = new Map(themeRows.map((t) => [Number(t.id), t]));
   const includedIds = buildIncludedThemeIds(themeRows, include.roots);
 
-  const chosen = setRows.filter(
-    (s) => includedIds.has(Number(s.theme_id)) && Number(s.num_parts) >= MIN_PARTS);
+  const chosen = setRows.filter((s) => {
+    if (!includedIds.has(Number(s.theme_id))) return false;
+    if (Number(s.num_parts) >= MIN_PARTS) return true;
+    return INFRA_RE.test(s.name); // keep small road/track infrastructure sets
+  });
   console.log(`Filtered ${chosen.length} sets from ${setRows.length}.`);
 
   // Add allowlisted baseplates (ground tiles) even though their Classic theme is excluded.
@@ -135,13 +161,24 @@ async function main() {
     const root = rootLabel(themeId, themeById, ROOT_LABELS);
     const num = raw.set_num.replace(/-\d+$/, '');
     const isBaseplate = BASEPLATE_NUMS.has(num);
-    const category = isBaseplate ? 'baseplate' : categoryFor(themeName, root, catMap);
-    const footprint = isBaseplate
-      ? { w: 32, h: 32, source: 'curated' }
-      : resolveFootprint({ num, num_parts: Number(raw.num_parts), category }, curated);
+    const themeCategory = categoryFor(themeName, root, catMap);
+    const cls = classify(raw.name, themeCategory, isBaseplate);
+    // Infrastructure uses its shape as the filter category; others keep the theme category.
+    const category = (cls.kind === 'baseplate' || cls.kind === 'road' || cls.kind === 'track')
+      ? cls.kind : themeCategory;
+    const footprint =
+      cls.kind === 'baseplate' ? { w: 32, h: 32, source: 'curated' } :
+      cls.kind === 'road' ? { w: 32, h: 32, source: 'curated' } :
+      cls.kind === 'track' ? { w: 8, h: 32, source: 'curated' } :
+      resolveFootprint({ num, num_parts: Number(raw.num_parts), category: themeCategory }, curated);
     const img = await downloadImage(raw.img_url, raw.set_num);
     const rec = buildSetRecord(raw, { themeName, root, category, footprint, img });
-    if (isBaseplate) { rec.ground = true; rec.color = baseplateColor(raw.name); }
+    rec.kind = cls.kind;
+    rec.layer = cls.layer;
+    if (isBaseplate) rec.color = baseplateColor(raw.name);
+    else if (cls.kind === 'road') rec.color = 'var(--road)';
+    else if (cls.kind === 'track') rec.color = 'var(--track)';
+    else if (cls.kind === 'park') rec.color = 'var(--t-park)';
     return rec;
   });
 

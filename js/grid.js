@@ -1,6 +1,7 @@
 import { catColor } from './catalog.js';
 import { anyOverlaps, bbox, extent, snap } from './geometry.js';
 import { esc } from './util.js';
+import { schematicSVG } from './schematic.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
@@ -15,10 +16,10 @@ export function createGrid(board, { onChange = () => {} } = {}) {
   function addSet(set) {
     const id = 'p' + (seq++);
     placed.push({
-      id, set_num: set.set_num, name: set.name, category: set.category,
+      id, set_num: set.set_num, name: set.name, category: set.category, kind: set.kind || 'generic',
       x: 0, y: 0, w: set.footprint.w, h: set.footprint.h, rot: 0,
       approx: set.footprint.source !== 'curated', img: set.img || null,
-      ground: !!set.ground, color: set.color || null,
+      layer: set.layer ?? 2, color: set.color || null,
     });
     selectedId = id;
     render(); onChange();
@@ -26,7 +27,12 @@ export function createGrid(board, { onChange = () => {} } = {}) {
 
   function getPlaced() { return placed; }
   function setPlaced(arr) {
-    placed = arr.map((p) => ({ ...p }));
+    placed = arr.map((p) => {
+      const t = { ...p };
+      if (t.layer == null) t.layer = t.ground ? 0 : 2; // back-compat with pre-layer saved cities
+      if (t.kind == null) t.kind = t.ground ? 'baseplate' : 'generic';
+      return t;
+    });
     for (const p of placed) {
       const n = parseInt(String(p.id).replace(/^p/, ''), 10);
       if (Number.isFinite(n) && n >= seq) seq = n + 1;
@@ -43,21 +49,23 @@ export function createGrid(board, { onChange = () => {} } = {}) {
     }
     const over = anyOverlaps(placed);
     board.innerHTML = '';
-    // Paint ground tiles (baseplates) first so buildings render on top of them.
-    const paintOrder = [...placed].sort((a, b) => (a.ground === b.ground ? 0 : a.ground ? -1 : 1));
+    // Paint by layer: baseplates (0) under roads/tracks (1) under buildings (2).
+    const paintOrder = [...placed].sort((a, b) => (a.layer ?? 2) - (b.layer ?? 2));
     for (const t of paintOrder) {
       const e = extent(t);
-      const lightGround = t.ground && /--g-(white|sand)/.test(t.color || '');
+      const layer = t.layer ?? 2;
+      const lightGround = /--g-(white|sand)/.test(t.color || '');
       const el = document.createElement('div');
       el.className = 'tile' + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
-        (t.ground ? ' ground' : '') +
+        (layer < 2 ? ' flat' : '') +
         (over.has(t.id) ? ' warn' : '') + (t.id === selectedId ? ' selected' : '');
       el.style.left = t.x * PX + 'px';
       el.style.top = t.y * PX + 'px';
       el.style.width = e.w * PX + 'px';
       el.style.height = e.h * PX + 'px';
       el.style.background = t.color || catColor(t.category);
-      if (t.img && !t.ground) {
+      const schem = schematicSVG(t.kind || 'generic', e, t.name);
+      if (t.img && !schem) { // generic sets keep the tinted box photo
         el.style.backgroundImage =
           `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
         el.style.backgroundSize = 'cover';
@@ -65,7 +73,7 @@ export function createGrid(board, { onChange = () => {} } = {}) {
       }
       el.dataset.id = t.id;
       el.tabIndex = 0;
-      el.innerHTML = `
+      el.innerHTML = schem + `
         <div class="tn">${esc(t.name)}${t.approx ? ' <span style="opacity:.8;font-weight:400">≈</span>' : ''}</div>
         <div class="tsub"><span>${esc(t.set_num.replace(/-\d+$/, ''))}</span><span>${e.w}×${e.h}</span></div>`;
       if (t.id === selectedId) {
