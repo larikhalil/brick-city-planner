@@ -4,13 +4,29 @@ A digital, top-down **city planner for LEGO® sets** — design your city layout
 
 Browse a catalog of real sets, drag their footprints onto a stud grid that represents your table/floor, and see how the whole city fits together: total size (studs + cm), how baseplates tile, category mix, and piece count.
 
-> 🚧 Early development. Design spec: [`docs/superpowers/specs/2026-07-11-brick-city-planner-design.md`](docs/superpowers/specs/2026-07-11-brick-city-planner-design.md)
+> Design spec: [`docs/superpowers/specs/2026-07-11-brick-city-planner-design.md`](docs/superpowers/specs/2026-07-11-brick-city-planner-design.md) ·
+> Post-v1 roadmap: [`docs/superpowers/plans/2026-07-11-brick-city-planner-waves.md`](docs/superpowers/plans/2026-07-11-brick-city-planner-waves.md)
 
 ## Status
 
 - **2D top-down** stud-grid planner · static site (HTML/CSS/vanilla JS) · hosted on GitHub Pages.
 - Catalog built at build time from [Rebrickable](https://rebrickable.com/) bulk data (City, Town, Trains & Modular Buildings themes); ships as a static snapshot.
 - A free, **non-commercial fan project**.
+
+## Features
+
+Built out across a research-driven 5-wave programme (see the roadmap above):
+
+- **Editing** — drag/place/rotate/delete, stud snapping, port-to-port road/rail snapping, marquee multi-select + groups, copy/paste/duplicate/alt-drag clone, align & distribute, undo/redo with a history panel, autosave.
+- **Commerce & data** — real per-set prices with manual override, "I own this" owned-vs-buy budget split, direct buy links (LEGO / BrickLink / Amazon), BrickLink-compatible + CSV export, wishlist.
+- **Catalog & sharing** — search + category filters, grid/list view, favorites rail, starter-template gallery, named saves, one-click compressed share-link.
+- **Accessibility & UX** — full keyboard placement/rotation, colorblind-safe patterns, high-contrast focus, ARIA live announcements, mobile/touch gestures, dark mode, lock pieces + Kid Mode, per-layer show/hide + lock.
+
+## Changelog
+
+- **Wave 3/5 — Accessibility & UX**: keyboard pipeline, colorblind-safe patterns, focus/ARIA, mobile touch safety, dark mode, lock + Kid Mode, per-layer visibility/lock.
+- **Wave 2/5 — Commerce & data**: ownership, real prices, buy links, CSV, catalog browse UX, sharing, templates.
+- **Wave 1/5 — Core editing**: undo/redo, multi-select + groups, copy/paste, align/distribute, interaction polish.
 
 ---
 

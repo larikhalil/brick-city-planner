@@ -165,8 +165,11 @@ export function snapConnect(t, others, threshold = 6) {
   return { x: t.x + dx, y: t.y + dy };
 }
 
-export function anyOverlaps(tiles) {
-  const ids = new Set();
+// Overlapping tile PAIRS (same layer/kind rules as anyOverlaps below) — kept as the actual tile
+// objects, not just ids, so a caller can name the offending pieces (ACC-4 announcements need
+// "Overlap detected between X and Y", not just a set of ids).
+export function overlapPairs(tiles) {
+  const pairs = [];
   for (let i = 0; i < tiles.length; i++) {
     for (let j = i + 1; j < tiles.length; j++) {
       const a = tiles[i], b = tiles[j];
@@ -174,10 +177,23 @@ export function anyOverlaps(tiles) {
       // 1 road/track, 2 building). A building on a baseplate, or a car on a road,
       // is intended; two roads or two buildings overlapping still flag.
       if ((a.layer ?? 2) !== (b.layer ?? 2)) continue;
-      if (overlaps(a, b)) { ids.add(a.id); ids.add(b.id); }
+      if (overlaps(a, b)) pairs.push([a, b]);
     }
   }
+  return pairs;
+}
+
+export function anyOverlaps(tiles) {
+  const ids = new Set();
+  for (const [a, b] of overlapPairs(tiles)) { ids.add(a.id); ids.add(b.id); }
   return ids;
+}
+
+// Stud coordinates → a friendly 1-indexed row/column pair (default 8-stud cell) — used only for
+// accessibility announcements (ACC-4), e.g. "placed at row 3, column 5", so screen-reader users
+// get a spatial reference without colour.
+export function toRowCol(x, y, cell = 8) {
+  return { row: Math.floor(y / cell) + 1, col: Math.floor(x / cell) + 1 };
 }
 
 // Shed floating-point noise from rotation while keeping genuine fractions; -0 → 0.
@@ -232,6 +248,33 @@ export function distributeTiles(tiles, axis) {
       : { id: t.id, x: round4(Math.max(0, t.x + delta)), y: t.y });
   });
   return tiles.map((t) => out.get(t.id));
+}
+
+// ---- QOL-8 / QOL-10: per-tile lock + per-layer show-hide/lock + Kid Mode -------------------
+// Pure predicates deciding whether a tile is *editable* (draggable / rotatable / deletable /
+// nudgeable / alignable) or *visible*, given the current view/interaction prefs. Only `tile.locked`
+// is part of the saved city model (serialised + undoable); `layerLocks`, `layerVis`, `kidMode`
+// and `kidNewIds` are session/localStorage prefs kept OUT of the undo history.
+export function layerOf(tile) { return tile.layer ?? 2; }
+
+// A tile is visible unless its stacking layer has been explicitly hidden.
+export function isLayerVisible(tile, layerVis) {
+  if (!layerVis) return true;
+  return layerVis[layerOf(tile)] !== false;
+}
+
+// Editable ⇔ (a) not individually locked, (b) its layer isn't locked, (c) its layer isn't hidden,
+// and (d) — in Kid Mode — it was placed during THIS Kid-Mode session (only new pieces move; the
+// frozen layout can't). `kidNewIds` may be any object exposing `.has(id)` (a Set), or null when Kid
+// Mode is off. `opts` all default to the "no restrictions" case so a bare isTileEditable(t) is true
+// for a normal, unlocked tile.
+export function isTileEditable(tile, { layerLocks = null, layerVis = null, kidMode = false, kidNewIds = null } = {}) {
+  if (tile.locked) return false;
+  const layer = layerOf(tile);
+  if (layerLocks && layerLocks[layer]) return false;
+  if (layerVis && layerVis[layer] === false) return false;
+  if (kidMode && !(kidNewIds && kidNewIds.has(tile.id))) return false;
+  return true;
 }
 
 // Rotate a whole group of tiles by `deg` about the group's bounding-box centre: each

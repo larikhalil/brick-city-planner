@@ -4,6 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Brick City Planner</title>
+  <!-- UI-3: stamp any EXPLICIT saved theme/colorblind-safe choice before first paint, so there's
+       no flash-of-wrong-theme. Absent a stored choice, no attribute is set here at all — the
+       :root[data-theme] rules in css/styles.css stay silent and the plain `@media
+       (prefers-color-scheme: dark)` block keeps following the OS live (including if the OS theme
+       changes later in the same tab), exactly as the "defaults to prefers-color-scheme" spec wants. -->
+  <script>(function(){try{
+    var t=localStorage.getItem('bcp.theme');
+    if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);
+    if(localStorage.getItem('bcp.cbSafe')==='1')document.documentElement.setAttribute('data-cbsafe','true');
+    if(sessionStorage.getItem('bcp.kidMode')==='1')document.documentElement.setAttribute('data-kidmode','true');
+  }catch(e){}})();</script>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -31,6 +42,13 @@
         <div class="seg" id="unit-toggle" role="group" aria-label="Units">
           <button class="on" data-unit="studs">studs</button><button data-unit="cm">cm</button>
         </div>
+        <button class="btn icon" id="btn-theme" type="button" title="Switch to dark mode"
+          aria-label="Switch to dark mode" aria-pressed="false">🌙</button>
+        <button class="btn icon" id="btn-cbsafe" type="button" title="Turn on colorblind-safe patterns"
+          aria-label="Turn on colorblind-safe patterns" aria-pressed="false">◐</button>
+        <button class="btn" id="btn-kid" type="button" aria-pressed="false"
+          title="Kid Mode — freeze the layout so only new pieces can be added and arranged"
+          aria-label="Turn on Kid Mode">🧒 Kid Mode</button>
         <button class="btn" id="btn-new">＋ New city</button>
         <button class="btn" id="btn-templates" aria-haspopup="dialog" aria-expanded="false">▤ Templates</button>
         <button class="btn" id="btn-save-as">💾 Save as</button>
@@ -91,6 +109,11 @@
           <button class="btn icon" id="btn-forward" title="Bring to front">⬆</button>
           <button class="btn icon" id="btn-back" title="Send to back (above baseplates)">⬇</button>
           <button class="btn icon" id="btn-delete" title="Delete selected">🗑</button>
+          <button class="btn icon" id="btn-lock" title="Lock / unlock selected (L)" aria-label="Lock or unlock selected" aria-pressed="false" disabled>🔓</button>
+          <div class="layers-group">
+            <button class="btn icon" id="btn-layers" title="Layers — show / hide &amp; lock" aria-label="Layers" aria-haspopup="true" aria-expanded="false">▧</button>
+            <div class="layers-menu" id="layers-menu" role="menu" aria-label="Layers — show, hide and lock" hidden></div>
+          </div>
           <div class="gsize" id="grid-size" title="Table size in baseplates — or drag the corner grip">
             <span class="lab">Table</span>
             <button class="gstep" data-gs="wdec" aria-label="Fewer baseplates wide">−</button>
@@ -149,6 +172,10 @@
     </div>
   </div>
   <div id="toast" role="status" aria-live="polite"></div>
+  <!-- ACC-4: a visually-subtle live region for granular editing events (placed/rotated/deleted/
+       overlap-detected) — kept separate from the highly-visible #toast pill above so these don't
+       spam a visible bubble for every commit; a screen reader still hears each one. -->
+  <div id="sr-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <div class="modal-backdrop" id="shortcuts-backdrop" hidden>
     <div class="modal" id="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
@@ -172,6 +199,7 @@
           <h3>Keyboard</h3>
           <div class="sc-row"><span>Nudge selection 1 stud</span><kbd>↑ ↓ ← →</kbd></div>
           <div class="sc-row"><span>Rotate selection 90°</span><kbd>R</kbd></div>
+          <div class="sc-row"><span>Lock / unlock selection</span><kbd>L</kbd></div>
           <div class="sc-row"><span>Delete selection</span><kbd>Delete</kbd></div>
           <div class="sc-row"><span>Clear selection</span><kbd>Esc</kbd></div>
           <div class="sc-row"><span>Select all</span><kbd>Ctrl+A</kbd></div>

@@ -318,6 +318,14 @@ button{font-family:inherit;cursor:pointer}
   background:rgba(0,0,0,.28);display:grid;place-items:center;font-size:11px;opacity:0;transition:opacity .12s}
 .tile:hover .rot{opacity:1}
 .tile.warn{outline:2px solid var(--danger);outline-offset:1px;box-shadow:0 0 0 4px rgba(216,56,42,.22),0 2px 5px rgba(0,0,0,.22)}
+/* ACC-2: overlap is never colour-only. The red outline above is joined by (a) a hazard-stripe
+   texture — overrides the stud-dot ::before with repeating diagonal stripes — and (b) a ⚠ badge
+   (.ov-flag) naming the state in text, both regardless of theme/colourblind mode. */
+.tile.warn::before{
+  background-image:repeating-linear-gradient(45deg, rgba(216,56,42,.9) 0 6px, rgba(255,255,255,.85) 6px 12px);
+  background-size:17px 17px; background-position:0 0; opacity:.5}
+.ov-flag{position:absolute;top:3px;left:3px;z-index:6;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+  font-family:var(--mono);padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);white-space:nowrap}
 .tile.selected{outline:2px solid var(--accent-deep);outline-offset:1px;z-index:6;overflow:visible}
 /* High-contrast keyboard focus ring (ACC-3): a "halo" — a thin ring matching the panel colour
    (so it reads on both light and dark surfaces) inside a thick accent ring outside it. outline/
@@ -521,3 +529,143 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:10px;
   font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s;z-index:50}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ============ ACC-4: visually-subtle live-region announcer ============
+   Off-screen but still perceivable to a screen reader (unlike `display:none`/`visibility:hidden`,
+   which some assistive tech ignores entirely). Distinct from #toast — which is the highly-visible
+   confirmation pill — so a placement/rotate/delete/overlap announcement never has to fight the
+   toast's own timing or spam it for events that don't need a visible bubble. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ============ UI-3 / ACC-2c: theme + colorblind-safe toggles ============ */
+.btn.icon[aria-pressed="true"]{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+
+/* ============ ACC-2c: colorblind-safe theme ============
+   Toggled via [data-cbsafe="true"] on <html> (localStorage 'bcp.cbSafe'). Augments each category
+   colour with a distinct value/pattern texture — stripes, dots or crosshatch — layered as a ::after
+   overlay ON TOP of whatever background-colour the element already has (inline, JS-set), so turning
+   this on/off never touches a single colour value anywhere. Applied wherever a category colour
+   alone would otherwise be the only distinguishing signal: catalog swatches, placed tiles on the
+   grid, and the summary's category-breakdown bar segments (the filter chips + breakdown rows
+   already carry a text label per-category, so they don't need this on top). */
+:root[data-cbsafe="true"] .tile[data-cat="police"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="police"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="police"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.6) 0 3px, transparent 3px 9px)}
+/* arctic shares --t-police (see catalog.js CAT_VAR) — a single-direction diagonal stripe alone
+   would be identical to police's, so arctic gets a diamond crosshatch (both diagonals at once,
+   tighter pitch) instead of just police's stripe at a new angle. */
+:root[data-cbsafe="true"] .tile[data-cat="arctic"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="arctic"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="arctic"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.6) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.6) 0 2px, transparent 2px 5px)}
+:root[data-cbsafe="true"] .tile[data-cat="fire"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="fire"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="fire"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.6) 0 3px, transparent 3px 9px)}
+:root[data-cbsafe="true"] .tile[data-cat="train"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="train"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="train"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.55) 0 2px, transparent 2px 7px)}
+:root[data-cbsafe="true"] .tile[data-cat="modular"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="modular"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="modular"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;
+  background-image:radial-gradient(rgba(0,0,0,.35) 1.6px, transparent 2px);background-size:9px 9px}
+:root[data-cbsafe="true"] .tile[data-cat="city"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="city"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="city"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.45) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.45) 0 2px, transparent 2px 9px)}
+/* harbor and airport both share --t-city (see catalog.js CAT_VAR) — city's own crosshatch is
+   reserved for city alone, so harbor and airport each get a texture from a different family
+   (checkerboard / sparse diamond) rather than a denser variant of the same grid, which would
+   still read as "the same pattern" at tile scale. */
+:root[data-cbsafe="true"] .tile[data-cat="harbor"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="harbor"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="harbor"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;
+  background-image:repeating-conic-gradient(rgba(255,255,255,.55) 0% 25%, transparent 0% 50%);
+  background-size:10px 10px}
+:root[data-cbsafe="true"] .tile[data-cat="airport"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="airport"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="airport"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.65) 0 2px, transparent 2px 10px),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.65) 0 2px, transparent 2px 10px)}
+:root[data-cbsafe="true"] .tile[data-cat="park"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="park"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="park"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 3px, transparent 3px 9px)}
+/* farm shares --t-park (see catalog.js CAT_VAR) — reuses park's vertical-stripe FAMILY but at a
+   visibly coarser pitch (thicker bars, wider gaps), the same scale-based distinction already used
+   between modular's and space's dot patterns below, so farm never reads as identical to park. */
+:root[data-cbsafe="true"] .tile[data-cat="farm"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="farm"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="farm"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
+  background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.6) 0 5px, transparent 5px 15px)}
+:root[data-cbsafe="true"] .tile[data-cat="space"]::after,
+:root[data-cbsafe="true"] .swatch[data-cat="space"]::after,
+:root[data-cbsafe="true"] .bar i[data-cat="space"]::after{
+  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;
+  background-image:radial-gradient(rgba(255,255,255,.65) 2.4px, transparent 3px);background-size:14px 14px}
+.bar i{position:relative}
+
+/* ============ QOL-8: per-tile lock + Kid Mode, QOL-10: per-layer show-hide/lock ============ */
+/* Lock badge — names the frozen state (icon + title) on an individually-locked tile. Bottom-right
+   so it never collides with the top-left ⚠ overlap flag or the top-centre rotate handle. */
+.lock-flag{position:absolute;bottom:3px;right:3px;z-index:6;font-size:11px;line-height:1;
+  background:rgba(0,0,0,.42);color:#fff;padding:2px 3px;border-radius:6px;pointer-events:none}
+/* Non-editable tiles (per-tile lock, locked layer, or Kid-Mode-frozen): still selectable, but the
+   grab cursor + hover-lift would falsely promise a drag, so suppress both. */
+.tile.noedit{cursor:default}
+.tile.noedit:hover{transform:none;box-shadow:0 2px 5px rgba(0,0,0,.22)}
+.tile.flat.noedit:hover{box-shadow:none}
+
+/* Layers menu (mirrors the history dropdown pattern) */
+.layers-group{position:relative;display:inline-flex}
+.btn.icon.active{border-color:var(--accent-deep);color:var(--accent-deep)}
+.layers-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:30;min-width:222px;
+  background:var(--panel);border:1px solid var(--line-2);border-radius:10px;box-shadow:var(--shadow);padding:6px}
+.layers-menu[hidden]{display:none}
+.layer-row{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:7px}
+.layer-row:hover{background:var(--sunk)}
+.lr-name{flex:1;font-size:12.5px;color:var(--ink);white-space:nowrap}
+.lr-btn{width:32px;height:28px;border:1px solid var(--line-2);border-radius:7px;background:var(--panel-2);
+  color:var(--ink-soft);font-size:14px;line-height:1;display:grid;place-items:center;cursor:pointer}
+.lr-btn:hover{color:var(--ink);border-color:var(--plate)}
+.lr-btn[data-lv][aria-checked="false"]{opacity:.6}                                  /* a hidden layer reads dimmer */
+.lr-btn[data-ll][aria-checked="true"]{color:var(--accent-deep);border-color:var(--accent-deep);background:var(--panel)}
+.layer-foot{display:block;width:100%;margin-top:6px;padding:8px;border:1px solid var(--line-2);border-radius:8px;
+  background:var(--panel-2);color:var(--ink-soft);font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+.layer-foot:hover{color:var(--ink);border-color:var(--plate)}
+
+/* Kid Mode: freeze-layout + a bigger, simpler, touch-friendlier control set. The `data-kidmode`
+   attribute is stamped on <html> by app.js and persisted per browser session. */
+#btn-kid.on{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+html[data-kidmode] .canvas-tools{gap:12px;padding:14px}
+html[data-kidmode] .canvas-tools .btn.icon{padding:12px 15px;font-size:19px}
+html[data-kidmode] .canvas-tools .seg button{padding:11px 15px;font-size:14px}
+html[data-kidmode] .set .add{padding:10px 14px;font-size:16px}
+/* hide the advanced tools while Kid Mode is on (undo/redo stay — kids need an "oops") */
+html[data-kidmode] #btn-history,
+html[data-kidmode] #btn-forward,
+html[data-kidmode] #btn-back,
+html[data-kidmode] #btn-lock,
+html[data-kidmode] .layers-group,
+html[data-kidmode] .align-bar{display:none!important}
+/* a calm dashed cue that the placed layout is frozen */
+html[data-kidmode] .canvas-wrap{outline:2px dashed var(--accent-deep);outline-offset:-2px;border-radius:12px}
+@media (prefers-reduced-motion:reduce){html[data-kidmode] .canvas-wrap{outline-style:solid}}

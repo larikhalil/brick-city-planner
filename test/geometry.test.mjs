@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  extent, overlaps, bbox, snap, anyOverlaps, snapConnect, grownCanvas, clampedCanvas, BP,
-  tileAABB, tilesInRect, alignTiles, distributeTiles, rotateGroup,
+  extent, overlaps, bbox, snap, anyOverlaps, overlapPairs, toRowCol, snapConnect, grownCanvas,
+  clampedCanvas, BP, tileAABB, tilesInRect, alignTiles, distributeTiles, rotateGroup,
+  isTileEditable, isLayerVisible, layerOf,
 } from '../js/geometry.js';
 
 test('extent swaps on 90/270', () => {
@@ -162,6 +163,77 @@ test('distributeTiles evenly spaces 3+ tiles by centre, extremes fixed', () => {
   // fewer than 3 tiles is a no-op
   assert.deepEqual(distributeTiles(tiles.slice(0, 2), 'h').map((r) => r.x), [0, 15]);
 });
+// ---- ACC-4 support: overlapPairs + toRowCol -------------------------------------------------
+test('overlapPairs returns the actual tile objects, paired, for each real overlap', () => {
+  const a = { id: 'a', name: 'Police Station', x: 0, y: 0, w: 32, h: 32, rot: 0 };
+  const b = { id: 'b', name: 'Fire Station', x: 16, y: 16, w: 32, h: 32, rot: 0 };
+  const c = { id: 'c', name: 'Far Away', x: 200, y: 200, w: 8, h: 8, rot: 0 };
+  const pairs = overlapPairs([a, b, c]);
+  assert.equal(pairs.length, 1);
+  assert.deepEqual(new Set(pairs[0].map((t) => t.id)), new Set(['a', 'b']));
+  // anyOverlaps stays consistent with it (ids derived from the same pairs)
+  assert.deepEqual([...anyOverlaps([a, b, c])].sort(), ['a', 'b']);
+});
+test('overlapPairs respects the same layer exclusion as anyOverlaps', () => {
+  const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };
+  const road = { id: 'road', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };
+  assert.deepEqual(overlapPairs([plate, road]), []); // different layers never pair
+});
+test('toRowCol converts stud coords to a friendly 1-indexed row/column pair', () => {
+  assert.deepEqual(toRowCol(0, 0), { row: 1, col: 1 });
+  assert.deepEqual(toRowCol(8, 16), { row: 3, col: 2 });
+  assert.deepEqual(toRowCol(23, 40, 8), { row: 6, col: 3 }); // floors within the cell, not rounds
+});
+
+// ---- QOL-8 / QOL-10: lock + layer show-hide/lock + Kid Mode predicates ----------------------
+test('layerOf defaults a missing layer to 2 (buildings)', () => {
+  assert.equal(layerOf({ layer: 0 }), 0);
+  assert.equal(layerOf({ layer: 1 }), 1);
+  assert.equal(layerOf({}), 2);
+});
+
+test('isLayerVisible: visible unless the tile\'s layer is explicitly hidden', () => {
+  const t = { id: 'a', layer: 1 };
+  assert.equal(isLayerVisible(t, null), true);          // no prefs → visible
+  assert.equal(isLayerVisible(t, { 1: true }), true);
+  assert.equal(isLayerVisible(t, { 1: false }), false); // its layer hidden
+  assert.equal(isLayerVisible(t, { 0: false }), true);  // a DIFFERENT layer hidden doesn't affect it
+  assert.equal(isLayerVisible({ id: 'b' }, { 2: false }), false); // missing layer defaults to 2
+});
+
+test('isTileEditable: a plain unlocked tile with no prefs is editable', () => {
+  assert.equal(isTileEditable({ id: 'a', layer: 2 }), true);
+});
+
+test('isTileEditable: a per-tile lock blocks editing', () => {
+  assert.equal(isTileEditable({ id: 'a', layer: 2, locked: true }), false);
+});
+
+test('isTileEditable: a locked layer blocks every tile on it, others stay editable', () => {
+  const opts = { layerLocks: { 0: true } };
+  assert.equal(isTileEditable({ id: 'base', layer: 0 }, opts), false);
+  assert.equal(isTileEditable({ id: 'bldg', layer: 2 }, opts), true);
+});
+
+test('isTileEditable: a hidden layer is also non-editable', () => {
+  assert.equal(isTileEditable({ id: 'a', layer: 1 }, { layerVis: { 1: false } }), false);
+});
+
+test('isTileEditable: Kid Mode freezes everything except pieces in kidNewIds', () => {
+  const kidNewIds = new Set(['fresh']);
+  const opts = { kidMode: true, kidNewIds };
+  assert.equal(isTileEditable({ id: 'old', layer: 2 }, opts), false);   // part of the frozen layout
+  assert.equal(isTileEditable({ id: 'fresh', layer: 2 }, opts), true);  // added this Kid-Mode session
+  // Kid Mode with no id set → nothing is editable (a defensive default)
+  assert.equal(isTileEditable({ id: 'x', layer: 2 }, { kidMode: true }), false);
+});
+
+test('isTileEditable: restrictions compound — an unlocked, visible, kid-new tile is editable', () => {
+  const opts = { layerLocks: { 0: true }, layerVis: { 1: false }, kidMode: true, kidNewIds: new Set(['ok']) };
+  assert.equal(isTileEditable({ id: 'ok', layer: 2, locked: false }, opts), true);
+  assert.equal(isTileEditable({ id: 'ok', layer: 2, locked: true }, opts), false);  // tile lock wins
+});
+
 test('rotateGroup orbits tile centres about the group centre and advances rot', () => {
   const tiles = [
     { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },

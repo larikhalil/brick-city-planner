@@ -153,6 +153,187 @@ function toast(msg) {
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ---- ACC-4: ARIA live region for granular editing events -------------------------------------
+// A tiny FIFO queue: two announcements landing in the same tick (e.g. "placed" immediately
+// followed by an overlap check finding a clash) mustn't stomp each other before a screen reader
+// gets to read the first one, so each message gets its own beat before the next is written.
+let announceQueue = [];
+let announceBusy = false;
+function pumpAnnounce() {
+  if (announceBusy || !announceQueue.length) return;
+  announceBusy = true;
+  const el = $('sr-announcer');
+  const msg = announceQueue.shift();
+  if (el) {
+    // Clear first, then set on the next frame — some screen readers won't re-announce identical
+    // text written straight over itself (e.g. two consecutive "Deleted 1 item." in a row).
+    el.textContent = '';
+    requestAnimationFrame(() => { el.textContent = msg; });
+  }
+  setTimeout(() => { announceBusy = false; pumpAnnounce(); }, 350);
+}
+function announce(msg) {
+  if (!msg) return;
+  announceQueue.push(msg);
+  pumpAnnounce();
+}
+
+// ---- UI-3: dark-mode toggle --------------------------------------------------------------------
+// No stored choice → follow the OS live (css/styles.css's plain `@media (prefers-color-scheme)`
+// block does that on its own); an explicit toggle stamps data-theme on <html> and persists it.
+// See the inline <head> script in index.html for the pre-paint stamp that avoids a flash.
+const THEME_KEY = 'bcp.theme';
+function getStoredTheme() {
+  try { const t = localStorage.getItem(THEME_KEY); return (t === 'dark' || t === 'light') ? t : null; }
+  catch { return null; }
+}
+function effectiveTheme() {
+  const stored = getStoredTheme();
+  if (stored) return stored;
+  try { return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch { return 'light'; }
+}
+function syncThemeButton() {
+  const btn = $('btn-theme'); if (!btn) return;
+  const isDark = effectiveTheme() === 'dark';
+  btn.textContent = isDark ? '☀' : '🌙';
+  btn.setAttribute('aria-pressed', String(isDark));
+  const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+  btn.title = label; btn.setAttribute('aria-label', label);
+}
+function toggleTheme() {
+  const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) { console.warn('Could not save theme:', e.message); }
+  document.documentElement.setAttribute('data-theme', next);
+  syncThemeButton();
+  toast(next === 'dark' ? 'Dark mode on.' : 'Light mode on.');
+}
+
+// ---- ACC-2c: colorblind-safe theme toggle -------------------------------------------------------
+const CBSAFE_KEY = 'bcp.cbSafe';
+function getCbSafe() { try { return localStorage.getItem(CBSAFE_KEY) === '1'; } catch { return false; } }
+function syncCbSafeButton(on) {
+  const btn = $('btn-cbsafe'); if (!btn) return;
+  btn.setAttribute('aria-pressed', String(on));
+  const label = on ? 'Turn off colorblind-safe patterns' : 'Turn on colorblind-safe patterns';
+  btn.title = label; btn.setAttribute('aria-label', label);
+}
+function applyCbSafe(on) {
+  if (on) document.documentElement.setAttribute('data-cbsafe', 'true');
+  else document.documentElement.removeAttribute('data-cbsafe');
+  syncCbSafeButton(on);
+}
+function toggleCbSafe() {
+  const next = !getCbSafe();
+  try { localStorage.setItem(CBSAFE_KEY, next ? '1' : '0'); } catch (e) { console.warn('Could not save colorblind-safe setting:', e.message); }
+  applyCbSafe(next);
+  toast(next ? 'Colorblind-safe patterns on.' : 'Colorblind-safe patterns off.');
+}
+
+// ---- QOL-10 / QOL-8: per-layer show-hide + lock, and Kid Mode ---------------------------------
+// layerVis / layerLocks are view + interaction prefs (localStorage); Kid Mode is per browser
+// session (sessionStorage). All three are kept OUT of placed[]/undo and out of the saved city —
+// only the per-tile `locked` flag lives in the model (handled inside grid.js). The grid holds the
+// authoritative copy; app.js mirrors it for persistence + the Layers menu UI.
+const LAYERVIS_KEY = 'bcp.layerVis', LAYERLOCK_KEY = 'bcp.layerLocks', KID_KEY = 'bcp.kidMode';
+// The stacking layers, in paint order — `layer` matches tile.layer. Extend here if a terrain layer
+// is ever added; the Layers menu is built straight off this list.
+const LAYERS = [
+  { layer: 0, name: 'Baseplates', icon: '🟩' },
+  { layer: 1, name: 'Roads & tracks', icon: '🛣️' },
+  { layer: 2, name: 'Buildings & props', icon: '🏢' },
+];
+let layerVis = { 0: true, 1: true, 2: true };
+let layerLocks = { 0: false, 1: false, 2: false };
+let kidMode = false;
+function loadLayerPrefs() {
+  try { const v = JSON.parse(localStorage.getItem(LAYERVIS_KEY)); if (v && typeof v === 'object') for (const l of LAYERS) if (v[l.layer] === false) layerVis[l.layer] = false; } catch { /* defaults */ }
+  try { const k = JSON.parse(localStorage.getItem(LAYERLOCK_KEY)); if (k && typeof k === 'object') for (const l of LAYERS) if (k[l.layer] === true) layerLocks[l.layer] = true; } catch { /* defaults */ }
+}
+function saveLayerVis() { try { localStorage.setItem(LAYERVIS_KEY, JSON.stringify(layerVis)); } catch (e) { console.warn('Could not save layer visibility:', e.message); } }
+function saveLayerLocks() { try { localStorage.setItem(LAYERLOCK_KEY, JSON.stringify(layerLocks)); } catch (e) { console.warn('Could not save layer locks:', e.message); } }
+const layerName = (layer) => LAYERS.find((l) => l.layer === layer)?.name || `Layer ${layer}`;
+
+function buildLayersMenu() {
+  const menu = $('layers-menu');
+  menu.textContent = '';
+  for (const l of LAYERS) {
+    const vis = layerVis[l.layer] !== false, locked = !!layerLocks[l.layer];
+    const row = document.createElement('div');
+    row.className = 'layer-row';
+    row.innerHTML = `<span class="lr-name">${esc(l.icon)} ${esc(l.name)}</span>
+      <button class="lr-btn" type="button" role="menuitemcheckbox" data-lv="${l.layer}" aria-checked="${vis}"
+        aria-label="${vis ? 'Hide' : 'Show'} ${esc(l.name)} layer" title="${vis ? 'Hide' : 'Show'} layer">${vis ? '👁' : '🙈'}</button>
+      <button class="lr-btn" type="button" role="menuitemcheckbox" data-ll="${l.layer}" aria-checked="${locked}"
+        aria-label="${locked ? 'Unlock' : 'Lock'} ${esc(l.name)} layer" title="${locked ? 'Unlock' : 'Lock'} layer">${locked ? '🔒' : '🔓'}</button>`;
+    row.querySelector('[data-lv]').addEventListener('click', () => toggleLayerVis(l.layer));
+    row.querySelector('[data-ll]').addEventListener('click', () => toggleLayerLock(l.layer));
+    menu.appendChild(row);
+  }
+  const foot = document.createElement('button');
+  foot.className = 'layer-foot'; foot.type = 'button';
+  foot.textContent = '🔒 Lock all but selection';
+  foot.title = 'Lock every tile except the current selection';
+  foot.addEventListener('click', () => { grid.lockAllExceptSelected(); toast('Locked everything except the selection.'); });
+  menu.appendChild(foot);
+}
+function toggleLayerVis(layer) {
+  layerVis[layer] = layerVis[layer] === false;
+  saveLayerVis();
+  grid.setLayerVisible(layer, layerVis[layer]);
+  buildLayersMenu(); updateLayersButton();
+  toast(`${layerName(layer)} ${layerVis[layer] ? 'shown' : 'hidden'}.`);
+}
+function toggleLayerLock(layer) {
+  layerLocks[layer] = !layerLocks[layer];
+  saveLayerLocks();
+  grid.setLayerLocked(layer, layerLocks[layer]);
+  buildLayersMenu(); updateLayersButton();
+  toast(`${layerName(layer)} layer ${layerLocks[layer] ? 'locked' : 'unlocked'}.`);
+}
+function updateLayersButton() {
+  const btn = $('btn-layers'); if (!btn) return;
+  const anyHidden = LAYERS.some((l) => layerVis[l.layer] === false);
+  const anyLocked = LAYERS.some((l) => layerLocks[l.layer]);
+  btn.classList.toggle('active', anyHidden || anyLocked);
+  const bits = [anyHidden ? 'some layers hidden' : '', anyLocked ? 'some layers locked' : ''].filter(Boolean);
+  btn.setAttribute('aria-label', bits.length ? `Layers — ${bits.join(', ')}` : 'Layers');
+}
+function openLayersMenu() { buildLayersMenu(); $('layers-menu').hidden = false; $('btn-layers').setAttribute('aria-expanded', 'true'); }
+function closeLayersMenu() { $('layers-menu').hidden = true; $('btn-layers').setAttribute('aria-expanded', 'false'); }
+
+// The toolbar lock button reflects (and toggles) the current selection's lock state.
+function drawLockButton() {
+  const btn = $('btn-lock'); if (!btn || !grid) return;
+  const state = grid.selectionLockState(); // 'none' | 'unlocked' | 'locked' | 'mixed'
+  btn.disabled = state === 'none';
+  const locked = state === 'locked';
+  btn.textContent = locked ? '🔒' : '🔓';
+  btn.setAttribute('aria-pressed', String(locked));
+  const label = state === 'none' ? 'Lock or unlock selected' : (locked ? 'Unlock selected' : 'Lock selected');
+  btn.title = `${label} (L)`; btn.setAttribute('aria-label', label);
+}
+
+// Kid Mode: freeze the placed layout, bump control sizes and hide the advanced controls (via the
+// `data-kidmode` attribute the CSS keys off). Persisted per browser session.
+function loadKidMode() { try { return sessionStorage.getItem(KID_KEY) === '1'; } catch { return false; } }
+function applyKidMode(on) {
+  kidMode = !!on;
+  document.documentElement.toggleAttribute('data-kidmode', kidMode);
+  const btn = $('btn-kid');
+  if (btn) {
+    btn.setAttribute('aria-pressed', String(kidMode));
+    btn.classList.toggle('on', kidMode);
+    btn.setAttribute('aria-label', kidMode ? 'Turn off Kid Mode' : 'Turn on Kid Mode');
+  }
+}
+function toggleKidMode() {
+  applyKidMode(!kidMode);
+  try { sessionStorage.setItem(KID_KEY, kidMode ? '1' : '0'); } catch { /* private browsing */ }
+  grid.setKidMode(kidMode);
+  drawSelection(grid.getSelection());
+  toast(kidMode ? 'Kid Mode on — the layout is frozen; add and arrange new pieces.' : 'Kid Mode off.');
+}
+
 // ---- QOL-9: autosave status pill --------------------------------------------
 function setSaveStatus(saving) {
   const el = $('save-status');
@@ -301,6 +482,7 @@ function closeHistoryMenu() {
 
 // Show the align/distribute/group bar only when a multi-selection is live.
 function drawSelection(ids = []) {
+  drawLockButton(); // keep the toolbar lock button in step with the selection
   const bar = $('align-bar');
   if (!bar) return;
   bar.hidden = ids.length < 2;
@@ -623,6 +805,8 @@ async function boot() {
   loadFavorites();
   loadWishlist();
   loadRecent();
+  loadLayerPrefs();
+  kidMode = loadKidMode();
 
   try {
     const meta = await (await fetch('data/meta.json')).json();
@@ -640,7 +824,11 @@ async function boot() {
     onResize: (w, h) => { gridSize = { w, h, pw: w / 32, ph: h / 32 }; drawGridSize(); },
     onHistory: drawHistory,
     onSelect: drawSelection,
+    onAnnounce: announce,
+    // QOL-8/10 view + interaction prefs, restored from local/session storage.
+    layerVis, layerLocks, kidMode,
   });
+  applyKidMode(kidMode); // stamp the DOM attribute + button state (grid already has the flag)
 
   catalogUI = renderCatalog(
     { list: $('catalog-list'), search: $('catalog-search'), chips: $('catalog-chips'),
@@ -650,6 +838,16 @@ async function boot() {
       isFavorite, onToggleFavorite: toggleFavorite, getFavorites,
       isWishlisted, onToggleWishlist: toggleWishlist, getRecent,
     });
+
+  // UI-3 / ACC-2c: theme + colorblind-safe toggles. The <head> inline script already stamped an
+  // explicit stored choice pre-paint; this just syncs the buttons' icon/label/pressed state and
+  // (for theme) keeps them in sync if the OS preference changes live while no explicit choice is set.
+  syncThemeButton();
+  applyCbSafe(getCbSafe());
+  $('btn-theme')?.addEventListener('click', toggleTheme);
+  $('btn-cbsafe')?.addEventListener('click', toggleCbSafe);
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!getStoredTheme()) syncThemeButton(); }); }
+  catch { /* older browsers without addEventListener on MediaQueryList — the button just won't live-sync */ }
 
   // toolbar
   $('unit-toggle').addEventListener('click', (e) => {
@@ -691,6 +889,20 @@ async function boot() {
   });
   $('btn-delete').addEventListener('click', () => grid.deleteSelected());
 
+  // QOL-8: lock/unlock the selection + Kid Mode freeze-layout
+  $('btn-lock').addEventListener('click', () => grid.toggleLockSelected());
+  $('btn-kid').addEventListener('click', toggleKidMode);
+
+  // QOL-10: Layers show-hide/lock menu
+  updateLayersButton();
+  $('btn-layers').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('layers-menu').hidden ? openLayersMenu() : closeLayersMenu();
+  });
+  document.addEventListener('click', (e) => {
+    if (!$('layers-menu').hidden && !e.target.closest('.layers-group')) closeLayersMenu();
+  });
+
   // First-run tips (UI-1)
   $('fr-close')?.addEventListener('click', dismissFirstRun);
   $('btn-sample')?.addEventListener('click', loadSampleCity);
@@ -707,6 +919,7 @@ async function boot() {
       if (!$('shortcuts-backdrop').hidden) closeShortcuts();
       else if (!$('templates-backdrop').hidden) closeTemplatesMenu();
       else if (!$('cities-backdrop').hidden) closeCitiesMenu();
+      else if (!$('layers-menu').hidden) { closeLayersMenu(); $('btn-layers').focus(); }
     }
   });
 

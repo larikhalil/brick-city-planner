@@ -80,7 +80,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
           <span class="nm">${esc(c[0].toUpperCase() + c.slice(1))}</span><span class="ct">${n}</span></div>`).join('') ||
         '<div class="note">No sets yet — add some from the catalog.</div>'}</div>
       ${cats.length ? `<div class="bar">${cats.map(([c, n]) =>
-        `<i style="width:${(n / total * 100).toFixed(1)}%;background:${catColor(c)}"></i>`).join('')}</div>` : ''}
+        `<i data-cat="${esc(c)}" title="${esc(c)}" style="width:${(n / total * 100).toFixed(1)}%;background:${catColor(c)}"></i>`).join('')}</div>` : ''}
     </div>
     ${cost.lines.length ? `<div>
       <h2 class="sec" style="margin-bottom:8px">Sets &amp; ownership</h2>

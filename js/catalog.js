@@ -119,7 +119,7 @@ export function renderCatalog(els, sets, {
     const el = document.createElement('div');
     el.className = 'set' + (owned ? ' owned' : '');
     el.innerHTML = `
-      <div class="swatch" style="background:${s.color || catColor(s.category)}">${
+      <div class="swatch" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
         s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
           style="width:100%;height:100%;object-fit:cover"
           onerror="this.remove()">` : schematicSVG(s.kind, s.footprint, s.name)}</div>
@@ -187,7 +187,7 @@ export function renderCatalog(els, sets, {
     b.className = 'rail-item';
     b.title = `${s.name} (${s.num}) — click to place another`;
     b.setAttribute('aria-label', `Place another ${s.name}`);
-    b.innerHTML = `<span class="swatch" style="background:${s.color || catColor(s.category)}">${
+    b.innerHTML = `<span class="swatch" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
       s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
         style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">`
         : schematicSVG(s.kind, s.footprint, s.name)}</span>`;
