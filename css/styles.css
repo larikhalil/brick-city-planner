@@ -96,10 +96,26 @@ button{font-family:inherit;cursor:pointer}
 .btn:hover{transform:translateY(-1px);border-color:var(--plate)}
 .btn.primary{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
 .btn.icon{padding:8px 10px;font-size:15.5px;line-height:1}
+.btn.sm{padding:6px 10px;font-size:12px}
+.btn.icon.sm{padding:6px 8px;font-size:13px}
+/* ---- Current-city label (QOL-5) ---- */
+.city-label{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--line-2);
+  background:transparent;color:var(--ink-soft);padding:6px 10px;border-radius:9px;font-size:12.5px;
+  font-weight:600;max-width:190px}
+.city-label:hover{border-color:var(--plate);color:var(--ink);border-style:solid}
+.city-label span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
 .seg button{border:0;background:var(--panel-2);color:var(--ink-soft);padding:8px 11px;font-weight:600}
 .seg button+button{border-left:1px solid var(--line-2)}
 .seg button.on{background:var(--sunk);color:var(--ink)}
+
+/* ---- Shared-city read-only banner (QOL-5b) ---- */
+.shared-banner{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  flex-wrap:wrap;background:var(--panel-2);border:1px solid var(--accent-deep);border-radius:12px;
+  padding:10px 14px;font-size:13px;color:var(--ink)}
+.shared-banner[hidden]{display:none}
+.shared-banner b{color:var(--ink)}
+.shared-banner .sb-actions{display:flex;align-items:center;gap:8px}
 
 /* ============ LAYOUT ============ */
 .grid3{display:grid;grid-template-columns:270px minmax(0,1fr) 258px;gap:14px;margin-top:14px}
@@ -140,6 +156,60 @@ button{font-family:inherit;cursor:pointer}
 .add{flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);
   background:var(--panel-2);color:var(--ink-soft);font-size:16px;font-weight:700;line-height:1}
 .set:hover .add{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+/* ---- Catalog sort + view toggle ---- */
+.cat-controls{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 14px 8px}
+.cat-controls .sort{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint)}
+.cat-controls select{font:inherit;font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink);
+  background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;padding:4px 6px;cursor:pointer}
+/* ---- UI-4: list/grid view toggle ---- */
+.view-toggle button{padding:5px 9px;font-size:13px;line-height:1}
+/* ---- Ownership + favorite + wishlist + price + buy links on a catalog row ---- */
+.set-actions{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.own,.fav,.wish{width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
+  color:var(--ink-faint);font-size:14px;line-height:1;cursor:pointer;padding:0}
+.own{font-size:15px}
+.own[aria-pressed="true"]{color:var(--accent-deep);border-color:var(--accent-deep);background:var(--panel)}
+.own:hover,.fav:hover,.wish:hover{border-color:var(--plate);color:var(--ink)}
+/* Three deliberately-different affordances so they never read as the same star:
+   own = gold ☆/★ (already have it), favorite = red ♡/♥ (quick re-place, feeds the rail),
+   wishlist = green 🛒 fill (save to buy later, its own panel in the summary card). */
+.fav[aria-pressed="true"]{color:var(--t-fire);border-color:var(--t-fire);background:var(--panel)}
+.wish[aria-pressed="true"]{color:var(--ok);border-color:var(--ok);background:var(--panel)}
+.set.owned{border-color:var(--accent-deep)}
+.set.owned .swatch{outline:2px solid var(--accent-deep);outline-offset:-2px}
+.price{color:var(--ink-soft);font-weight:600}
+.price.est{color:var(--warn);font-weight:500}
+.buys{display:flex;gap:8px;margin-top:3px}
+.buy{font-size:10.5px;font-weight:600;color:var(--ink-faint);text-decoration:none;border-bottom:1px dotted var(--line-2)}
+.buy:hover{color:var(--accent-deep);border-bottom-color:var(--accent-deep)}
+
+/* ---- QOL-7: recently-used + favorites rail, pinned above the catalog list ---- */
+.rail{padding:10px 14px 2px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
+.rail[hidden]{display:none}
+.rail-sec{display:flex;flex-direction:column;gap:5px}
+.rail-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+.rail-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.rail-item{flex:none;width:38px;height:38px;padding:0;border:0;background:transparent;border-radius:8px;
+  cursor:pointer;transition:transform .08s}
+.rail-item:hover{transform:translateY(-1px)}
+.rail-item .swatch{width:100%;height:100%}
+
+/* ---- UI-4: catalog grid view (pure CSS layout switch on the same .set rows) ---- */
+.catalog.view-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.catalog.view-grid .set{position:relative;flex-direction:column;align-items:stretch;text-align:center;
+  gap:6px;padding:8px 6px}
+.catalog.view-grid .set:hover{transform:none}
+.catalog.view-grid .swatch{width:100%;height:auto;aspect-ratio:1/1;border-radius:8px}
+.catalog.view-grid .set-meta{width:100%}
+.catalog.view-grid .set-name{white-space:normal;text-align:center;font-size:12px;line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.catalog.view-grid .set-sub{justify-content:center}
+.catalog.view-grid .set-sub>*:not(:first-child){display:none}
+.catalog.view-grid .buys{display:none}
+.catalog.view-grid .set-actions{position:absolute;top:6px;right:6px;opacity:0;transition:opacity .12s;
+  background:var(--panel);border:1px solid var(--line-2);border-radius:8px;box-shadow:var(--shadow);padding:4px}
+.catalog.view-grid .set:hover .set-actions,.catalog.view-grid .set:focus-within .set-actions{opacity:1}
 
 /* ---- Canvas ---- */
 .canvas-wrap{padding:0;position:relative}
@@ -317,6 +387,55 @@ button{font-family:inherit;cursor:pointer}
 .note{font-size:11.5px;color:var(--ink-faint);display:flex;gap:7px;align-items:flex-start}
 .note .approx{font-weight:700}
 .sum .btn{width:100%;justify-content:center}
+/* ---- Budget split (owned vs. still-to-buy) ---- */
+.budget{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:11px 12px;
+  display:flex;flex-direction:column;gap:6px}
+.bud-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.bud-row .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.bud-row .v{font-family:var(--mono);font-weight:600}
+.bud-row.buy .v{font-size:22px;color:var(--ink);line-height:1}
+.bud-row.own .v{font-size:13px;color:var(--ok)}
+.bud-row.own .v s{color:var(--ink-faint);font-weight:400;margin-left:4px}
+.bud-note{font-size:11px;color:var(--ink-faint)}
+/* ---- Sets & ownership list ---- */
+.own-list{display:flex;flex-direction:column;gap:4px}
+.orow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+.orow .on{flex:1;min-width:0;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orow .oq{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+.orow .op{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);display:flex;flex-direction:column;
+  align-items:flex-end;line-height:1.2;min-width:52px;text-align:right;
+  background:none;border:0;padding:2px 3px;border-radius:6px;cursor:pointer}
+.orow .op:hover{background:var(--panel-2);color:var(--ink)}
+.orow .op i{font-style:normal;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}
+.orow .op.zero{color:var(--ok)}
+.orow.is-owned .on{color:var(--ink-faint)}
+.own.sm{width:22px;height:22px;font-size:13px}
+/* ---- PLAN-6: wishlist panel — collapsible, independent of the grid budget above ---- */
+.wishlist-panel{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);overflow:hidden}
+.wishlist-panel summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  padding:10px 12px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.wishlist-panel summary::-webkit-details-marker{display:none}
+.wishlist-panel summary::before{content:"▸";color:var(--ink-faint);font-size:11px;transition:transform .12s}
+.wishlist-panel[open] summary::before{transform:rotate(90deg)}
+/* only the total absorbs free space — otherwise two auto margins split it and gap the pill from the price */
+.wishlist-panel summary .count-pill{margin-left:0}
+.wishlist-panel summary .wish-total{margin-left:auto;font-family:var(--mono);color:var(--ink-soft)}
+.wish-body{padding:2px 12px 10px;display:flex;flex-direction:column;gap:4px}
+.wrow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+.wrow .wn{flex:1;min-width:0;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wrow .wp{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);display:flex;flex-direction:column;
+  align-items:flex-end;line-height:1.2;text-align:right}
+.wrow .wp i{font-style:normal;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}
+.wbtn{width:22px;height:22px;flex:none;border-radius:6px;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink-faint);font-size:12px;line-height:1;padding:0;cursor:pointer}
+.wbtn:hover{border-color:var(--plate);color:var(--ink)}
+.wbtn.promote:hover{border-color:var(--ok);color:var(--ok)}
+.wbtn.remove:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ---- Export button grid ---- */
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.export-grid .btn{width:100%;justify-content:center;font-size:12px;padding:8px 6px}
+.export-grid .btn:first-child{grid-column:1 / -1}
 
 h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
 
@@ -372,6 +491,30 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 .sc-row:last-child{border-bottom:0}
 .sc-row kbd{font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--sunk);
   border:1px solid var(--line-2);border-radius:5px;padding:2px 7px;white-space:nowrap}
+
+/* ============ TEMPLATES GALLERY (QOL-6) ============ */
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.tpl-card{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;
+  background:var(--panel-2);padding:12px;text-align:left}
+.tpl-thumb{position:relative;height:74px;border-radius:8px;background:var(--canvas);
+  border:1px solid var(--line-2);overflow:hidden;display:flex}
+.tpl-thumb svg{flex:1}
+.tpl-name{font-weight:700;font-size:13.5px}
+.tpl-desc{font-size:11.5px;color:var(--ink-faint);line-height:1.4;flex:1}
+.tpl-meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint)}
+.tpl-card .btn{width:100%;justify-content:center;font-size:12px;padding:7px 6px}
+
+/* ============ MY CITIES (QOL-5c) ============ */
+.city-list{display:flex;flex-direction:column;gap:6px}
+.city-row{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;
+  padding:9px 10px;background:var(--panel-2)}
+.city-row.current{border-color:var(--accent-deep)}
+.cr-meta{min-width:0;flex:1}
+.cr-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-name .pill{margin-left:6px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--accent-ink);background:var(--accent);padding:1px 6px;border-radius:999px}
+.cr-sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);margin-top:2px}
+.cr-actions{flex:none;display:flex;gap:5px}
 
 /* ============ TOAST ============ */
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);

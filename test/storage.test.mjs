@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   serializeCity, validateCity, exportCityJson, importCityJson,
-  saveCity, loadCity, currentCityName,
+  saveCity, loadCity, currentCityName, renameCity, loadCities, deleteCity,
 } from '../js/storage.js';
 
 // in-memory localStorage mock
@@ -44,4 +44,41 @@ test('save then load via localStorage', () => {
   saveCity(serializeCity({ name: 'Town A', placed }));
   assert.equal(currentCityName(), 'Town A');
   assert.deepEqual(loadCity('Town A').placed, placed);
+});
+test('renameCity moves the slot and follows the "current" pointer when it pointed there', () => {
+  saveCity(serializeCity({ name: 'Old Name', placed })); // also sets current -> 'Old Name'
+  assert.equal(renameCity('Old Name', 'New Name'), true);
+  assert.equal(loadCity('Old Name'), null);
+  assert.equal(loadCity('New Name').name, 'New Name');
+  assert.equal(currentCityName(), 'New Name');
+});
+test('renameCity leaves the "current" pointer alone when renaming a DIFFERENT saved city', () => {
+  saveCity(serializeCity({ name: 'Active City', placed })); // current -> 'Active City'
+  saveCity(serializeCity({ name: 'Side City', placed }));   // current -> 'Side City' (bumped)
+  saveCity(serializeCity({ name: 'Active City', placed })); // re-save so current -> 'Active City' again
+  assert.equal(renameCity('Side City', 'Side City Renamed'), true);
+  assert.equal(currentCityName(), 'Active City'); // untouched
+  assert.equal(loadCity('Side City Renamed').name, 'Side City Renamed');
+  deleteCity('Active City'); deleteCity('Side City Renamed'); // tidy up for later tests
+});
+test('renameCity is a no-op (false) for an unknown source name', () => {
+  assert.equal(renameCity('Does Not Exist', 'Whatever'), false);
+});
+test('renameCity is a no-op (false) when old and new names are identical', () => {
+  saveCity(serializeCity({ name: 'Same Name', placed }));
+  assert.equal(renameCity('Same Name', 'Same Name'), false);
+  deleteCity('Same Name');
+});
+test('deleteCity removes a saved slot', () => {
+  saveCity(serializeCity({ name: 'Temp City', placed }));
+  assert.notEqual(loadCity('Temp City'), null);
+  deleteCity('Temp City');
+  assert.equal(loadCity('Temp City'), null);
+});
+test('loadCities returns every saved slot keyed by name', () => {
+  saveCity(serializeCity({ name: 'Multi A', placed }));
+  saveCity(serializeCity({ name: 'Multi B', placed }));
+  const all = loadCities();
+  assert.ok('Multi A' in all && 'Multi B' in all);
+  deleteCity('Multi A'); deleteCity('Multi B');
 });

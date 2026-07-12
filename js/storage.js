@@ -53,3 +53,19 @@ export function deleteCity(name) {
   delete all[name];
   store().setItem(KEY, JSON.stringify(all));
 }
+// Rename a saved city slot in place. Only moves the "last opened" pointer along with it when
+// that pointer was already aimed at `oldName` — renaming some OTHER saved city must not steal
+// focus away from whatever the user currently has open. Returns false if `oldName` isn't saved.
+export function renameCity(oldName, newName) {
+  const all = loadCities();
+  if (!all[oldName] || oldName === newName) return false;
+  const wasCurrent = currentCityName() === oldName;
+  const city = { ...all[oldName], name: newName };
+  delete all[oldName];
+  all[newName] = city;
+  try {
+    store().setItem(KEY, JSON.stringify(all));
+    if (wasCurrent) store().setItem(CUR, newName);
+  } catch (e) { console.warn('Rename failed (storage full?):', e.message); return false; }
+  return true;
+}

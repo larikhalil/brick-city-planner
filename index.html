@@ -22,6 +22,9 @@
         <div><div class="wordmark">Brick<b>City</b> Planner</div></div>
       </div>
       <div class="toolbar">
+        <button class="city-label" id="btn-city-name" title="Current city — click to manage saved cities"
+          aria-haspopup="dialog" aria-expanded="false">
+          🏙 <span id="city-name-text">Untitled city</span></button>
         <span class="save-status" id="save-status" role="status" aria-live="polite">
           <i class="dot" aria-hidden="true"></i><span class="lbl">All changes saved</span>
         </span>
@@ -29,10 +32,22 @@
           <button class="on" data-unit="studs">studs</button><button data-unit="cm">cm</button>
         </div>
         <button class="btn" id="btn-new">＋ New city</button>
+        <button class="btn" id="btn-templates" aria-haspopup="dialog" aria-expanded="false">▤ Templates</button>
+        <button class="btn" id="btn-save-as">💾 Save as</button>
+        <button class="btn" id="btn-cities" aria-haspopup="dialog" aria-expanded="false">📁 My cities</button>
         <button class="btn" id="btn-import">⭳ Import</button>
         <input type="file" id="file-import" accept="application/json" hidden>
+        <button class="btn" id="btn-share">🔗 Share</button>
         <button class="btn primary" id="btn-export">⭱ Export</button>
       </div>
+    </div>
+
+    <div class="shared-banner" id="shared-banner" role="status" aria-live="polite" hidden>
+      <span>👀 Viewing a shared city — <b id="shared-banner-name"></b></span>
+      <span class="sb-actions">
+        <button class="btn primary sm" id="shared-import">Import into my planner</button>
+        <button class="btn icon sm" id="shared-dismiss" aria-label="Dismiss">✕</button>
+      </span>
     </div>
 
     <div class="grid3">
@@ -41,6 +56,23 @@
         <div class="search"><span>🔍</span>
           <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
         <div class="chips" id="catalog-chips"></div>
+        <div class="cat-controls">
+          <div class="seg view-toggle" id="catalog-view" role="group" aria-label="Catalog view">
+            <button type="button" class="on" data-view="list" aria-pressed="true" title="List view" aria-label="List view">☰</button>
+            <button type="button" data-view="grid" aria-pressed="false" title="Grid view" aria-label="Grid view">▦</button>
+          </div>
+          <label class="sort" for="catalog-sort">Sort
+            <select id="catalog-sort" aria-label="Sort catalog">
+              <option value="default">Featured</option>
+              <option value="name">Name A–Z</option>
+              <option value="price-asc">Price: low → high</option>
+              <option value="price-desc">Price: high → low</option>
+              <option value="pieces-desc">Most pieces</option>
+              <option value="year-desc">Newest</option>
+            </select>
+          </label>
+        </div>
+        <div class="rail" id="catalog-rail" hidden></div>
         <div class="catalog" id="catalog-list"></div>
       </section>
 
@@ -150,6 +182,32 @@
           <div class="sc-row"><span>Group / Ungroup</span><kbd>Ctrl+G / Ctrl+Shift+G</kbd></div>
           <div class="sc-row"><span>This help</span><kbd>?</kbd></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="templates-backdrop" hidden>
+    <div class="modal" id="templates-modal" role="dialog" aria-modal="true" aria-labelledby="templates-title">
+      <div class="modal-h">
+        <h2 id="templates-title">New from template</h2>
+        <button class="modal-close" id="templates-close" aria-label="Close templates">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="note">Starts a fresh city from a curated layout — your current city is autosaved first, so nothing is lost.</p>
+        <div class="tpl-grid" id="templates-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="cities-backdrop" hidden>
+    <div class="modal" id="cities-modal" role="dialog" aria-modal="true" aria-labelledby="cities-title">
+      <div class="modal-h">
+        <h2 id="cities-title">My cities</h2>
+        <button class="modal-close" id="cities-close" aria-label="Close my cities">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="note">Loading a saved city autosaves your current work under its own name first.</p>
+        <div class="city-list" id="cities-list"></div>
       </div>
     </div>
   </div>
