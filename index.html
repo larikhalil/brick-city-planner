@@ -71,8 +71,9 @@
     </div>
 
     <div class="grid3">
-      <section class="card" aria-label="Set catalog">
-        <div class="card-h"><h2>Catalog</h2><span class="count-pill" id="catalog-count"></span></div>
+      <section class="card" id="catalog-panel" aria-label="Set catalog">
+        <div class="card-h"><h2>Catalog</h2><span class="count-pill" id="catalog-count"></span>
+          <button class="sheet-close" data-sheet-close aria-label="Close catalog">✕</button></div>
         <div class="search"><span>🔍</span>
           <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
         <div class="chips" id="catalog-chips"></div>
@@ -187,8 +188,9 @@
         </div>
       </section>
 
-      <aside class="card" aria-label="City summary">
-        <div class="card-h"><h2>City summary</h2></div>
+      <aside class="card" id="summary-panel" aria-label="City summary">
+        <div class="card-h"><h2>City summary</h2>
+          <button class="sheet-close" data-sheet-close aria-label="Close summary">✕</button></div>
         <div class="sum" id="summary"></div>
       </aside>
     </div>
@@ -198,6 +200,18 @@
       Set data &amp; imagery sourced from <b>Rebrickable</b>. A free, non-commercial fan project — not affiliated with the LEGO Group.
     </div>
   </div>
+
+  <!-- Wave 6 (mobile): scrim + bottom bar that toggle the catalog / summary bottom-sheets. Both are
+       display:none on desktop & tablet (>=761px) — the catalog stays a left column, the summary its
+       right column — so the pointer/mouse experience is completely untouched. -->
+  <div class="sheet-scrim" id="sheet-scrim"></div>
+  <nav class="mobile-bar" aria-label="Panels">
+    <button class="mb-btn" id="m-catalog" type="button" aria-haspopup="true" aria-expanded="false"
+      aria-controls="catalog-panel">🧱 Catalog</button>
+    <button class="mb-btn" id="m-summary" type="button" aria-haspopup="true" aria-expanded="false"
+      aria-controls="summary-panel">📊 Summary</button>
+  </nav>
+
   <div id="toast" role="status" aria-live="polite"></div>
   <!-- ACC-4: a visually-subtle live region for granular editing events (placed/rotated/deleted/
        overlap-detected) — kept separate from the highly-visible #toast pill above so these don't

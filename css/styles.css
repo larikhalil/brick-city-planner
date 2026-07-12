@@ -590,9 +590,188 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 .gsize .v{min-width:14px;text-align:center;font-weight:700;color:var(--ink)}
 .gsize .x{opacity:.6}
 
-@media (max-width:940px){
+/* ============ WAVE 6: RESPONSIVE LAYOUT — TABLET (≤940px) & MOBILE (≤760px) ============
+   Desktop (≥941px) is deliberately untouched: the 3-column .grid3, the wrapping toolbars and the
+   mouse HTML5 drag-and-drop all stay exactly as they were. Everything below is gated behind width
+   media queries (layout) or (pointer:coarse) (finger target sizes), so a mouse never sees it. */
+
+/* ---- Tablet: single column, catalog + summary stack above/below the board (still in flow). ---- */
+@media (max-width:940px) and (min-width:761px){
   .grid3{grid-template-columns:1fr}
-  .stage{max-height:460px}
+  /* Give the board a good slice of the screen; the catalog + summary stack and get their own scroll.
+     svh tracks the *small* viewport (URL bar shown) so nothing is ever clipped under the browser UI. */
+  .stage{max-height:min(64svh,560px)}
+  .catalog{max-height:40svh}
+  .board{margin-bottom:14px}
+}
+
+/* The mobile chrome (bottom bar, scrim, in-sheet ✕) is hidden by default — desktop & tablet never
+   render it; it's switched on only inside the ≤760px block below. */
+.mobile-bar{display:none}
+.sheet-scrim{display:none}
+.sheet-close{display:none}
+
+/* ============ MOBILE (≤760px): canvas-first, catalog & summary become bottom-sheets ============ */
+@media (max-width:760px){
+  .app{padding:12px 10px 84px}                 /* bottom room so the fixed bar never hides the footer */
+
+  /* --- Topbar: brand on its own line, the (now long) toolbar becomes a horizontal scroll strip --- */
+  .topbar{gap:10px;padding:10px 12px}
+  .toolbar{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:2px;scrollbar-width:none}
+  .toolbar::-webkit-scrollbar{display:none}
+  .toolbar>*{flex:none}
+  .save-status{display:none}                   /* frees space; changes still autosave silently */
+
+  /* --- The board is the primary view and fills most of the screen --- */
+  .grid3{display:block;margin-top:10px}
+  .canvas-tools{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:6px;
+    padding:8px 10px;scrollbar-width:none}
+  .canvas-tools::-webkit-scrollbar{display:none}
+  .canvas-tools>*{flex:none}
+  .canvas-tools .muted,#grid-dims,#canvas-size{display:none} /* drop the read-outs, keep every control */
+  #zoom-ctrl{margin-left:0}
+  /* dvh grows the board when the URL bar retracts; the svh floor keeps it usable while it's shown. */
+  .stage{height:max(340px,calc(100dvh - 208px));max-height:none}
+  .board{margin-bottom:14px}
+  /* floating bars sit just under the single-row toolbar now */
+  .align-bar,.terrain-bar{top:58px}
+
+  /* --- Shared bottom-sheet chrome for the catalog & summary panels --- */
+  #catalog-panel,#summary-panel{position:fixed;left:0;right:0;bottom:0;z-index:56;margin:0;
+    display:flex;flex-direction:column;border-radius:18px 18px 0 0;
+    box-shadow:0 -10px 34px rgba(0,0,0,.34);
+    transform:translateY(110%);transition:transform .3s cubic-bezier(.22,1,.36,1)}
+  #catalog-panel{max-height:84svh}
+  #summary-panel{max-height:76svh}
+  body.sheet-catalog #catalog-panel{transform:translateY(0)}
+  body.sheet-summary #summary-panel{transform:translateY(0)}
+  /* While a catalog swatch is being finger-dragged onto the board (catalog.js adds .bcp-dragging-set
+     for the drag's lifetime): slide the open sheet fully off-screen and kill the scrim so the board
+     beneath is both VISIBLE under the finger and the topmost document.elementFromPoint hit-target at
+     drop. Placed AFTER the sheet-open rules above so its transform wins at equal specificity.
+     pointer-events:none belts-and-braces the panel in case a very fast drop lands mid slide-out. */
+  body.bcp-dragging-set #catalog-panel{transform:translateY(110%);pointer-events:none}
+  /* NB: must out-specify `body.sheet-catalog .sheet-scrim{pointer-events:auto}` below (same 0,2,1
+     specificity, and it comes later in source), or the scrim keeps swallowing elementFromPoint at
+     drop and the finger-drop silently fails. Chaining the sheet class → (0,3,1) wins unconditionally. */
+  body.bcp-dragging-set.sheet-catalog .sheet-scrim,
+  body.bcp-dragging-set.sheet-summary .sheet-scrim{opacity:0;pointer-events:none}
+  #catalog-panel .catalog{flex:1;min-height:0;max-height:none} /* list fills + scrolls inside the sheet */
+  #summary-panel .sum{flex:1;min-height:0;overflow:auto}
+  /* a grabber pill + roomier header, and the ✕ close button */
+  #catalog-panel .card-h,#summary-panel .card-h{position:relative;padding-top:20px}
+  #catalog-panel .card-h::before,#summary-panel .card-h::before{content:"";position:absolute;top:8px;
+    left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:999px;background:var(--line-2)}
+  .sheet-close{display:grid;place-items:center;margin-left:auto;width:34px;height:34px;flex:none;
+    border-radius:9px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-soft);font-size:15px}
+  .sheet-close:hover{color:var(--ink);border-color:var(--plate)}
+
+  /* --- Scrim behind an open sheet; a tap on it dismisses (wired in app.js) --- */
+  .sheet-scrim{display:block;position:fixed;inset:0;z-index:55;background:rgba(9,14,24,.5);
+    opacity:0;pointer-events:none;transition:opacity .25s}
+  body.sheet-catalog .sheet-scrim,body.sheet-summary .sheet-scrim{opacity:1;pointer-events:auto}
+  body.sheet-catalog,body.sheet-summary{overflow:hidden}   /* lock the page behind the sheet */
+
+  /* --- Fixed bottom bar: the FABs that open each sheet --- */
+  .mobile-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:53;gap:8px;
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -2px 12px rgba(0,0,0,.12)}
+  .mb-btn{flex:1;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);border-radius:11px;
+    font-size:14px;font-weight:600}
+  .mb-btn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+
+  /* roomier catalog rows on a phone */
+  .set{padding:10px;gap:12px}
+  .swatch{width:52px;height:52px}
+
+  /* Modals fit a phone: tighter backdrop gutter, cap height on the *small* viewport so the header
+     (with its ✕) is never pushed under the URL bar, and let the body scroll inside. Every modal
+     already carries max-width:520px/width:100% + overflow:auto, so this only reclaims the margins. */
+  .modal-backdrop{padding:12px;align-items:flex-start}
+  .modal{max-height:88svh;margin-top:8px}
+  .modal-body{padding-left:14px;padding-right:14px}
+  .tpl-grid{grid-template-columns:1fr}          /* one comfortable card per row, no cramped 2-up */
+  .png-actions{flex-wrap:wrap}
+  /* The 3D preview's back button clears the fixed bottom bar's safe-area inset. */
+  .iso-bar{padding-top:calc(8px + env(safe-area-inset-top))}
+
+  /* Lift the toast clear of the fixed .mobile-bar (bottom:0; z53; ~62px tall). At its default
+     bottom:22px / z50 the confirmation pill — including the touch-only "Tap delete again to remove."
+     that is the ONLY feedback for the two-tap delete — renders BEHIND the bar and reads as a dead
+     button. Sit it above the bar (z60) and above the bar's height + safe-area. */
+  #toast{bottom:calc(74px + env(safe-area-inset-bottom));z-index:60}
+}
+
+/* The mobile bottom-sheet slide + scrim fade must honour reduced-motion like every other
+   transition in this file (.tile-ghost, .drag-ghost, .grip.intro …). Neutralises only the
+   animation — the open/closed transform + scrim opacity end-states are untouched. ID selectors,
+   so it's a harmless no-op at desktop widths where the sheets carry no transition. */
+@media (prefers-reduced-motion:reduce){
+  #catalog-panel,#summary-panel,.sheet-scrim{transition:none}
+}
+
+/* ============ WAVE 6: COARSE-POINTER (finger/pen) — ≥44px targets, any width ============
+   Keyed on the input device, not width, so a mouse (fine pointer) — including on a small window — is
+   never affected, but every touch/pen device gets comfortable hit areas. */
+@media (pointer:coarse){
+  .btn{min-height:44px}
+  .btn.icon{min-width:44px;min-height:44px;justify-content:center}
+  .btn.sm,.btn.icon.sm{min-height:40px}
+  .seg button{min-height:44px;padding-top:10px;padding-bottom:10px}
+  .chip{min-height:36px;padding:8px 12px}
+  .add{width:44px;height:44px;font-size:20px}
+  .own,.fav,.wish{min-width:40px;min-height:40px;font-size:16px}
+  .set-actions{opacity:1;gap:6px}                         /* no hover on touch — always show the row actions */
+  .catalog.view-grid .set-actions{opacity:1}
+  .gstep{width:34px;height:34px;font-size:17px}
+  .ab-btn{width:40px;height:40px}
+  .lr-btn{width:40px;height:38px}
+  .modal-close,.sheet-close{width:40px;height:40px}
+  .rail-item{width:46px;height:46px}
+  .mb-btn{min-height:50px}
+  /* Fatten the on-canvas drag handles so a fingertip can grab them. The visible dot/corner stays
+     modest; a transparent ::before pads the *hit* area out to ~44px. A pseudo-element is never its
+     own event target, so grid.js's `ev.target === grip` and `.classList.contains('rotate-handle')`
+     checks still match a touch that lands on the padding — the fingertip just gets a bigger grab. */
+  .rotate-handle{width:24px;height:24px;margin-left:-12px;top:-34px}
+  .rotate-handle::before{content:"";position:absolute;inset:-10px;border-radius:50%} /* 24+20 ≈ 44px */
+  .grip{width:26px;height:26px}
+  .grip::before{content:"";position:absolute;inset:-9px}                              /* 26+18 ≈ 44px */
+}
+
+/* ============ WAVE 6: MOBILE / TOUCH DRAG ============ */
+/* A finger drag on a tile/handle/grip must MOVE the piece, not scroll/pinch the page: the board uses
+   Pointer Events + setPointerCapture already, so `touch-action:none` is the missing CSS. It's inert
+   for a mouse, so desktop is unaffected. The board itself needs it too so a two-finger pinch/pan
+   (ACC-5) receives both pointers instead of the browser hijacking them as native pinch-zoom. */
+.board,.tile,.rotate-handle,.marquee,.paint-preview,.sel-box{touch-action:none}
+/* Scope zoom-prevention to the CANVAS viewport only (never the page/text): a finger on the stage —
+   including the background margin around a zoomed-out board — must not double-tap-zoom or pinch-zoom
+   the page. `none` is touch-only, so mouse wheel + trackpad scroll of the stage are untouched, and
+   one-finger board scroll was already suppressed by `.board` above, so nothing is lost. Custom zoom
+   stays on the toolbar controls. Everything outside the stage keeps normal browser zoom. */
+.stage{touch-action:none}
+/* Wave 6 (touch delete-safety): the delete button turns red-hot once a finger has "armed" it, so
+   the confirming second tap reads as deliberate. Only ever added on a coarse pointer (app.js), so a
+   mouse never sees it — desktop delete stays a single immediate click. */
+#btn-delete.armed{background:var(--danger);border-color:var(--danger);color:#fff}
+/* The floating "ghost" that follows a finger while dragging a set out of the catalog (see
+   catalog.js startTouchDrag). Centred on the touch point, never itself a pointer target. */
+.drag-ghost{position:fixed;z-index:70;left:0;top:0;width:56px;height:56px;
+  transform:translate(-50%,-50%) scale(1.06);pointer-events:none;border-radius:9px;overflow:hidden;
+  box-shadow:0 10px 26px rgba(0,0,0,.4);border:2px solid var(--panel);
+  background:var(--panel-2);opacity:.95}
+.drag-ghost img,.drag-ghost svg{width:100%;height:100%;object-fit:cover;display:block}
+@media (prefers-reduced-motion:reduce){.drag-ghost{transform:translate(-50%,-50%)}}
+/* Coarse (finger/pen) pointers: the thumbnail is the drag handle, so it must not be treated as a
+   scroll surface — everything else in the row still scrolls the catalog list normally. A grab cursor
+   + faint ring hints that the swatch is draggable. Mouse users keep the whole-row HTML5 drag. */
+@media (pointer:coarse){
+  .set .swatch{touch-action:none;cursor:grab}
+  .set .swatch::before{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.28);pointer-events:none}
 }
 
 /* ============ SHORTCUTS MODAL (UI-2) ============ */

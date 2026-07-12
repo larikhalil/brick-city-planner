@@ -16,8 +16,24 @@ import { TERRAIN_TYPES, isCitySet, isPhysical } from './objects.js';
 import { computeLayout, fitScale, drawScene } from './export-image.js';
 import { fitProjection, drawIsoScene } from './isometric.js';
 import { checkCity } from './buildcheck.js';
+import { isCoarsePointer, deleteNeedsConfirm } from './pointer.js';
 
 const $ = (id) => document.getElementById(id);
+// Wave 6 (touch): is the current input device a coarse (finger/pen) pointer? Used to gate the
+// touch-only delete tap-confirm below. Falls back to false where matchMedia is unavailable.
+const coarseMedia = () => { try { return matchMedia('(pointer:coarse)').matches; } catch { return false; } };
+
+// Wave 6 (touch delete-safety): a finger's first tap on the delete button only ARMS a confirm (see
+// wiring in boot); a second tap within the window commits. These hold that armed state so a stray
+// tap can't nuke a piece. Inert for a mouse (deleteNeedsConfirm is false on a fine pointer).
+let deleteArmed = false;
+let deleteArmTimer = null;
+function disarmDelete() {
+  if (!deleteArmed) return;
+  deleteArmed = false;
+  clearTimeout(deleteArmTimer);
+  $('btn-delete')?.classList.remove('armed');
+}
 let unitState = 'studs';
 let cityName = 'Untitled city';
 let gridSize = { w: 128, h: 96, pw: 4, ph: 3 };
@@ -150,6 +166,7 @@ function placeSet(set, clientX, clientY) {
   recent = pushRecent(recent, set.set_num, MAX_RECENT);
   saveRecent();
   catalogUI?.refreshRail();
+  closeSheets(); // Wave 6: picking a set dismisses the mobile catalog sheet so the board is visible
 }
 
 // PLAN-7: "Custom baseplate…" — prompt for a size in studs and drop a generic ground-layer plate.
@@ -491,6 +508,33 @@ function drawDims() {
   $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'empty';
 }
 function refresh() { drawSummary(); drawDims(); drawGridSize(); updateFirstRun(); drawCityLabel(); updateCheckButton(); }
+
+// ---- Wave 6 (mobile): catalog / summary bottom-sheets -----------------------------------------
+// On a phone the catalog and summary aren't columns — they're bottom-sheets toggled from the fixed
+// bottom bar. A body class drives the pure-CSS slide + scrim (see styles.css ≤760px); this JS only
+// flips that class, keeps each FAB's aria-expanded honest, and closes the sheet on pick / scrim /
+// ✕ / Esc. It's inert on desktop, where the bar + scrim are display:none and the panels are their
+// normal left/right columns — so the mouse experience is completely untouched.
+function updateSheetBtns() {
+  const cls = document.body.classList;
+  $('m-catalog')?.setAttribute('aria-expanded', String(cls.contains('sheet-catalog')));
+  $('m-summary')?.setAttribute('aria-expanded', String(cls.contains('sheet-summary')));
+}
+function openSheet(name) {
+  const cls = document.body.classList;
+  const already = cls.contains('sheet-' + name);
+  cls.remove('sheet-catalog', 'sheet-summary'); // only one sheet open at a time
+  if (!already) cls.add('sheet-' + name);        // tapping the active FAB again closes it
+  updateSheetBtns();
+}
+function closeSheets() {
+  document.body.classList.remove('sheet-catalog', 'sheet-summary');
+  updateSheetBtns();
+}
+function sheetsOpen() {
+  return document.body.classList.contains('sheet-catalog')
+    || document.body.classList.contains('sheet-summary');
+}
 // ---- QOL-5c: keep the topbar's current-city label in sync ---------------------
 function drawCityLabel() {
   const el = $('city-name-text');
@@ -533,6 +577,7 @@ function closeHistoryMenu() {
 
 // Show the align/distribute/group bar only when a multi-selection is live.
 function drawSelection(ids = []) {
+  disarmDelete();   // Wave 6: any selection change cancels a pending touch delete-confirm
   drawLockButton(); // keep the toolbar lock button in step with the selection
   const bar = $('align-bar');
   if (!bar) return;
@@ -1187,7 +1232,7 @@ async function boot() {
     { list: $('catalog-list'), search: $('catalog-search'), chips: $('catalog-chips'),
       count: $('catalog-count'), sort: $('catalog-sort'), viewToggle: $('catalog-view'), rail: $('catalog-rail') },
     catalog.sets, {
-      onAdd: (s) => placeSet(s), isOwned, onToggleOwn: toggleOwned,
+      onAdd: (s) => placeSet(s), onAddAt: (s, x, y) => placeSet(s, x, y), isOwned, onToggleOwn: toggleOwned,
       isFavorite, onToggleFavorite: toggleFavorite, getFavorites,
       isWishlisted, onToggleWishlist: toggleWishlist, getRecent,
     });
@@ -1205,6 +1250,13 @@ async function boot() {
   $('btn-scaleref')?.addEventListener('click', toggleScaleRef);
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!getStoredTheme()) syncThemeButton(); }); }
   catch { /* older browsers without addEventListener on MediaQueryList — the button just won't live-sync */ }
+
+  // Wave 6 (mobile): bottom-bar FABs open/close the catalog & summary sheets; the scrim and each
+  // sheet's ✕ close it. All no-ops on desktop (the bar + scrim are display:none there).
+  $('m-catalog')?.addEventListener('click', () => openSheet('catalog'));
+  $('m-summary')?.addEventListener('click', () => openSheet('summary'));
+  $('sheet-scrim')?.addEventListener('click', closeSheets);
+  document.querySelectorAll('[data-sheet-close]').forEach((b) => b.addEventListener('click', closeSheets));
 
   // toolbar
   $('unit-toggle').addEventListener('click', (e) => {
@@ -1251,7 +1303,27 @@ async function boot() {
     const next = { wdec: [pw - 1, ph], winc: [pw + 1, ph], hdec: [pw, ph - 1], hinc: [pw, ph + 1] }[a];
     if (next) grid.setGridPlates(next[0], next[1]);
   });
-  $('btn-delete').addEventListener('click', () => grid.deleteSelected());
+  // Wave 6 (touch): guard delete on a finger/pen so a stray tap can't nuke a piece — the first tap
+  // arms ("Tap delete again"), a second within the window commits; a mouse still deletes on one
+  // click (desktop unchanged). Reuses the toast + the grid's own undo, no modal. The pointerdown
+  // records the real input device so a hybrid touchscreen laptop's MOUSE clicks stay immediate too.
+  let delPressCoarse = false;
+  $('btn-delete').addEventListener('pointerdown', (e) => {
+    delPressCoarse = isCoarsePointer(e.pointerType, coarseMedia());
+  });
+  $('btn-delete').addEventListener('click', () => {
+    if (!grid.getSelection().length) { disarmDelete(); return; } // nothing to delete → nothing to arm
+    if (deleteNeedsConfirm(delPressCoarse, deleteArmed)) {
+      deleteArmed = true;
+      $('btn-delete').classList.add('armed');
+      toast('Tap delete again to remove.');
+      clearTimeout(deleteArmTimer);
+      deleteArmTimer = setTimeout(disarmDelete, 2600);
+      return;
+    }
+    disarmDelete();
+    grid.deleteSelected();
+  });
 
   // QOL-8: lock/unlock the selection + Kid Mode freeze-layout
   $('btn-lock').addEventListener('click', () => grid.toggleLockSelected());
@@ -1287,6 +1359,7 @@ async function boot() {
       else if (!$('templates-backdrop').hidden) closeTemplatesMenu();
       else if (!$('cities-backdrop').hidden) closeCitiesMenu();
       else if (!$('layers-menu').hidden) { closeLayersMenu(); $('btn-layers').focus(); }
+      else if (sheetsOpen()) closeSheets(); // Wave 6: Esc dismisses an open mobile catalog/summary sheet
       else if (grid?.getMode?.() && grid.getMode() !== 'select') grid.setMode('select'); // leave a tool
     }
   });

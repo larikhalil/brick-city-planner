@@ -1,6 +1,7 @@
 import { esc } from './util.js';
 import { schematicSVG } from './schematic.js';
 import { buyLinks, PIECE_PRICE } from './pricing.js';
+import { isCoarsePointer } from './pointer.js';
 
 const CATS = [
   ['all', 'All', null], ['baseplate', 'Baseplates', 'var(--g-green)'],
@@ -35,13 +36,67 @@ const SORTS = {
 const VIEW_KEY = 'bcp.catView';
 
 export function renderCatalog(els, sets, {
-  onAdd, isOwned = () => false, onToggleOwn = () => {},
+  onAdd, onAddAt = null, isOwned = () => false, onToggleOwn = () => {},
   isFavorite = () => false, onToggleFavorite = () => {}, getFavorites = () => [],
   isWishlisted = () => false, onToggleWishlist = () => {},
   getRecent = () => [],
 } = {}) {
   let text = '', category = 'all', sort = 'default';
   const byNum = new Map(sets.map((s) => [s.set_num, s])); // for resolving rail thumbnails
+
+  // ---- Wave 6 (mobile/touch): finger/pen catalog→canvas drag, ALONGSIDE the mouse HTML5 DnD -----
+  // HTML5 drag-and-drop never fires for touch, so a finger gets its own Pointer-Events path: press
+  // the set's thumbnail (its `touch-action:none` swatch, so the gesture isn't stolen as a scroll),
+  // a floating ghost follows the finger, and on release we hit-test the drop point and hand off to
+  // the SAME onAddAt(set, clientX, clientY) the mouse `drop` handler uses. Released off the board it
+  // just cancels — the per-row '＋' tap-to-add stays as the always-available fallback. Mouse pointers
+  // are ignored here entirely (isCoarsePointer=false), so the desktop drag experience is untouched.
+  const coarseMedia = () => { try { return matchMedia('(pointer:coarse)').matches; } catch { return false; } };
+  function startTouchDrag(s, ev, handle) {
+    if (!onAddAt) return; // no drop sink wired → fall back to the '＋' button / HTML5 DnD only
+    ev.preventDefault();
+    // Mobile only: the catalog is a bottom-sheet whose panel (z56) + scrim (z55) blanket the
+    // viewport, so #grid-stage sits BEHIND them and document.elementFromPoint at drop can never
+    // reach the board. Flag the drag on <body> for the duration: the ≤760px CSS slides the sheet
+    // out of the way + drops the scrim's pointer-events, revealing the board both visually and as
+    // the topmost hit-test target. setPointerCapture keeps the drag alive as the panel slides away.
+    // Inert at ≥761px (no such rule), so a wide-screen touch device is unaffected.
+    document.body.classList.add('bcp-dragging-set');
+    const ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.innerHTML = handle.innerHTML; // reuse the thumbnail art (img or schematic)
+    const move = (x, y) => { ghost.style.left = x + 'px'; ghost.style.top = y + 'px'; };
+    move(ev.clientX, ev.clientY);
+    document.body.appendChild(ghost);
+    try { handle.setPointerCapture(ev.pointerId); } catch { /* capture unsupported — events still bubble */ }
+    function mv(e) {
+      if (e.pointerId !== ev.pointerId) return;
+      e.preventDefault();
+      move(e.clientX, e.clientY);
+    }
+    function done(e, drop) {
+      if (e.pointerId !== ev.pointerId) return;
+      handle.removeEventListener('pointermove', mv);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', cancel);
+      ghost.remove(); // remove BEFORE hit-testing so elementFromPoint sees the board, not the ghost
+      // Hit-test WHILE bcp-dragging-set is still applied (scrim pointer-events:none, panel slid off),
+      // otherwise the scrim (inset:0, z55) reappears over the board and steals elementFromPoint.
+      let onBoard = false;
+      if (drop) {
+        const over = document.elementFromPoint?.(e.clientX, e.clientY);
+        onBoard = !!(over && over.closest && over.closest('#grid-stage'));
+      }
+      document.body.classList.remove('bcp-dragging-set'); // now restore the sheet (slides back if not dropped)
+      if (onBoard) onAddAt(s, e.clientX, e.clientY);
+    }
+    function up(e) { done(e, true); }
+    function cancel(e) { done(e, false); }
+    handle.addEventListener('pointermove', mv);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', cancel);
+  }
 
   // ---- UI-4: list/grid view toggle, remembered in localStorage ----------------
   let view = 'list';
@@ -171,6 +226,16 @@ export function renderCatalog(els, sets, {
     el.addEventListener('dragstart', (e) => {
       e.dataTransfer.setData('text/bcp-set', s.set_num);
       e.dataTransfer.effectAllowed = 'copy';
+    });
+    // Wave 6: a finger/pen press on the thumbnail starts the custom touch drag (see startTouchDrag).
+    // Gated to coarse pointers so a mouse keeps using the HTML5 DnD above unchanged; gated to the
+    // swatch so the rest of the row (name, buy links, ☆/♥/🛒/＋ buttons) stays tappable and the
+    // catalog list still scrolls under a finger everywhere except the grab handle.
+    const swatch = el.querySelector('.swatch');
+    swatch?.addEventListener('pointerdown', (e) => {
+      if (e.button != null && e.button !== 0) return; // primary contact only
+      if (!isCoarsePointer(e.pointerType, coarseMedia())) return; // mouse → leave HTML5 DnD alone
+      startTouchDrag(s, e, swatch);
     });
     return el;
   }
