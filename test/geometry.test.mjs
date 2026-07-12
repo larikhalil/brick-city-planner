@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   extent, overlaps, bbox, snap, anyOverlaps, overlapPairs, toRowCol, snapConnect, grownCanvas,
   clampedCanvas, BP, tileAABB, tilesInRect, alignTiles, distributeTiles, rotateGroup,
-  isTileEditable, isLayerVisible, layerOf,
+  isTileEditable, isLayerVisible, layerOf, plateGridSnap, tileInViewport,
 } from '../js/geometry.js';
 
 test('extent swaps on 90/270', () => {
@@ -67,6 +67,40 @@ test('snapConnect joins facing ports of a rotated piece', () => {
 test('snapConnect snaps a baseplate to the 32-stud grid', () => {
   const bp = { id: 'bp', x: 35, y: 30, w: 32, h: 32, rot: 0, kind: 'baseplate', layer: 0 };
   assert.deepEqual(snapConnect(bp, [], 6), { x: 32, y: 32 });
+});
+// PLAN-7 — a baseplate snaps to a grid of ITS OWN size, not always 32.
+test('plateGridSnap steps by the plate size, per axis', () => {
+  // 32×32 (classic) → the 32-grid, unchanged
+  assert.deepEqual(plateGridSnap(35, 30, 32, 32), { x: 32, y: 32 });
+  // 48×48 → the 48-grid (nearest multiple of 48, not 32)
+  assert.deepEqual(plateGridSnap(50, 40, 48, 48), { x: 48, y: 48 });
+  assert.deepEqual(plateGridSnap(80, 80, 48, 48), { x: 96, y: 96 });
+  // 48×32 → 48 in x, 32 in y (independent per axis)
+  assert.deepEqual(plateGridSnap(80, 50, 48, 32), { x: 96, y: 64 });
+  // 16×16 → the 16-grid
+  assert.deepEqual(plateGridSnap(20, 8, 16, 16), { x: 16, y: 16 });
+  // origin-anchored: a plate dropped at the corner stays at the corner
+  assert.deepEqual(plateGridSnap(0, 0, 48, 48), { x: 0, y: 0 });
+  // degenerate / zero size falls back to one baseplate (BP) rather than dividing by zero
+  assert.deepEqual(plateGridSnap(20, 20, 0, 0), { x: snap(20, BP), y: snap(20, BP) });
+});
+test('snapConnect snaps a lone 48×48 baseplate to its own 48-grid, not 32', () => {
+  const bp = { id: 'bp', x: 50, y: 40, w: 48, h: 48, rot: 0, kind: 'baseplate', layer: 0 };
+  assert.deepEqual(snapConnect(bp, [], 6), { x: 48, y: 48 });
+});
+test('snapConnect butts mixed-size baseplates flush together', () => {
+  // a 32×32 plate sitting at the origin
+  const base = { id: 'base', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'baseplate', layer: 0 };
+  // a 16×16 plate dragged near the 32's right edge (3-stud gap) → left edge snaps flush to x=32
+  const small = { id: 'small', x: 35, y: 1, w: 16, h: 16, rot: 0, kind: 'baseplate', layer: 0 };
+  const s = snapConnect(small, [base], 6);
+  assert.equal(s.x, 32); // flush against the neighbour's right edge — no gap
+  assert.equal(s.y, 0); // top edge aligns to the neighbour's top
+});
+test('snapConnect: a far baseplate ignores neighbours and falls back to its own grid', () => {
+  const base = { id: 'base', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'baseplate', layer: 0 };
+  const far = { id: 'far', x: 100, y: 100, w: 48, h: 48, rot: 0, kind: 'baseplate', layer: 0 };
+  assert.deepEqual(snapConnect(far, [base], 6), { x: 96, y: 96 }); // 48-grid, unaffected by base
 });
 test('snapConnect edge-snaps a building to a same-layer neighbour', () => {
   const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'building', layer: 2 };
@@ -245,4 +279,45 @@ test('rotateGroup orbits tile centres about the group centre and advances rot', 
   // a horizontal pair rotated 90° becomes a vertical pair (same x, 32 apart in y)
   assert.equal(a.x, b.x);
   assert.equal(Math.abs(b.y - a.y), 32);
+});
+
+// ---- PERF-1: viewport culling predicate ------------------------------------------------------
+test('tileInViewport: fully-inside tiles render, fully-outside ones are culled', () => {
+  const vp = { x: 100, y: 100, w: 200, h: 150 }; // visible rect in studs
+  // dead-centre of the viewport → rendered
+  assert.equal(tileInViewport({ x: 150, y: 150, w: 16, h: 16, rot: 0 }, vp, 0), true);
+  // far off to the right, well past the margin → culled
+  assert.equal(tileInViewport({ x: 1000, y: 150, w: 16, h: 16, rot: 0 }, vp, 0), false);
+  // far above → culled
+  assert.equal(tileInViewport({ x: 150, y: -500, w: 16, h: 16, rot: 0 }, vp, 0), false);
+});
+test('tileInViewport: a tile straddling the edge still renders (edge-inclusive)', () => {
+  const vp = { x: 0, y: 0, w: 100, h: 100 };
+  // crosses the right edge (x 90..106) → visible
+  assert.equal(tileInViewport({ x: 90, y: 40, w: 16, h: 16, rot: 0 }, vp, 0), true);
+  // flush against the right edge (touches x=100) → edge-inclusive → visible
+  assert.equal(tileInViewport({ x: 100, y: 40, w: 16, h: 16, rot: 0 }, vp, 0), true);
+  // a big tile whose body spans the whole viewport → visible even though its corners are outside
+  assert.equal(tileInViewport({ x: -50, y: -50, w: 300, h: 300, rot: 0 }, vp, 0), true);
+});
+test('tileInViewport: margin pulls just-off-screen tiles into the render set', () => {
+  const vp = { x: 0, y: 0, w: 100, h: 100 };
+  const tile = { x: 130, y: 40, w: 16, h: 16, rot: 0 }; // sits 30 studs past the right edge
+  assert.equal(tileInViewport(tile, vp, 0), false);   // no margin → culled
+  assert.equal(tileInViewport(tile, vp, 64), true);    // 64-stud buffer → rendered ahead of a scroll
+  assert.equal(tileInViewport(tile, vp, 20), false);   // buffer too small to reach it → still culled
+});
+test('tileInViewport: null viewport never culls (unmeasurable stage → paint everything)', () => {
+  assert.equal(tileInViewport({ x: 9999, y: 9999, w: 16, h: 16, rot: 0 }, null, 64), true);
+});
+test('tileInViewport: uses the ROTATED AABB, not the raw w×h box', () => {
+  const vp = { x: 0, y: 0, w: 40, h: 40 };
+  // a long thin tile placed just outside the right edge, but rotated 90° so its rotated AABB
+  // swings back over the viewport → must render.
+  const tile = { x: 30, y: 0, w: 8, h: 60, rot: 90 };
+  // sanity: without rotation this narrow box (x 30..38) would be inside anyway, so make the case
+  // meaningful by checking the rotated extent reaches leftward across the seam.
+  assert.equal(tileInViewport(tile, vp, 0), true);
+  // fully outside even after rotation → culled
+  assert.equal(tileInViewport({ x: 200, y: 200, w: 8, h: 60, rot: 90 }, vp, 0), false);
 });

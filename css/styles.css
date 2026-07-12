@@ -156,6 +156,9 @@ button{font-family:inherit;cursor:pointer}
 .add{flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);
   background:var(--panel-2);color:var(--ink-soft);font-size:16px;font-weight:700;line-height:1}
 .set:hover .add{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+/* ---- PLAN-7: custom-baseplate action ---- */
+.cat-actions{padding:0 14px 8px}
+.cat-actions .btn{width:100%;justify-content:center}
 /* ---- Catalog sort + view toggle ---- */
 .cat-controls{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 14px 8px}
 .cat-controls .sort{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
@@ -546,6 +549,38 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 @keyframes grip-intro{0%,100%{border-color:var(--plate)}50%{border-color:var(--accent);opacity:1}}
 @media (prefers-reduced-motion:reduce){.grip.intro{animation:none}}
 
+/* PLAN-8: realistic scale-reference overlay — faint minifig/car/door silhouettes + a 10/50/100-stud
+   ruler, drawn by grid.js in board-stud coordinates so it scales with zoom. Never interactive; sits
+   above the tiles but swallows no pointer events. Colour comes from --ink so it adapts light/dark. */
+.scale-ref-wrap{position:absolute;inset:0;z-index:10;pointer-events:none}
+.scale-ref-overlay{position:absolute;left:0;top:0;overflow:visible}
+.scale-ref-overlay .sr-rule{stroke:var(--ink-soft);stroke-width:1.5;opacity:.55}
+.scale-ref-overlay .sr-tick{stroke:var(--ink-soft);stroke-width:1.5;opacity:.55}
+.scale-ref-overlay .sr-label,
+.scale-ref-overlay .sr-shape-label{fill:var(--ink-soft);font-family:var(--mono);font-size:9px;opacity:.85}
+.scale-ref-overlay .sr-shape{fill:var(--ink);opacity:.16}
+.scale-ref-overlay .sr-shape-open{fill:none;stroke:var(--ink);stroke-width:1.5;opacity:.4}
+.scale-ref-overlay .sr-shape-detail{fill:var(--panel);stroke:var(--ink);stroke-width:1;opacity:.4}
+#btn-scaleref.on{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+
+/* ---- PLAN-12: read-only 3D / isometric preview ----
+   A full-stage overlay that covers the 2D board with an extruded-block canvas render of the city.
+   No editing happens here; the ← Back to 2D button (or Esc) returns to the primary top-down view.
+   Sits above the board + scale-ref overlay but below modals. */
+.iso-overlay{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;
+  background:var(--canvas);animation:iso-in .18s ease}
+.iso-overlay[hidden]{display:none}
+@keyframes iso-in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.iso-overlay{animation:none}}
+.iso-bar{position:absolute;left:0;top:0;right:0;z-index:2;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;padding:10px 12px;pointer-events:none}
+.iso-bar>*{pointer-events:auto}
+.iso-title{font-size:12.5px;font-weight:700;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line-2);border-radius:8px;padding:5px 10px;box-shadow:var(--shadow)}
+.iso-title small{color:var(--ink-soft);font-weight:600}
+#iso-canvas{flex:1;width:100%;height:100%;display:block}
+#btn-iso.on{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+
 /* ---- Table-size stepper (baseplates) ---- */
 .gsize{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
 .gsize .lab{text-transform:uppercase;letter-spacing:.08em}
@@ -761,3 +796,24 @@ html[data-kidmode] .align-bar{display:none!important}
 /* a calm dashed cue that the placed layout is frozen */
 html[data-kidmode] .canvas-wrap{outline:2px dashed var(--accent-deep);outline-offset:-2px;border-radius:12px}
 @media (prefers-reduced-motion:reduce){html[data-kidmode] .canvas-wrap{outline-style:solid}}
+
+/* ============ PLAN-3: BUILDABILITY CHECK ("Check my city") ============ */
+#btn-check.has-issues{color:var(--warn);border-color:var(--warn)}
+.chk-list{display:flex;flex-direction:column;gap:6px}
+.chk-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+  padding:22px 12px;color:var(--ink-soft)}
+.chk-empty .big{font-size:30px;line-height:1}
+.chk-empty b{color:var(--ink);font-size:14px}
+/* one issue row — click to jump to the offending tile(s) */
+.chk-row{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel-2);
+  color:var(--ink);font-size:12.5px;line-height:1.4;cursor:pointer}
+.chk-row:hover{border-color:var(--plate);background:var(--sunk)}
+.chk-row:focus-visible{outline:2px solid var(--accent-deep);outline-offset:1px}
+.chk-row .ic{flex:none;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.chk-row.error .ic{background:var(--danger,#d64545)}
+.chk-row.warn .ic{background:var(--warn)}
+.chk-row.info .ic{background:var(--ink-faint)}
+.chk-row .msg{flex:1;min-width:0}
+.chk-row .go{flex:none;color:var(--ink-faint);font-size:12px;align-self:center}

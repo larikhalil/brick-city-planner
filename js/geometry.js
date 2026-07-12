@@ -60,6 +60,15 @@ export function snap(value, step = 1) {
 }
 
 export const BP = 32; // studs per baseplate — the canvas always sizes in whole baseplates
+
+// PLAN-7: a baseplate snaps to a grid of ITS OWN footprint, independently per axis — so identical
+// plates always tile without gaps or overlaps. A 48×32 plate steps by 48 in x and 32 in y, a 16×16
+// plate by 16, and the classic 32×32 plate by 32 (unchanged). A degenerate 0-or-negative size falls
+// back to one baseplate (BP) so we never divide by zero. Pure — unit-tested in isolation.
+export function plateGridSnap(x, y, w, h) {
+  const sx = w > 0 ? w : BP, sy = h > 0 ? h : BP;
+  return { x: snap(x, sx), y: snap(y, sy) };
+}
 const ceilPlate = (studs) => Math.ceil(Math.max(0, studs) / BP) * BP;
 
 // Auto-grow: the smallest whole-baseplate canvas that keeps `margin` studs clear past the
@@ -87,6 +96,26 @@ export function tileAABB(t) {
 }
 const aabb = tileAABB; // internal alias kept for the snap maths below
 
+// PERF-1: viewport-culling predicate. `viewport` is the visible rect in STUDS ({x,y,w,h}); `margin`
+// (studs) over-renders a buffer past every edge so a scroll doesn't pop tiles in at the seam. Returns
+// true when the tile's rotated AABB touches or overlaps the margin-expanded viewport. A null/absent
+// viewport means "can't measure the view" → never cull (render everything). Pure + edge-inclusive so
+// a tile flush with the viewport edge still paints. Cull affects RENDER ONLY — never the model.
+export function tileInViewport(tile, viewport, margin = 0) {
+  if (!viewport) return true;
+  const a = tileAABB(tile);
+  const m = margin || 0;
+  const left = viewport.x - m, top = viewport.y - m;
+  const right = viewport.x + viewport.w + m, bottom = viewport.y + viewport.h + m;
+  return a.maxX >= left && a.minX <= right && a.maxY >= top && a.minY <= bottom;
+}
+
+// PLAN-10: real LEGO curved track turns 1/16 of a circle — 22.5° per segment — regardless of its
+// radius class (R40/R56/R72/R104 all nest concentrically at the same increment). The switch/point's
+// diverging route leaves the through line at the standard ~16.5° LEGO branch angle.
+export const CURVE_TURN = 22.5; // degrees a curve/switch tile snaps its rotation to
+export const SWITCH_ANGLE = 16.5; // degrees the diverging route deflects from the through line
+
 // Connection ports of a road/rail piece in LOCAL coords (before rotation): a point on an
 // opening edge with an outward unit direction. Matched port-to-port so pieces join
 // opening-to-opening at any angle.
@@ -101,12 +130,62 @@ function localPorts(kind, name, w, h) {
     return [L, R];
   }
   if (kind === 'track') {
+    // PLAN-11: a buffer stop / end-cap is a terminal piece — it exposes ONE coupling face (its
+    // bottom edge, B) and deliberately has no far-side opening. Placed over a spur's open end its
+    // single port mates that end, so a capped spur reads as complete rather than unfinished track.
+    if (/buffer|stop|end.?cap/.test(n)) return [B];
     if (/curve/.test(n)) return /left/.test(n) ? [B, L] : [B, R];
     if (/cross|crossover|diamond/.test(n)) return [L, R, T, B];
-    if (/switch|points/.test(n)) return [T, B];
+    if (/switch|points/.test(n)) {
+      // PLAN-10: a switch is the through route (B → T, collinear) PLUS a diverging exit that
+      // leaves the top/heel end at SWITCH_ANGLE off the through line — right switches branch to
+      // +x, left switches to -x. Exposing the diverging port here lets snapConnect auto-align a
+      // downstream track piece onto the branch, not just the straight-through opening.
+      const rad = (SWITCH_ANGLE * Math.PI) / 180, s = Math.sin(rad), c = Math.cos(rad);
+      const side = /left/.test(n) ? -1 : 1;
+      // The branch exits the far (heel) edge; over the tile's length it drifts sideways by h·tanθ.
+      const off = Math.min(w / 2, h * Math.tan(rad));
+      const D = { x: w / 2 + side * off, y: 0, dx: side * s, dy: -c };
+      return [T, B, D];
+    }
     return [L, R];
   }
   return [];
+}
+
+// PLAN-10: local-coord ports for a placed track/road TILE (thin tile-based wrapper around the
+// internal localPorts, exported so the switch/curve geometry is unit-testable in isolation).
+export function trackPorts(tile) {
+  return localPorts(tile.kind, tile.name, tile.w, tile.h);
+}
+
+// PLAN-11: a placed tile's connection ports in WORLD coords (position + rotation applied). Thin
+// exported wrapper over the internal worldPorts so the continuity/loop-closure validator can reuse
+// the exact same port maths as snapConnect instead of re-deriving them.
+export function tileWorldPorts(tile) {
+  return worldPorts(tile);
+}
+
+// PLAN-10: the radius class of a curved-track piece ('R40'|'R56'|'R72'|'R104'), or null for any
+// piece that has none (straights, crossings, roads, buildings…). Data-driven off the tile's tag.
+export function radiusClass(tile) {
+  return (tile && typeof tile.radius === 'string' && tile.radius) || null;
+}
+
+// PLAN-10: do two pieces about to be joined port-to-port carry DIFFERENT real radius classes? Only
+// fires when BOTH sides have a class and they disagree — a radius-less piece (straight/crossing)
+// never warns, so a curve meeting a straight is always fine.
+export function radiusMismatch(a, b) {
+  const ra = radiusClass(a), rb = radiusClass(b);
+  return !!(ra && rb && ra !== rb);
+}
+
+// PLAN-10: the rotation snap increment (degrees) for a tile. Curved/switch track snaps to its real
+// turn increment (22.5°) so a chain of curves stays on the LEGO circle; everything else keeps the
+// generic 15° free-rotate step.
+export function rotationStep(tile) {
+  if (tile && tile.kind === 'track' && Number.isFinite(tile.turn) && tile.turn > 0) return tile.turn;
+  return 15;
 }
 
 // Ports transformed to world coords by the tile's position + rotation.
@@ -121,25 +200,64 @@ function worldPorts(t) {
 
 // Snap-to-connect: first join the closest pair of FACING ports (rotation-aware); if no
 // facing port is near, fall back to snapping AABB edges flush/aligned. Returns {x, y}.
+// Thin wrapper over snapConnectInfo — kept returning ONLY {x, y} so every existing caller/test
+// that deep-equals the result is unaffected.
 export function snapConnect(t, others, threshold = 6) {
+  const s = snapConnectInfo(t, others, threshold);
+  return { x: s.x, y: s.y };
+}
+
+// PLAN-10: the same snap maths as snapConnect, but also reports `connectedTo` — the neighbour tile
+// whose port was joined (or null for a baseplate-grid / edge-align fallback). grid.js uses that to
+// hard-warn when two mismatched-radius track pieces are snapped port-to-port.
+export function snapConnectInfo(t, others, threshold = 6) {
   const aPorts = worldPorts(t);
   if (aPorts.length) {
-    let dx = 0, dy = 0, best = threshold + 1e-6, found = false;
+    let dx = 0, dy = 0, best = threshold + 1e-6, found = false, connectedTo = null;
     for (const o of others) {
       for (const bp of worldPorts(o)) {
         for (const ap of aPorts) {
           if (ap.dx * bp.dx + ap.dy * bp.dy > -0.6) continue; // ports must face each other
           const d = Math.hypot(ap.x - bp.x, ap.y - bp.y);
-          if (d < best) { best = d; dx = bp.x - ap.x; dy = bp.y - ap.y; found = true; }
+          if (d < best) { best = d; dx = bp.x - ap.x; dy = bp.y - ap.y; found = true; connectedTo = o; }
         }
       }
     }
     // round to 4dp to shed floating-point noise from rotation (keeps genuine fractions);
     // `|| 0` normalises -0 → 0.
-    if (found) return { x: Math.round((t.x + dx) * 1e4) / 1e4 || 0, y: Math.round((t.y + dy) * 1e4) / 1e4 || 0 };
+    if (found) return { x: Math.round((t.x + dx) * 1e4) / 1e4 || 0, y: Math.round((t.y + dy) * 1e4) / 1e4 || 0, connectedTo };
   }
-  // Baseplates snap to the 32-stud baseplate grid so the ground tiles cleanly.
-  if ((t.layer ?? 2) === 0) return { x: snap(t.x, 32), y: snap(t.y, 32) };
+  // Baseplates: first butt flush against any nearby baseplate edge (so mixed sizes — 48×48 next to
+  // 16×16 — tile without gaps), then fall back per-axis to the plate's OWN-size grid when no plate
+  // is close on that axis. The classic lone-32×32 path still lands on the 32-stud grid.
+  if ((t.layer ?? 2) === 0) {
+    const plates = others.filter((o) => (o.layer ?? 2) === 0);
+    const a = aabb(t);
+    let dx = 0, dy = 0, bestX = threshold + 1e-6, bestY = threshold + 1e-6;
+    for (const o of plates) {
+      const b = aabb(o);
+      const yNear = a.minY < b.maxY + threshold && a.maxY > b.minY - threshold;
+      const xNear = a.minX < b.maxX + threshold && a.maxX > b.minX - threshold;
+      if (yNear) {
+        for (const [ae, be] of [[a.maxX, b.minX], [a.minX, b.maxX], [a.minX, b.minX], [a.maxX, b.maxX]]) {
+          const d = Math.abs(ae - be);
+          if (d < bestX) { bestX = d; dx = be - ae; }
+        }
+      }
+      if (xNear) {
+        for (const [ae, be] of [[a.maxY, b.minY], [a.minY, b.maxY], [a.minY, b.minY], [a.maxY, b.maxY]]) {
+          const d = Math.abs(ae - be);
+          if (d < bestY) { bestY = d; dy = be - ae; }
+        }
+      }
+    }
+    const g = plateGridSnap(t.x, t.y, t.w, t.h);
+    return {
+      x: bestX <= threshold ? round4(t.x + dx) : g.x,
+      y: bestY <= threshold ? round4(t.y + dy) : g.y,
+      connectedTo: null,
+    };
+  }
   // Everything else edge-snaps to same-layer neighbours and to baseplates (the ground).
   const layer = t.layer ?? 2;
   const rel = others.filter((o) => { const l = o.layer ?? 2; return l === layer || l === 0; });
@@ -162,7 +280,7 @@ export function snapConnect(t, others, threshold = 6) {
       }
     }
   }
-  return { x: t.x + dx, y: t.y + dy };
+  return { x: t.x + dx, y: t.y + dy, connectedTo: null };
 }
 
 // Overlapping tile PAIRS (same layer/kind rules as anyOverlaps below) — kept as the actual tile

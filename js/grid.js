@@ -1,12 +1,15 @@
 import { catColor } from './catalog.js';
 import {
-  anyOverlaps, overlapPairs, toRowCol, bbox, snap, snapConnect, grownCanvas, clampedCanvas, BP,
+  anyOverlaps, overlapPairs, toRowCol, bbox, snap, snapConnectInfo, radiusMismatch,
+  radiusClass, rotationStep, grownCanvas, clampedCanvas, BP,
   tilesInRect, alignTiles, distributeTiles, rotateGroup, isTileEditable, isLayerVisible, layerOf,
+  tileInViewport,
 } from './geometry.js';
 import { esc } from './util.js';
 import { schematicSVG } from './schematic.js';
 import { makeTerrain, makeNote, makeCustom, snapRect, rectsIntersect, CELL } from './objects.js';
 import { outlineClipPath } from './footprint-shapes.js';
+import { scaleRefSVG } from './scale-ref.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
@@ -15,6 +18,10 @@ const DEFAULT_W = 128, DEFAULT_H = 96; // studs — a 4×3 baseplate table to st
 const HISTORY_MAX = 60; // undo depth (spec: at least 50 steps)
 const PASTE_STEP = 8; // studs each paste/duplicate is nudged so copies don't hide the originals
 const GHOST_MS = 240; // how long a delete's fading ghost sticks around (must match the CSS transition)
+// PERF-1: studs of over-render past every viewport edge. render() paints only tiles whose AABB
+// touches this margin-expanded viewport; the buffer lets you scroll/pan ~2 baseplates before a
+// re-render is needed, so tiles never pop in at the seam. Cull is RENDER-ONLY, never touches placed[].
+const CULL_MARGIN = 64;
 
 // requestAnimationFrame doesn't exist under `node --test`'s DOM mock — fall back to a timer so
 // the motion helpers below never throw there (and just skip visibly, since nothing paints anyway).
@@ -27,10 +34,12 @@ function prefersReducedMotion() {
 
 export function createGrid(board, {
   onChange = () => {}, onResize = () => {}, onHistory = () => {}, onSelect = () => {},
-  onAnnounce = () => {}, onMode = () => {}, onRequestEdit = () => {},
+  onAnnounce = () => {}, onMode = () => {}, onRequestEdit = () => {}, onWarn = () => {},
   // QOL-10 / QOL-8 view + interaction prefs — supplied by app.js from localStorage/sessionStorage,
   // kept OUTSIDE placed[]/undo. layerVis/layerLocks are keyed by stacking layer (0/1/2…).
   layerVis: initLayerVis = null, layerLocks: initLayerLocks = null, kidMode: initKidMode = false,
+  // PLAN-8 scale-reference overlay prefs (localStorage-backed in app.js; view-only, not in the city).
+  scaleRef: initScaleRef = false, scaleUnit: initScaleUnit = 'studs',
 } = {}) {
   let placed = [];
   let selection = new Set(); // ids of every selected tile
@@ -112,6 +121,22 @@ export function createGrid(board, {
   grip.title = 'Drag to add baseplates';
   let gripIntroShown = false; // one-time fade pulse the first time the board renders (UI-2)
 
+  // ---- PLAN-8: realistic scale-reference overlay ----------------------------------------------
+  // A faint, non-interactive SVG (minifig/car/door silhouettes + a 10/50/100-stud ruler) laid over
+  // the board in stud coordinates, so it scales with zoom for free. Hidden by default; toggle +
+  // unit come from app.js (persisted like the other view prefs). Lives in a wrapper appended after
+  // grip on every render() — render() wipes board.innerHTML, so it must be re-added like the grip.
+  let scaleRefOn = !!initScaleRef;
+  let scaleUnit = initScaleUnit === 'cm' ? 'cm' : 'studs';
+  const scaleOverlay = document.createElement('div');
+  // aria-hidden lives on the inner <svg> (built in scale-ref.js); the wrapper is inert chrome.
+  scaleOverlay.className = 'scale-ref-wrap';
+  function buildScaleOverlay() {
+    scaleOverlay.innerHTML = scaleRefOn ? scaleRefSVG({ gridW, gridH, unit: scaleUnit, px: PX }) : '';
+  }
+  // Re-attach (and refresh) the overlay after a render() has cleared the board.
+  function reattachScaleOverlay() { if (scaleRefOn) { buildScaleOverlay(); board.appendChild(scaleOverlay); } }
+
   // Right/bottom edge of everything placed, in studs (0,0 when empty).
   function contentExtent() { const b = bbox(placed); return { right: b.x + b.w, bottom: b.y + b.h }; }
 
@@ -119,6 +144,7 @@ export function createGrid(board, {
     board.style.width = gridW * PX + 'px';
     board.style.height = gridH * PX + 'px';
     onResize(gridW, gridH);
+    if (scaleRefOn) buildScaleOverlay(); // keep the overlay's SVG box in step when the table grows
   }
   // Auto-expand so the canvas always contains the content plus a margin (never shrinks here).
   function growToFit() {
@@ -199,6 +225,12 @@ export function createGrid(board, {
       x, y, w: set.footprint.w, h: set.footprint.h, rot: 0,
       approx: set.footprint.source !== 'curated', img: set.img || null,
       layer: set.layer ?? 2, z: set.layer ?? 2, color: set.color || null,
+      // PLAN-10: carry a curved-track piece's real radius class + turn increment onto the placed
+      // tile so mismatch-warning (radiusMismatch) and rotation snapping (rotationStep) are data-driven.
+      radius: set.radius || null, turn: Number.isFinite(set.turn) ? set.turn : null,
+      // PLAN-11: carry the buffer-stop / end-cap flag onto the placed tile so the track-continuity
+      // validator treats this piece's open end as an intentional terminal, not unfinished track.
+      bufferStop: set.bufferStop === true || undefined,
       locked: false, // QOL-8: per-tile lock flag — part of the model (serialised + undoable)
     };
   }
@@ -260,10 +292,47 @@ export function createGrid(board, {
     grip.addEventListener?.('animationend', () => grip.classList.remove('intro'), { once: true });
   }
 
+  // ---- PERF-1: viewport culling ---------------------------------------------------------------
+  // The margin-expanded region (studs) the last render() actually painted, or null when culling was
+  // off (whole city painted). A scroll/zoom only forces a re-render once the visible view pokes past
+  // this buffer — while it stays inside, the already-painted tiles cover it and we do nothing.
+  let renderedRegion = null;
+  let cullRaf = 0; // coalesces a burst of scroll events into one rAF-timed re-render check
+  // The currently-visible board rect in STUDS, or null if the stage can't be measured (pre-layout or
+  // the test DOM mock, where scroll/client dims are absent) — null means "don't cull, paint it all".
+  function viewportStuds() {
+    const cw = stage && stage.clientWidth, ch = stage && stage.clientHeight;
+    if (!Number.isFinite(cw) || !Number.isFinite(ch) || cw <= 0 || ch <= 0) return null;
+    const sx = Number(stage.scrollLeft) || 0, sy = Number(stage.scrollTop) || 0;
+    return { x: sx / zoom / PX, y: sy / zoom / PX, w: cw / zoom / PX, h: ch / zoom / PX };
+  }
+  // Re-render only if the visible view is no longer fully inside the buffer painted last time.
+  function refreshCull() {
+    const vp = viewportStuds();
+    if (!vp || !renderedRegion) return; // nothing measurable, or last render painted everything
+    const inside = vp.x >= renderedRegion.x && vp.y >= renderedRegion.y
+      && vp.x + vp.w <= renderedRegion.x + renderedRegion.w
+      && vp.y + vp.h <= renderedRegion.y + renderedRegion.h;
+    if (!inside) render();
+  }
+  stage.addEventListener('scroll', () => {
+    if (cullRaf) return;
+    cullRaf = raf(() => { cullRaf = 0; refreshCull(); });
+  }, { passive: true });
+
   function render() {
+    // PERF-1: measure the viewport once up front. `vp` null → paint every tile (no culling); else we
+    // skip any tile whose AABB misses the CULL_MARGIN-expanded viewport and record that expanded
+    // region so scroll/zoom knows when the painted buffer no longer covers the view.
+    const vp = viewportStuds();
+    renderedRegion = vp ? {
+      x: vp.x - CULL_MARGIN, y: vp.y - CULL_MARGIN,
+      w: vp.w + 2 * CULL_MARGIN, h: vp.h + 2 * CULL_MARGIN,
+    } : null;
     if (!placed.length) {
       board.innerHTML = `<div class="empty-hint">Add sets from the catalog to start your city →</div>`;
       board.appendChild(grip);
+      reattachScaleOverlay();
       updateSelBox();
       return;
     }
@@ -281,6 +350,10 @@ export function createGrid(board, {
       // QOL-10: a hidden layer isn't painted at all (its tiles stay in placed[] — still saved,
       // still snap/overlap-computed — just invisible + non-interactive until shown again).
       if (!visible(t)) continue;
+      // PERF-1: skip tiles outside the visible viewport (+ margin) so a 300+-tile / many-baseplate
+      // city only ever builds DOM for what's on screen. Cull is RENDER-ONLY — the tile stays in
+      // placed[] (still selected/saved/overlap-computed) and repaints the moment it scrolls into view.
+      if (vp && !tileInViewport(t, vp, CULL_MARGIN)) continue;
       const kind = t.kind || 'generic';
       const el = document.createElement('div');
       // Tile is sized to its own footprint and rotated about its centre.
@@ -402,6 +475,7 @@ export function createGrid(board, {
       board.appendChild(el);
     }
     board.appendChild(grip);
+    reattachScaleOverlay();
     markGripIntro();
     updateSelBox();
     if (selectedId) board.querySelector(`.tile[data-id="${selectedId}"]`)?.focus({ preventScroll: true });
@@ -423,6 +497,34 @@ export function createGrid(board, {
       if (isOver && !hasBadge) el.insertAdjacentHTML('afterbegin', '<span class="ov-flag" aria-hidden="true" title="Overlap">⚠</span>');
       else if (!isOver && hasBadge) el.querySelectorAll('.ov-flag').forEach((b) => b.remove());
     }
+  }
+
+  // PLAN-10: HARD-WARN that two track pieces of MISMATCHED radius class were just snapped
+  // port-to-port (e.g. an R40 curve joined to an R56 curve — geometry that won't actually close on
+  // a real layout). Non-blocking: the snap stands. Fires a toast (onWarn) + an ARIA announcement
+  // (onAnnounce) and briefly flashes the same overlap-style red outline + ⚠ badge on both tiles.
+  const RADIUS_WARN_MS = 2000;
+  function warnRadiusMismatch(a, b) {
+    const ra = radiusClass(a), rb = radiusClass(b);
+    if (!ra || !rb) return;
+    const msg = `Radius mismatch: ${ra} ${a.name} won't line up with ${rb} ${b.name}.`;
+    onWarn(msg);
+    onAnnounce(msg);
+    for (const id of [a.id, b.id]) {
+      const el = tileEl(id);
+      if (!el) continue;
+      el.classList?.add('warn'); el.classList?.add('radius-warn'); // mock classList.add takes one arg
+      if (!el.querySelector('.ov-flag')) el.insertAdjacentHTML('afterbegin', '<span class="ov-flag" aria-hidden="true" title="Radius mismatch">⚠</span>');
+    }
+    setTimeout(() => {
+      const over = anyOverlaps(placed); // don't clear a genuine overlap flag that also applies
+      for (const id of [a.id, b.id]) {
+        const el = tileEl(id);
+        if (!el || !el.classList?.contains('radius-warn')) continue;
+        el.classList.remove('radius-warn');
+        if (!over.has(id)) { el.classList.remove('warn'); el.querySelectorAll('.ov-flag').forEach((f) => f.remove?.()); }
+      }
+    }, RADIUS_WARN_MS);
   }
 
   // The combined bounding box of a 2+ selection, drawn as a dashed outline over the board.
@@ -504,6 +606,20 @@ export function createGrid(board, {
     refreshSelectionUI();
   }
   function getSelection() { return [...selection]; }
+
+  // PLAN-3: jump to a set of tiles from the buildability checker — select exactly those ids and
+  // scroll the stage so their bounding box is centred in view (the "click an issue → zoom to it"
+  // path). `scrollTo` is absent under the test DOM mock, so it's guarded. selectIds selects the
+  // literal ids (no group expansion) so the panel highlights precisely the flagged piece(s).
+  function focusIds(ids) {
+    const list = placed.filter((p) => ids.includes(p.id));
+    if (!list.length) return;
+    selectIds(ids, ids[ids.length - 1]);
+    const b = bbox(list);
+    const cx = (b.x + b.w / 2) * PX * zoom, cy = (b.y + b.h / 2) * PX * zoom;
+    try { stage.scrollTo(cx - stage.clientWidth / 2, cy - stage.clientHeight / 2); } catch { /* no scroll in test DOM */ }
+    refreshCull(); // PERF-1: the jumped-to tiles may have been culled — repaint them now that they're in view
+  }
 
   // Apply a tile's stored x/y to its DOM node in place (no rebuild).
   function applyTilePos(t) {
@@ -850,8 +966,19 @@ export function createGrid(board, {
   }
   function getLayerState() { return { vis: { ...layerVis }, locks: { ...layerLocks } }; }
 
+  // PLAN-8: show/hide the scale-reference overlay + keep it on the current unit toggle.
+  function setScaleRef(on) {
+    scaleRefOn = !!on;
+    if (scaleRefOn) reattachScaleOverlay(); else scaleOverlay.remove();
+  }
+  function setScaleUnit(u) { scaleUnit = u === 'cm' ? 'cm' : 'studs'; if (scaleRefOn) buildScaleOverlay(); }
+  function getScaleRef() { return scaleRefOn; }
+
   function applyZoom() { board.style.transform = `scale(${zoom})`; board.style.transformOrigin = '0 0'; }
-  function setZoom(z) { zoom = Math.min(2, Math.max(0.25, z)); applyZoom(); }
+  function setZoom(z) {
+    zoom = Math.min(2, Math.max(0.25, z)); applyZoom();
+    refreshCull(); // PERF-1: zooming out enlarges the visible studs-area — reveal any newly-exposed tiles
+  }
   function zoomBy(d) { setZoom(zoom + d); }
   function fit() {
     const b = bbox(placed);
@@ -963,9 +1090,12 @@ export function createGrid(board, {
       tileEl(t.id)?.classList.add('rotating');
       function rot(e) {
         if (e.pointerId !== ev.pointerId || gestureLock) return;
-        // Angle from centre to pointer; +90 so the top handle reads as 0°, snapped to 15°.
+        // Angle from centre to pointer; +90 so the top handle reads as 0°. PLAN-10: snap to the
+        // tile's real turn increment — 22.5° for curved/switch track, 15° for everything else — so
+        // a chain of curves stays true to the LEGO circle.
         const deg = (Math.atan2(e.clientY - cy, e.clientX - cx) * 180) / Math.PI + 90;
-        t.rot = (((Math.round(deg / 15) * 15) % 360) + 360) % 360;
+        const stepDeg = rotationStep(t);
+        t.rot = (((Math.round(deg / stepDeg) * stepDeg) % 360) + 360) % 360;
         applyRot(t);
         refreshOverlaps();
       }
@@ -1027,6 +1157,7 @@ export function createGrid(board, {
     const origins = group.map((t) => ({ t, ox: t.x, oy: t.y }));
     const pox = primary.x, poy = primary.y;
     let dragMoved = false;
+    let mismatchNeighbour = null; // PLAN-10: the mismatched-radius neighbour the primary is snapped to
     activePointerId = ev.pointerId;
     try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
     function move(e) {
@@ -1038,8 +1169,11 @@ export function createGrid(board, {
       let nx = Math.max(0, snap(pox + (e.clientX - startX) / PX / zoom));
       let ny = Math.max(0, snap(poy + (e.clientY - startY) / PX / zoom));
       const probe = { ...primary, x: nx, y: ny };
-      const s = snapConnect(probe, placed.filter((p) => !selection.has(p.id)), 6);
+      const s = snapConnectInfo(probe, placed.filter((p) => !selection.has(p.id)), 6);
       nx = Math.max(0, s.x); ny = Math.max(0, s.y);
+      // PLAN-10: remember whether this port-to-port join is between mismatched radius classes, so
+      // the drag-end can hard-warn. Non-blocking — the snap itself still happens.
+      mismatchNeighbour = (s.connectedTo && radiusMismatch(primary, s.connectedTo)) ? s.connectedTo : null;
       const dx = nx - pox, dy = ny - poy;
       for (const { t, ox, oy } of origins) {
         t.x = Math.max(0, ox + dx); t.y = Math.max(0, oy + dy);
@@ -1055,7 +1189,10 @@ export function createGrid(board, {
       activePointerId = null;
       for (const { t } of origins) tileEl(t.id)?.classList.remove('dragging');
       // A plain click that selected without dragging isn't a mutation — don't spend a history step.
-      if (dragMoved || altCopy) { growToFit(); finalize(altCopy ? 'Alt-drag copy' : 'Move'); }
+      if (dragMoved || altCopy) {
+        growToFit(); finalize(altCopy ? 'Alt-drag copy' : 'Move');
+        if (mismatchNeighbour) warnRadiusMismatch(primary, mismatchNeighbour); // PLAN-10 hard-warn
+      }
     }
     board.addEventListener('pointermove', move);
     board.addEventListener('pointerup', end);
@@ -1122,7 +1259,7 @@ export function createGrid(board, {
     setGridPlates, getGrid,
     setZoom, zoomBy, fit,
     // selection + groups
-    getSelection, selectAll, groupSelection, ungroup,
+    getSelection, selectAll, groupSelection, ungroup, focusIds,
     // clipboard
     copySelection, paste, duplicate,
     // align / distribute
@@ -1135,6 +1272,8 @@ export function createGrid(board, {
     setKidMode, getKidMode,
     // QOL-10: per-layer show-hide + lock
     setLayerVisible, setLayerLocked, getLayerState,
+    // PLAN-8: realistic scale-reference overlay
+    setScaleRef, setScaleUnit, getScaleRef,
     // history
     undo, redo, canUndo, canRedo, getHistory, jumpHistory,
     _state: () => ({ placed, selectedId, selection: [...selection] }),

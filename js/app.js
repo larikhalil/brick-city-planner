@@ -14,6 +14,8 @@ import { pushRecent } from './lists.js';
 import { esc } from './util.js';
 import { TERRAIN_TYPES, isCitySet, isPhysical } from './objects.js';
 import { computeLayout, fitScale, drawScene } from './export-image.js';
+import { fitProjection, drawIsoScene } from './isometric.js';
+import { checkCity } from './buildcheck.js';
 
 const $ = (id) => document.getElementById(id);
 let unitState = 'studs';
@@ -150,6 +152,30 @@ function placeSet(set, clientX, clientY) {
   catalogUI?.refreshRail();
 }
 
+// PLAN-7: "Custom baseplate…" — prompt for a size in studs and drop a generic ground-layer plate.
+// Goes through placeSet() like any catalog set, so it inherits selection/undo/snap for free; the
+// per-size snap grid (geometry.plateGridSnap) makes it tile flush with its own kind. A single "32"
+// means a square. Sizes are clamped to a sane 4–256-stud range (≈8 baseplates) so a typo can't
+// spawn a monster tile.
+function addCustomBaseplate() {
+  const raw = prompt('Custom baseplate size in studs — width × height (e.g. 40 × 24, or 32 for a square):', '32 × 32');
+  if (raw === null) return; // cancelled
+  const clamp = (n) => Math.min(256, Math.max(4, Math.round(n)));
+  const two = raw.match(/(\d+(?:\.\d+)?)\s*[×x*,\s]\s*(\d+(?:\.\d+)?)/);
+  const one = raw.match(/^\s*(\d+(?:\.\d+)?)\s*$/);
+  let w, h;
+  if (two) { w = clamp(+two[1]); h = clamp(+two[2]); }
+  else if (one) { w = h = clamp(+one[1]); }
+  else { toast('Enter a size like “48 × 32” or “32”.'); return; }
+  const set = {
+    set_num: 'custom-baseplate', name: `Baseplate — ${w}×${h}`,
+    category: 'baseplate', kind: 'baseplate', layer: 0, color: 'var(--g-green)', img: null,
+    footprint: { w, h, source: 'curated' },
+  };
+  placeSet(set);
+  toast(`Placed a ${w}×${h} baseplate.`);
+}
+
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
@@ -207,6 +233,7 @@ function toggleTheme() {
   try { localStorage.setItem(THEME_KEY, next); } catch (e) { console.warn('Could not save theme:', e.message); }
   document.documentElement.setAttribute('data-theme', next);
   syncThemeButton();
+  if (isoOpen) renderIso(); // PLAN-12: repaint the 3D preview on the new palette
   toast(next === 'dark' ? 'Dark mode on.' : 'Light mode on.');
 }
 
@@ -229,6 +256,26 @@ function toggleCbSafe() {
   try { localStorage.setItem(CBSAFE_KEY, next ? '1' : '0'); } catch (e) { console.warn('Could not save colorblind-safe setting:', e.message); }
   applyCbSafe(next);
   toast(next ? 'Colorblind-safe patterns on.' : 'Colorblind-safe patterns off.');
+}
+
+// ---- PLAN-8: realistic scale-reference overlay toggle -------------------------------------------
+// A faint minifig/car/door silhouette set + 10/50/100-stud ruler drawn over the board (grid.js owns
+// the SVG). Hidden by default, persisted per browser like the theme / colorblind toggles.
+const SCALEREF_KEY = 'bcp.scaleRef';
+function getScaleRef() { try { return localStorage.getItem(SCALEREF_KEY) === '1'; } catch { return false; } }
+function syncScaleRefButton(on) {
+  const btn = $('btn-scaleref'); if (!btn) return;
+  btn.setAttribute('aria-pressed', String(on));
+  btn.classList.toggle('on', on);
+  const label = on ? 'Hide scale reference' : 'Show scale reference (minifig / car / ruler)';
+  btn.title = label; btn.setAttribute('aria-label', label);
+}
+function toggleScaleRef() {
+  const next = !getScaleRef();
+  try { localStorage.setItem(SCALEREF_KEY, next ? '1' : '0'); } catch (e) { console.warn('Could not save scale-reference setting:', e.message); }
+  grid.setScaleRef(next);
+  syncScaleRefButton(next);
+  toast(next ? 'Scale reference on — silhouettes + ruler are true stud scale.' : 'Scale reference off.');
 }
 
 // ---- QOL-10 / QOL-8: per-layer show-hide + lock, and Kid Mode ---------------------------------
@@ -443,7 +490,7 @@ function drawDims() {
   const b = bbox(grid.getPlaced().filter(isPhysical));
   $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'empty';
 }
-function refresh() { drawSummary(); drawDims(); drawGridSize(); updateFirstRun(); drawCityLabel(); }
+function refresh() { drawSummary(); drawDims(); drawGridSize(); updateFirstRun(); drawCityLabel(); updateCheckButton(); }
 // ---- QOL-5c: keep the topbar's current-city label in sync ---------------------
 function drawCityLabel() {
   const el = $('city-name-text');
@@ -760,6 +807,124 @@ function closePngDialog() {
   $('btn-png')?.focus();
 }
 
+// ---- PLAN-12: read-only 3D / isometric preview -------------------------------------------------
+// A full-stage overlay renders the current city as extruded blocks on a plain <canvas>, using the
+// pure projection maths in isometric.js (world studs → iso screen, painter's depth sort). No editing
+// happens in this mode — "← Back to 2D" (or Esc) returns to the primary top-down board. The scene is
+// drawn straight from the placed[] model, honouring the same visible-layer filter as the PNG export.
+let isoOpen = false;
+
+// The tiles the preview draws: only currently-visible layers (a hidden layer is invisible on the
+// board, so it's absent from the 3D view too), with the same all-hidden fallback the export uses.
+function isoTiles() {
+  const drawn = grid.getPlaced().filter((t) => layerVis[t.layer ?? 2] !== false);
+  return drawn.length ? drawn : grid.getPlaced();
+}
+
+// Size the canvas to the stage viewport (device-pixel-sharp), fit the whole city into it and paint.
+function renderIso() {
+  if (!isoOpen) return;
+  const stage = $('grid-stage'), canvas = $('iso-canvas');
+  if (!stage || !canvas) return;
+  const cssW = Math.max(1, stage.clientWidth), cssH = Math.max(1, stage.clientHeight);
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  const tiles = isoTiles();
+  const dark = effectiveTheme() === 'dark';
+  const proj = fitProjection(tiles, { width: canvas.width, height: canvas.height, pad: 34 * dpr });
+  drawIsoScene(ctx, {
+    tiles, proj, width: canvas.width, height: canvas.height,
+    bg: dark ? '#1a2130' : '#eef2f8', dark,
+  });
+}
+
+function openIso() {
+  if (!grid.getPlaced().length) { toast('Add some sets before opening the 3D preview.'); return; }
+  isoOpen = true;
+  $('iso-overlay').hidden = false;
+  $('btn-iso')?.setAttribute('aria-pressed', 'true');
+  $('btn-iso')?.classList.add('on');
+  renderIso();
+  $('iso-back')?.focus();
+  announce('3D isometric preview opened. This view is read-only.');
+}
+function closeIso() {
+  if (!isoOpen) return;
+  isoOpen = false;
+  $('iso-overlay').hidden = true;
+  $('btn-iso')?.setAttribute('aria-pressed', 'false');
+  $('btn-iso')?.classList.remove('on');
+  $('btn-iso')?.focus();
+}
+function toggleIso() { isoOpen ? closeIso() : openIso(); }
+
+// ---- PLAN-3: buildability checker ("Check my city") --------------------------------------------
+// Runs the pure checkCity() scan over the live grid and renders a click-to-zoom results list. The
+// glue here is deliberately thin — all the detection logic lives in buildcheck.js. Each row jumps
+// the board to the offending tile(s) via grid.focusIds() (select + centre in view).
+const CHECK_GLYPH = { error: '✕', warn: '!', info: 'i' };
+function buildCheckList(report) {
+  const list = $('check-list');
+  list.textContent = '';
+  if (report.ok) {
+    list.innerHTML = `<div class="chk-empty"><span class="big" aria-hidden="true">✅</span>
+      <b>All clear</b><span>No buildability problems found — your city is ready to build.</span></div>`;
+    return;
+  }
+  for (const it of report.issues) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'chk-row ' + it.severity;
+    row.innerHTML = `<span class="ic" aria-hidden="true">${CHECK_GLYPH[it.severity] || '!'}</span>` +
+      `<span class="msg">${esc(it.message)}</span><span class="go" aria-hidden="true">→</span>`;
+    row.addEventListener('click', () => { grid.focusIds(it.ids); closeCheck(); });
+    list.appendChild(row);
+  }
+}
+function runCityCheck() {
+  const report = checkCity(grid.getPlaced());
+  const s = $('check-summary');
+  if (report.ok) {
+    s.textContent = 'Scanned your whole city — everything checks out. 🎉';
+  } else {
+    const { error, warn, info } = report.counts;
+    const bits = [];
+    if (error) bits.push(`${error} ${error === 1 ? 'error' : 'errors'}`);
+    if (warn) bits.push(`${warn} ${warn === 1 ? 'warning' : 'warnings'}`);
+    if (info) bits.push(`${info} to review`);
+    const n = report.issues.length;
+    s.textContent = `Found ${n} ${n === 1 ? 'thing' : 'things'} to look at — ${bits.join(', ')}. Click a row to jump to it.`;
+  }
+  buildCheckList(report);
+  openCheck();
+}
+// Toolbar affordance: tint the 🩺 button when the live city has any problems (recomputed on every
+// refresh), so the checker advertises itself without the user having to open it.
+function updateCheckButton() {
+  const btn = $('btn-check');
+  if (!btn || !grid) return;
+  const report = checkCity(grid.getPlaced());
+  const n = report.issues.length;
+  btn.classList.toggle('has-issues', n > 0);
+  const label = n ? `Check my city — ${n} ${n === 1 ? 'issue' : 'issues'} found` : 'Check my city';
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+}
+function openCheck() {
+  $('check-backdrop').hidden = false;
+  $('btn-check')?.setAttribute('aria-expanded', 'true');
+  $('check-close')?.focus();
+}
+function closeCheck() {
+  $('check-backdrop').hidden = true;
+  $('btn-check')?.setAttribute('aria-expanded', 'false');
+  $('btn-check')?.focus();
+}
+
 // ---- QOL-5/6: tiny keyboard focus trap shared by the templates + cities modals ---------------
 // (the shortcuts modal predates this and only focuses in/out on open/close — left as-is.)
 function focusableIn(container) {
@@ -822,6 +987,7 @@ function loadTemplate(tpl) {
   unitState = 'studs';
   grid.setPlaced(tpl.placed, tpl.grid);
   $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
+  grid.setScaleUnit(unitState); // PLAN-8: ruler labels follow the loaded city's unit
   refresh();
   dismissFirstRun();
   closeTemplatesMenu();
@@ -880,6 +1046,7 @@ function loadSavedCity(name) {
   unitState = c.units || 'studs';
   grid.setPlaced(c.placed, c.grid);
   $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
+  grid.setScaleUnit(unitState); // PLAN-8: ruler labels follow the loaded city's unit
   refresh();
   closeCitiesMenu();
   toast(`Loaded “${cityName}”.`);
@@ -964,6 +1131,7 @@ function importSharedCity() {
   unitState = sharedCity.units || 'studs';
   grid.setPlaced(sharedCity.placed, sharedCity.grid);
   $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
+  grid.setScaleUnit(unitState); // PLAN-8: ruler labels follow the loaded city's unit
   refresh();
   dismissFirstRun();
   autosave();
@@ -1003,12 +1171,16 @@ async function boot() {
     onHistory: drawHistory,
     onSelect: drawSelection,
     onAnnounce: announce,
+    onWarn: toast, // PLAN-10: radius-mismatch hard-warn surfaces as a toast
     onMode: drawToolMode,
     onRequestEdit: editObject,
     // QOL-8/10 view + interaction prefs, restored from local/session storage.
     layerVis, layerLocks, kidMode,
+    // PLAN-8 scale-reference overlay, restored from localStorage (unit follows the toolbar toggle).
+    scaleRef: getScaleRef(), scaleUnit: unitState,
   });
   applyKidMode(kidMode); // stamp the DOM attribute + button state (grid already has the flag)
+  syncScaleRefButton(getScaleRef()); // reflect the restored overlay state on the toolbar button
   buildTerrainBar();
 
   catalogUI = renderCatalog(
@@ -1020,6 +1192,9 @@ async function boot() {
       isWishlisted, onToggleWishlist: toggleWishlist, getRecent,
     });
 
+  // PLAN-7: "Custom baseplate…" action under the catalog chips.
+  $('btn-custom-baseplate')?.addEventListener('click', addCustomBaseplate);
+
   // UI-3 / ACC-2c: theme + colorblind-safe toggles. The <head> inline script already stamped an
   // explicit stored choice pre-paint; this just syncs the buttons' icon/label/pressed state and
   // (for theme) keeps them in sync if the OS preference changes live while no explicit choice is set.
@@ -1027,6 +1202,7 @@ async function boot() {
   applyCbSafe(getCbSafe());
   $('btn-theme')?.addEventListener('click', toggleTheme);
   $('btn-cbsafe')?.addEventListener('click', toggleCbSafe);
+  $('btn-scaleref')?.addEventListener('click', toggleScaleRef);
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!getStoredTheme()) syncThemeButton(); }); }
   catch { /* older browsers without addEventListener on MediaQueryList — the button just won't live-sync */ }
 
@@ -1035,6 +1211,7 @@ async function boot() {
     const u = e.target.dataset.unit; if (!u) return;
     unitState = u;
     $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b === e.target));
+    grid.setScaleUnit(unitState); // PLAN-8: keep the ruler's labels on the current unit
     refresh();
   });
   $('btn-rotate').addEventListener('click', () => grid.rotateSelected());
@@ -1103,7 +1280,9 @@ async function boot() {
     if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
     if (e.key === '?' || (e.shiftKey && e.key === '/')) { e.preventDefault(); toggleShortcuts(); }
     else if (e.key === 'Escape') {
-      if (!$('shortcuts-backdrop').hidden) closeShortcuts();
+      if (isoOpen) closeIso();
+      else if (!$('shortcuts-backdrop').hidden) closeShortcuts();
+      else if (!$('check-backdrop').hidden) closeCheck();
       else if (!$('png-backdrop').hidden) closePngDialog();
       else if (!$('templates-backdrop').hidden) closeTemplatesMenu();
       else if (!$('cities-backdrop').hidden) closeCitiesMenu();
@@ -1131,6 +1310,12 @@ async function boot() {
   $('shared-import').addEventListener('click', importSharedCity);
   $('shared-dismiss').addEventListener('click', dismissSharedBanner);
 
+  // PLAN-3: buildability checker
+  $('btn-check')?.addEventListener('click', runCityCheck);
+  $('check-close')?.addEventListener('click', closeCheck);
+  $('check-backdrop')?.addEventListener('click', (e) => { if (e.target === $('check-backdrop')) closeCheck(); });
+  $('check-modal')?.addEventListener('keydown', (e) => trapTabKey(e, $('check-modal')));
+
   // PLAN-4: PNG export dialog
   $('btn-png')?.addEventListener('click', openPngDialog);
   $('png-close')?.addEventListener('click', closePngDialog);
@@ -1148,6 +1333,18 @@ async function boot() {
   $('png-clean')?.addEventListener('change', (e) => { pngClean = e.target.checked; });
   $('png-card')?.addEventListener('change', (e) => { pngCard = e.target.checked; syncPngDialog(); });
   $('png-go')?.addEventListener('click', () => { closePngDialog(); doExportPng(); });
+
+  // PLAN-12: 3D / isometric preview overlay (read-only)
+  $('btn-iso')?.addEventListener('click', toggleIso);
+  $('iso-back')?.addEventListener('click', closeIso);
+  // Coalesce a resize storm into at most one iso repaint per frame (mirrors grid.js's cullRaf) —
+  // renderIso() re-sizes the canvas and runs an O(n log n) sort + full extruded-scene draw, so we
+  // never want it firing on every raw resize event.
+  let isoResizeRaf = 0;
+  window.addEventListener('resize', () => {
+    if (!isoOpen || isoResizeRaf) return;
+    isoResizeRaf = requestAnimationFrame(() => { isoResizeRaf = 0; if (isoOpen) renderIso(); });
+  });
 
   // Drag a catalog item onto the grid to drop it there.
   const gstage = $('grid-stage');
@@ -1181,6 +1378,7 @@ async function boot() {
     unitState = res.city.units || 'studs';
     grid.setPlaced(res.city.placed, res.city.grid);
     $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
+    grid.setScaleUnit(unitState); // PLAN-8: ruler labels follow the loaded city's unit
     refresh(); toast(`Loaded “${cityName}”.`); e.target.value = '';
   });
 
@@ -1192,6 +1390,7 @@ async function boot() {
       unitState = last.units || 'studs';
       grid.setPlaced(last.placed, last.grid);
       $('unit-toggle').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.unit === unitState));
+      grid.setScaleUnit(unitState); // PLAN-8: ruler labels follow the loaded city's unit
     }
   } catch (err) {
     console.warn('Could not restore saved city:', err.message);

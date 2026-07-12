@@ -22,9 +22,11 @@ Built out across a research-driven 5-wave programme (see the roadmap above):
 - **Catalog & sharing** — search + category filters, grid/list view, favorites rail, starter-template gallery, named saves, one-click compressed share-link.
 - **Accessibility & UX** — full keyboard placement/rotation, colorblind-safe patterns, high-contrast focus, ARIA live announcements, mobile/touch gestures, dark mode, lock pieces + Kid Mode, per-layer show/hide + lock.
 - **Graphics & export** — photo-fill building tiles with facade cues, styled roads/tracks, terrain & zoning paint layer, sticky notes + custom MOC blocks, non-rectangular corner-modular footprints, and high-resolution PNG export with presentation mode.
+- **Planning depth** — "Check my city" buildability checker, extra + custom baseplate sizes, true-stud scale reference overlay, real track curve-radius classes with mismatch warnings, track continuity / loop-closure validation, a read-only 3D / isometric preview, and viewport culling for large layouts.
 
 ## Changelog
 
+- **Wave 5/5 — LEGO planning depth**: "Check my city" buildability checker (off-plate / wrong-layer / overlap / estimated / track-gap), more baseplate sizes (48×48 / 48×32 / 16×16 + custom, each snapping to its own grid), true-stud scale reference overlay + ruler, real track curve-radius classes (R40/R56/R72/R104) with mismatch warnings + proper switch geometry, track continuity / loop-closure validator with buffer stops, a read-only 3D / isometric preview, and viewport culling for large cities.
 - **Wave 4/5 — Graphics & motion**: photo-fill tiles + facade cues, styled road/track art, terrain/zoning paint layer, sticky notes + custom MOC blocks, shaped corner-modular footprints, and hi-res PNG export + presentation mode.
 - **Wave 3/5 — Accessibility & UX**: keyboard pipeline, colorblind-safe patterns, focus/ARIA, mobile touch safety, dark mode, lock + Kid Mode, per-layer visibility/lock.
 - **Wave 2/5 — Commerce & data**: ownership, real prices, buy links, CSV, catalog browse UX, sharing, templates.

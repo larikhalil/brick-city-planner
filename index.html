@@ -46,6 +46,8 @@
           aria-label="Switch to dark mode" aria-pressed="false">🌙</button>
         <button class="btn icon" id="btn-cbsafe" type="button" title="Turn on colorblind-safe patterns"
           aria-label="Turn on colorblind-safe patterns" aria-pressed="false">◐</button>
+        <button class="btn icon" id="btn-scaleref" type="button" title="Show scale reference (minifig / car / ruler)"
+          aria-label="Show scale reference (minifig / car / ruler)" aria-pressed="false">📏</button>
         <button class="btn" id="btn-kid" type="button" aria-pressed="false"
           title="Kid Mode — freeze the layout so only new pieces can be added and arranged"
           aria-label="Turn on Kid Mode">🧒 Kid Mode</button>
@@ -74,6 +76,10 @@
         <div class="search"><span>🔍</span>
           <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
         <div class="chips" id="catalog-chips"></div>
+        <div class="cat-actions">
+          <button type="button" class="btn sm" id="btn-custom-baseplate"
+            title="Add a ground baseplate of any size (in studs)">＋ Custom baseplate…</button>
+        </div>
         <div class="cat-controls">
           <div class="seg view-toggle" id="catalog-view" role="group" aria-label="Catalog view">
             <button type="button" class="on" data-view="list" aria-pressed="true" title="List view" aria-label="List view">☰</button>
@@ -135,6 +141,10 @@
           <div class="seg" id="zoom-ctrl" style="margin-left:auto">
             <button data-zoom="out">−</button><button class="on" data-zoom="reset">100%</button>
             <button data-zoom="in">＋</button><button data-zoom="fit">Fit</button></div>
+          <button class="btn icon" id="btn-check" type="button" title="Check my city for buildability problems"
+            aria-label="Check my city" aria-haspopup="dialog" aria-expanded="false">🩺</button>
+          <button class="btn icon" id="btn-iso" type="button" title="3D / isometric preview (read-only)"
+            aria-label="3D isometric preview" aria-pressed="false">🧊</button>
           <button class="btn icon" id="btn-png" type="button" title="Export as image (PNG)"
             aria-label="Export as image" aria-haspopup="dialog" aria-expanded="false">🖼</button>
           <button class="btn icon" id="btn-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">?</button>
@@ -150,6 +160,13 @@
             </div>
             <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
           </div>
+        </div>
+        <div class="iso-overlay" id="iso-overlay" role="region" aria-label="3D isometric preview" hidden>
+          <div class="iso-bar">
+            <span class="iso-title">🧊 3D preview <small>— read-only</small></span>
+            <button class="btn primary sm" id="iso-back" type="button">← Back to 2D</button>
+          </div>
+          <canvas id="iso-canvas"></canvas>
         </div>
         <div class="terrain-bar" id="terrain-bar" role="toolbar" aria-label="Terrain type" hidden></div>
         <div class="align-bar" id="align-bar" role="toolbar" aria-label="Align, distribute and group selection" hidden>
@@ -273,6 +290,19 @@
           <button class="btn" id="png-cancel" type="button">Cancel</button>
           <button class="btn primary" id="png-go" type="button">⬇ Download PNG</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="check-backdrop" hidden>
+    <div class="modal" id="check-modal" role="dialog" aria-modal="true" aria-labelledby="check-title">
+      <div class="modal-h">
+        <h2 id="check-title">Check my city</h2>
+        <button class="modal-close" id="check-close" aria-label="Close city check">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="note" id="check-summary"></p>
+        <div class="chk-list" id="check-list"></div>
       </div>
     </div>
   </div>
