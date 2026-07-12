@@ -1,8 +1,9 @@
 {
-  "built": "2026-07-11",
+  "built": "2026-07-12",
   "source": "Rebrickable bulk downloads",
   "counts": {
-    "sets": 1759
+    "sets": 2486,
+    "packs": 32
   },
   "attribution": "Set data & imagery sourced from Rebrickable."
 }

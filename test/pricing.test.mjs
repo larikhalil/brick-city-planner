@@ -105,3 +105,83 @@ test('setListCsv: header + RFC-4180 quoting, blank price when unknown', () => {
   assert.equal(lines[1], '60316,"Police, ""HQ""",2,59.99');
   assert.equal(lines[2], '99999,Mystery,1,');
 });
+
+// ---- Round-1 feedback 3b: pack rollup (elements + track pieces → whole-pack purchases) ---------
+import { packRollup, packSupplyIndex, contentId } from '../js/pricing.js';
+
+const PACKS = {
+  '40310': {
+    num: '40310', set_num: '40310-1', name: 'xtra Botanical Accessories', retired: true,
+    contents: [
+      { element: '6182261', part: '32607', name: 'Plant Plate 1 x 1 with 3 Leaves', color: 'Bright Green', qty: 3, w: 1, h: 1 },
+      { element: '6206148', part: '24866', name: 'Flower Plate Round 1 x 1', color: 'Red', qty: 4, w: 1, h: 1 },
+    ],
+  },
+  '60205': {
+    num: '60205', set_num: '60205-1', name: 'Tracks', retired: false,
+    contents: [
+      { element: '6109157', part: '53401', name: 'Train Track Straight', color: 'Dark Bluish Gray', qty: 8, w: 16, h: 8, supplies: ['piece-track-straight'] },
+      { element: '6109158', part: '53400', name: 'Train Track Curved', color: 'Dark Bluish Gray', qty: 4, w: 16, h: 8, supplies: ['piece-track-curve-left', 'piece-track-curve-right'] },
+    ],
+  },
+};
+const BY_NUM = new Map([
+  ['piece-el:40310:6182261', { set_num: 'piece-el:40310:6182261', pack: '40310', element: '6182261' }],
+  ['60316-1', { set_num: '60316-1' }],
+]);
+const tile = (set_num) => ({ set_num });
+
+test('packRollup: elements group into one pack purchase, plain sets pass through', () => {
+  const tiles = [tile('piece-el:40310:6182261'), tile('piece-el:40310:6182261'), tile('60316-1')];
+  const { plain, packRows, spares } = packRollup(tiles, BY_NUM, PACKS);
+  assert.equal(plain.length, 1);
+  assert.equal(plain[0].set_num, '60316-1');
+  assert.deepEqual(packRows, [{ set_num: '40310-1', num: '40310', name: 'xtra Botanical Accessories', qty: 1 }]);
+  // 2 of 3 plants used → 1 plant + all 4 flowers left over
+  const s = spares['40310'];
+  assert.equal(s.needed, 1);
+  assert.equal(s.used, 2);
+  assert.deepEqual(s.leftovers.map((l) => l.qty), [1, 4]);
+});
+
+test('packRollup: exceeding one element quantity needs another whole box', () => {
+  const tiles = Array.from({ length: 5 }, () => tile('piece-el:40310:6182261')); // 5 plants, 3 per box
+  const { packRows, spares } = packRollup(tiles, BY_NUM, PACKS);
+  assert.equal(packRows[0].qty, 2);
+  // 2 boxes = 6 plants + 8 flowers; 5 plants used → 1 plant + 8 flowers spare
+  assert.deepEqual(spares['40310'].leftovers.map((l) => l.qty), [1, 8]);
+});
+
+test('packRollup: generic track pieces are supplied by the track pack', () => {
+  const tiles = [
+    ...Array.from({ length: 9 }, () => tile('piece-track-straight')), // 9 straights, 8 per box
+    tile('piece-track-curve-left'), tile('piece-track-curve-right'), // both curves share one part
+  ];
+  const { plain, packRows, spares } = packRollup(tiles, new Map(), PACKS);
+  assert.equal(plain.length, 0);
+  assert.deepEqual(packRows, [{ set_num: '60205-1', num: '60205', name: 'Tracks', qty: 2 }]);
+  // 2 boxes = 16 straight + 8 curved; used 9 + 2 → 7 straight + 6 curved spare
+  assert.deepEqual(spares['60205'].leftovers.map((l) => l.qty), [7, 6]);
+});
+
+test('packSupplyIndex prefers available packs, then bigger per-box quantities', () => {
+  const two = {
+    old: { num: 'old', set_num: 'old-1', name: 'Old', retired: true,
+      contents: [{ part: 'a', name: 'Train Track Straight', color: 'Gray', qty: 12, supplies: ['piece-track-straight'] }] },
+    cur: { num: 'cur', set_num: 'cur-1', name: 'Current', retired: false,
+      contents: [{ part: 'a', name: 'Train Track Straight', color: 'Gray', qty: 8, supplies: ['piece-track-straight'] }] },
+  };
+  const idx = packSupplyIndex(two);
+  assert.equal(idx.get('piece-track-straight').pack.num, 'cur', 'still-sold pack wins even with fewer per box');
+});
+
+test('contentId falls back to part+colour when no element id exists', () => {
+  assert.equal(contentId({ element: '6182261', part: 'x', color: 'Red' }), '6182261');
+  assert.equal(contentId({ element: null, part: '32607', color: 'Bright Green' }), '32607-brightgreen');
+});
+
+test('bricklinkXml skips element rows but keeps pack rows', () => {
+  const xml = bricklinkXml([{ num: 'piece-el:40310:6182261', qty: 2 }, { num: '40310', qty: 1 }]);
+  assert.ok(!xml.includes('piece-el'), 'element rows never leak into BrickLink XML');
+  assert.ok(xml.includes('<ITEMID>40310-1</ITEMID>'));
+});

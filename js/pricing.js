@@ -64,6 +64,87 @@ export function cityCost(placed, { prices = {}, owned = [], overrides = {}, piec
   };
 }
 
+// ---- Round-1 feedback 3b: bundle packs → whole-pack purchases + spare parts --------------------
+// Accessory/track/road pieces don't sell individually — they come in PACKS (xtra 40310, Tracks
+// 60205, Road Plates 60304…). data/packs.json carries each pack's element-level contents; these
+// pure helpers turn placed pack pieces into "buy N boxes of pack X" rows plus the leftover pieces
+// per box (the Spare-parts panel).
+
+// A content row's stable identity: LEGO element id when known, else part + colour slug — the same
+// id the build bakes into the element record's set_num ('piece-el:<pack>:<id>').
+export function contentId(c) {
+  return c.element || `${c.part}-${String(c.color || '').replace(/\W+/g, '').toLowerCase()}`;
+}
+
+// Which pack supplies each generic placeable piece (piece-track-straight etc.)? When several
+// packs carry the same piece (straight rails: 60205, 7499, 9V…), prefer a pack that is still
+// sold new, then the one with more of the piece per box.
+export function packSupplyIndex(packs) {
+  const idx = new Map();
+  for (const pack of Object.values(packs || {})) {
+    for (const c of pack.contents || []) {
+      for (const pieceId of c.supplies || []) {
+        const prev = idx.get(pieceId);
+        const better = !prev
+          || (prev.pack.retired && !pack.retired)
+          || (prev.pack.retired === !!pack.retired && c.qty > prev.content.qty);
+        if (better) idx.set(pieceId, { pack, content: c });
+      }
+    }
+  }
+  return idx;
+}
+
+// Partition placed tiles into plain sets vs pack-supplied items and work out how many boxes of
+// each pack the layout needs. Returns:
+//   plain    — tiles whose purchase is their own set (unchanged path)
+//   packRows — [{ set_num, num, name, qty }] one row per pack (qty = boxes to buy)
+//   spares   — { [packNum]: { name, retired, needed, used, leftovers: [{ name, color, rgb, qty, element }] } }
+export function packRollup(tiles, byNum, packs) {
+  const plain = [];
+  const used = new Map(); // packNum → Map(contentId → placed count)
+  const supplyIdx = packSupplyIndex(packs);
+  const bump = (packNum, key) => {
+    let m = used.get(packNum);
+    if (!m) { m = new Map(); used.set(packNum, m); }
+    m.set(key, (m.get(key) || 0) + 1);
+  };
+  for (const t of tiles) {
+    const rec = byNum ? byNum.get(t.set_num) : null;
+    const packNum = rec && rec.pack;
+    if (packNum && packs && packs[packNum]) {
+      const c = (packs[packNum].contents || []).find((c) => String(t.set_num).endsWith(`:${contentId(c)}`));
+      if (c) { bump(packNum, contentId(c)); continue; }
+    }
+    const sup = supplyIdx.get(String(t.set_num)); // generic road/track pieces
+    if (sup) { bump(sup.pack.num, contentId(sup.content)); continue; }
+    plain.push(t);
+  }
+  const packRows = [];
+  const spares = {};
+  for (const [packNum, counts] of used) {
+    const pack = packs[packNum];
+    // one box covers every element until any single element's per-box qty is exceeded
+    let needed = 1;
+    for (const c of pack.contents || []) {
+      const n = counts.get(contentId(c)) || 0;
+      if (n > 0 && c.qty > 0) needed = Math.max(needed, Math.ceil(n / c.qty));
+    }
+    const leftovers = [];
+    let usedCount = 0;
+    for (const c of pack.contents || []) {
+      const n = counts.get(contentId(c)) || 0;
+      usedCount += n;
+      const remaining = c.qty * needed - n;
+      if (remaining > 0) leftovers.push({ name: c.name, color: c.color, rgb: c.rgb || null, qty: remaining, element: c.element || null });
+    }
+    packRows.push({ set_num: pack.set_num, num: packNum, name: pack.name, qty: needed });
+    spares[packNum] = { name: pack.name, retired: !!pack.retired, needed, used: usedCount, leftovers };
+  }
+  packRows.sort((a, b) => a.num.localeCompare(b.num, undefined, { numeric: true }));
+  return { plain, packRows, spares };
+}
+
 // Retailer buy links for a set. Generic primitive pieces (set_num begins 'piece-') have no
 // retail SKU, so they map to a BrickLink part search by name instead. Each link opens in a new
 // tab; hrefs are URL-encoded, so they're safe to drop into markup.

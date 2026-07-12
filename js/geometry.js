@@ -202,15 +202,18 @@ function worldPorts(t) {
 // facing port is near, fall back to snapping AABB edges flush/aligned. Returns {x, y}.
 // Thin wrapper over snapConnectInfo — kept returning ONLY {x, y} so every existing caller/test
 // that deep-equals the result is unaffected.
-export function snapConnect(t, others, threshold = 6) {
-  const s = snapConnectInfo(t, others, threshold);
+export function snapConnect(t, others, threshold = 6, edgeThreshold = threshold) {
+  const s = snapConnectInfo(t, others, threshold, edgeThreshold);
   return { x: s.x, y: s.y };
 }
 
 // PLAN-10: the same snap maths as snapConnect, but also reports `connectedTo` — the neighbour tile
 // whose port was joined (or null for a baseplate-grid / edge-align fallback). grid.js uses that to
 // hard-warn when two mismatched-radius track pieces are snapped port-to-port.
-export function snapConnectInfo(t, others, threshold = 6) {
+// `edgeThreshold` gates ONLY the generic everything-else edge magnetism at the bottom — road/track
+// port joining and baseplate tiling keep the stronger `threshold` pull, while ordinary sets can be
+// given a much weaker magnet so they can start on any stud (round-1 feedback).
+export function snapConnectInfo(t, others, threshold = 6, edgeThreshold = threshold) {
   const aPorts = worldPorts(t);
   if (aPorts.length) {
     let dx = 0, dy = 0, best = threshold + 1e-6, found = false, connectedTo = null;
@@ -258,15 +261,17 @@ export function snapConnectInfo(t, others, threshold = 6) {
       connectedTo: null,
     };
   }
-  // Everything else edge-snaps to same-layer neighbours and to baseplates (the ground).
+  // Everything else edge-snaps to same-layer neighbours and to baseplates (the ground) —
+  // within `edgeThreshold` only, so the magnet helps flush placement without forbidding
+  // in-between positions.
   const layer = t.layer ?? 2;
   const rel = others.filter((o) => { const l = o.layer ?? 2; return l === layer || l === 0; });
   const a = aabb(t);
-  let dx = 0, dy = 0, bestX = threshold + 1e-6, bestY = threshold + 1e-6;
+  let dx = 0, dy = 0, bestX = edgeThreshold + 1e-6, bestY = edgeThreshold + 1e-6;
   for (const o of rel) {
     const b = aabb(o);
-    const yNear = a.minY < b.maxY + threshold && a.maxY > b.minY - threshold;
-    const xNear = a.minX < b.maxX + threshold && a.maxX > b.minX - threshold;
+    const yNear = a.minY < b.maxY + edgeThreshold && a.maxY > b.minY - edgeThreshold;
+    const xNear = a.minX < b.maxX + edgeThreshold && a.maxX > b.minX - edgeThreshold;
     if (yNear) {
       for (const [ae, be] of [[a.maxX, b.minX], [a.minX, b.maxX], [a.minX, b.minX], [a.maxX, b.maxX]]) {
         const d = Math.abs(ae - be);
@@ -293,8 +298,10 @@ export function overlapPairs(tiles) {
       const a = tiles[i], b = tiles[j];
       // Terrain fills and sticky notes are landscaping/annotation, not physical footprints —
       // they never warn (against each other or anything else). Custom MOC rectangles DO warn,
-      // like the buildings they stand in for (they sit on the same layer 2).
+      // like the buildings they stand in for (they sit on the same layer 2). Pack decor pieces
+      // (a 1x1 plant, a street lamp) are meant to nestle beside/into builds — no overlap noise.
       if (a.kind === 'terrain' || a.kind === 'note' || b.kind === 'terrain' || b.kind === 'note') continue;
+      if (a.kind === 'decor' || b.kind === 'decor') continue;
       // Overlap warnings only fire within the same stacking layer (0 baseplate,
       // 1 road/track, 2 building). A building on a baseplate, or a car on a road,
       // is intended; two roads or two buildings overlapping still flag.

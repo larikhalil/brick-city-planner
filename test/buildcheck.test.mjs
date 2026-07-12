@@ -1,7 +1,7 @@
 // PLAN-3: buildability checker ("Check my city") — one detector per issue kind, all pure.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkCity, isBaseplate, needsSupport, coverage } from '../js/buildcheck.js';
+import { checkCity, isBaseplate, providesGround, needsSupport, coverage } from '../js/buildcheck.js';
 
 // ---- tile helpers ---------------------------------------------------------------------------
 const plate = (id, x, y, w, h) =>
@@ -10,6 +10,8 @@ const building = (id, x, y, w = 16, h = 16, extra = {}) =>
   ({ id, x, y, w, h, rot: 0, kind: 'building', category: 'city', name: 'House', layer: 2, approx: false, ...extra });
 const track = (id, x, y, rot = 0, name = 'Track — Straight') =>
   ({ id, x, y, w: 16, h: 16, rot, kind: 'track', category: 'track', name, layer: 1, approx: false });
+const road = (id, x, y, w = 32, h = 32) =>
+  ({ id, x, y, w, h, rot: 0, kind: 'road', category: 'road', name: 'Road — Straight', layer: 1, approx: false });
 
 // ---- predicates -----------------------------------------------------------------------------
 test('isBaseplate / needsSupport predicates', () => {
@@ -21,6 +23,25 @@ test('isBaseplate / needsSupport predicates', () => {
   assert.equal(needsSupport(plate('bp', 0, 0, 32, 32)), false, 'a baseplate is the ground, not a seeker');
   assert.equal(needsSupport({ kind: 'terrain', layer: -1 }), false, 'terrain paint needs no support');
   assert.equal(needsSupport({ kind: 'note', layer: 3 }), false, 'notes need no support');
+});
+
+// Round-1 feedback (item 8): road plates are stylized baseplates.
+test('road plates are ground: no baseplate needed under OR over them', () => {
+  assert.equal(needsSupport(road('r', 0, 0)), false, 'a road never warns about a missing baseplate');
+  assert.equal(providesGround(road('r', 0, 0)), true, 'a road supports what stands on it');
+  assert.equal(providesGround(plate('bp', 0, 0, 32, 32)), true);
+  assert.equal(providesGround(building('b', 0, 0)), false);
+  assert.equal(providesGround(null), false);
+  // a lone road on bare canvas is a valid city
+  assert.equal(checkCity([road('r', 0, 0)]).ok, true);
+  // a building standing fully on a road plate gets support credit — no floating/overhang
+  const r = checkCity([road('r', 0, 0), building('b', 8, 8, 16, 16)]);
+  assert.ok(!r.issues.some((i) => i.type === 'floating' || i.type === 'overhang'), 'road supports the building');
+  // but hanging off the road edge still warns
+  const r2 = checkCity([road('r', 0, 0), building('b', 24, 8, 16, 16)]);
+  assert.ok(r2.issues.some((i) => i.type === 'overhang'), 'overhang past the road edge still caught');
+  // tracks still need ground (real rails sit on the floor — deliberate)
+  assert.equal(needsSupport(track('t', 0, 0)), true);
 });
 
 // ---- coverage -------------------------------------------------------------------------------

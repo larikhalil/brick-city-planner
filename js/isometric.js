@@ -53,8 +53,17 @@ export function footprintCorners(tile) {
 // Because both screen axes scale linearly with `unit` when `elev` scales with it too (see
 // fitProjection), the whole scene zooms uniformly with `unit`.
 export function isoProject(sx, sy, sz = 0, {
-  unit = 1, ratio = 0.5, elev = 0, ox = 0, oy = 0,
+  unit = 1, ratio = 0.5, elev = 0, ox = 0, oy = 0, yaw = 0,
 } = {}) {
+  // Camera yaw (round-1 feedback: rotatable 3D view): spin the ground plane about the ORIGIN before
+  // the dimetric mapping — a fixed-pitch orbiting camera. Origin (not layout centre) is deliberate:
+  // fitProjection re-centres via ox/oy, and depth order is translation-invariant, so the result is
+  // pixel-identical to centre-rotation with less code. sz is untouched — pitch stays fixed.
+  if (yaw) {
+    const co = Math.cos(yaw), si = Math.sin(yaw);
+    const rx = sx * co - sy * si, ry = sx * si + sy * co;
+    sx = rx; sy = ry;
+  }
   return {
     x: ox + (sx - sy) * unit,
     y: oy + (sx + sy) * unit * ratio - sz * elev,
@@ -64,9 +73,14 @@ export function isoProject(sx, sy, sz = 0, {
 // Painter's depth scalar: the sum of the tile's front-most (largest x+y) ground corner. Under this
 // camera a larger x+y lands lower on screen = nearer the viewer, so tiles are painted low→high. Ties
 // (identical footprints) fall through to the elevation tier + z + id in byIsoDepth below.
-export function isoDepthKey(tile) {
+export function isoDepthKey(tile, yaw = 0) {
+  const co = Math.cos(yaw), si = Math.sin(yaw);
   let max = -Infinity;
-  for (const [x, y] of footprintCorners(tile)) { const s = x + y; if (s > max) max = s; }
+  for (const [x, y] of footprintCorners(tile)) {
+    // Rotated x+y = screen-y order of the front corner under the yawed camera.
+    const s = (x * co - y * si) + (x * si + y * co);
+    if (s > max) max = s;
+  }
   return max;
 }
 
@@ -75,22 +89,22 @@ export function isoDepthKey(tile) {
 //      buildings that rise from them (they are coplanar at z=0 and can't occlude anything with walls);
 //   2. then by depth (front-most corner) so nearer blocks paint over farther ones;
 //   3. then by z / id for a stable, deterministic order among coincident tiles.
-export function byIsoDepth(a, b) {
+export function byIsoDepth(a, b, yaw = 0) {
   return (isElevated(a) - isElevated(b))
-    || (isoDepthKey(a) - isoDepthKey(b))
+    || (isoDepthKey(a, yaw) - isoDepthKey(b, yaw))
     || ((a.z ?? 0) - (b.z ?? 0))
     || (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0);
 }
 
 // A painter's-ordered copy of the tiles (never mutates the input array).
-export function sortForIso(tiles) { return [...tiles].sort(byIsoDepth); }
+export function sortForIso(tiles, yaw = 0) { return [...tiles].sort((a, b) => byIsoDepth(a, b, yaw)); }
 
 // Projected screen bounds of the whole scene: every tile's base AND top corners, so a tall building
 // near the top edge still fits. Returns the min/max screen box plus its w/h. Pure — feed it unit=1 &
 // elev=elevRatio and the result scales linearly with the real `unit` (used by fitProjection).
-export function isoSceneBounds(tiles, { unit = 1, ratio = 0.5, elev = 0 } = {}) {
+export function isoSceneBounds(tiles, { unit = 1, ratio = 0.5, elev = 0, yaw = 0 } = {}) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  const opts = { unit, ratio, elev };
+  const opts = { unit, ratio, elev, yaw };
   for (const t of tiles) {
     const h = blockHeight(t);
     for (const [wx, wy] of footprintCorners(t)) {
@@ -109,9 +123,9 @@ export function isoSceneBounds(tiles, { unit = 1, ratio = 0.5, elev = 0 } = {}) 
 // centred. `elevRatio` ties block-height pixels to the ground unit so the scene zooms uniformly;
 // `maxUnit` stops a tiny city from ballooning to fill a huge canvas. Pure → unit-testable.
 export function fitProjection(tiles, {
-  width, height, pad = 28, ratio = 0.5, elevRatio = 0.65, maxUnit = 22,
+  width, height, pad = 28, ratio = 0.5, elevRatio = 0.65, maxUnit = 22, yaw = 0,
 } = {}) {
-  const base = isoSceneBounds(tiles, { unit: 1, ratio, elev: elevRatio });
+  const base = isoSceneBounds(tiles, { unit: 1, ratio, elev: elevRatio, yaw });
   const bw = base.w || 1, bh = base.h || 1;
   const avail = { w: Math.max(1, width - pad * 2), h: Math.max(1, height - pad * 2) };
   let unit = Math.min(avail.w / bw, avail.h / bh);
@@ -121,7 +135,7 @@ export function fitProjection(tiles, {
   // Centre the (scaled) scene box inside the padded canvas.
   const ox = pad + (avail.w - bw * unit) / 2 - base.minX * unit;
   const oy = pad + (avail.h - bh * unit) / 2 - base.minY * unit;
-  return { unit, elev, ratio, ox, oy };
+  return { unit, elev, ratio, ox, oy, yaw };
 }
 
 // The drawable geometry of one tile as an extruded prism, in screen pixels under `proj`:
@@ -142,7 +156,11 @@ export function isoTilePrism(tile, proj) {
   for (let i = 1; i < 4; i++) if (base[i].y > base[f].y) f = i;
   const prev = (f + 3) % 4, next = (f + 1) % 4;
   const wall = (a, b) => [base[a], base[b], top[b], top[a]];
-  return { top, sideA: wall(f, prev), sideB: wall(f, next), height: h };
+  // Shade deterministically by screen direction: sideA (drawn darker) is always the RIGHT-facing
+  // wall, so the lit/shadow sides don't pop-swap while the yawed camera drags past a corner.
+  // At yaw 0 this matches the original fixed assignment (prev is the right wall).
+  const [right, left] = base[prev].x >= base[next].x ? [wall(f, prev), wall(f, next)] : [wall(f, next), wall(f, prev)];
+  return { top, sideA: right, sideB: left, height: h };
 }
 
 // Concrete canvas fill for a tile — mirrors export-image.js drawTile: an explicit tile colour wins,
@@ -193,7 +211,7 @@ export function drawIsoScene(ctx, {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
   const edge = dark ? 'rgba(0,0,0,.45)' : 'rgba(15,26,43,.28)';
-  for (const t of sortForIso(tiles)) {
+  for (const t of sortForIso(tiles, proj.yaw || 0)) {
     const color = tileIsoColor(t);
     const prism = isoTilePrism(t, proj);
     if (prism.height > 0) {

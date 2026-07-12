@@ -9,13 +9,15 @@ const CATS = [
   ['police', 'Police', 'var(--t-police)'],
   ['fire', 'Fire', 'var(--t-fire)'], ['train', 'Trains', 'var(--t-train)'],
   ['modular', 'Modular', 'var(--t-modular)'], ['city', 'Town', 'var(--t-city)'],
+  ['pack', 'Packs', 'var(--t-park)'], // round-1 feedback 3a: accessory-pack pieces (plants, lamps…)
 ];
 const CAT_VAR = {
   police: 'var(--t-police)', fire: 'var(--t-fire)', train: 'var(--t-train)',
   modular: 'var(--t-modular)', city: 'var(--t-city)',
   park: 'var(--t-park)', space: 'var(--t-space)', arctic: 'var(--t-police)',
   harbor: 'var(--t-city)', farm: 'var(--t-park)', airport: 'var(--t-city)',
-  baseplate: 'var(--g-gray)', road: 'var(--road)', track: 'var(--track)', other: 'var(--t-city)',
+  baseplate: 'var(--g-gray)', road: 'var(--road)', track: 'var(--track)',
+  pack: 'var(--t-park)', other: 'var(--t-city)',
 };
 
 export function catColor(category) { return CAT_VAR[category] || 'var(--t-city)'; }
@@ -34,6 +36,20 @@ const SORTS = {
 };
 
 const VIEW_KEY = 'bcp.catView';
+const LEGACY_KEY = 'bcp.catLegacy'; // round-1 feedback 2b: include retired sets? default OFF
+
+// Pure filter predicate (exported for tests): the Legacy gate first — with legacy off, retired
+// sets are hidden (records without the flag, e.g. pieces.json primitives, always pass) — then
+// category equality AND name/number substring match. The ~700 individual pack elements (kind
+// 'decor') only surface under their own Packs chip or via search, so browsing All stays about
+// real sets.
+export function matchesFilter(s, { text = '', category = 'all', legacy = false } = {}) {
+  if (!legacy && s.retired) return false;
+  if (category === 'all' && !text && s.kind === 'decor') return false;
+  if (category !== 'all' && s.category !== category) return false;
+  if (!text) return true;
+  return s.name.toLowerCase().includes(text) || s.num.includes(text);
+}
 
 export function renderCatalog(els, sets, {
   onAdd, onAddAt = null, isOwned = () => false, onToggleOwn = () => {},
@@ -42,6 +58,9 @@ export function renderCatalog(els, sets, {
   getRecent = () => [],
 } = {}) {
   let text = '', category = 'all', sort = 'default';
+  // 2b: Legacy toggle — OFF by default so the catalog shows only sets you can still buy new.
+  let legacy = false;
+  try { legacy = localStorage.getItem(LEGACY_KEY) === '1'; } catch { /* default stands */ }
   const byNum = new Map(sets.map((s) => [s.set_num, s])); // for resolving rail thumbnails
 
   // ---- Wave 6 (mobile/touch): finger/pen catalog→canvas drag, ALONGSIDE the mouse HTML5 DnD -----
@@ -132,19 +151,27 @@ export function renderCatalog(els, sets, {
 
   els.search.addEventListener('input', () => { text = els.search.value.trim().toLowerCase(); draw(); });
   els.sort?.addEventListener('change', () => { sort = els.sort.value; draw(); });
+  // 2b: Legacy checkbox — persisted like the view toggle above.
+  if (els.legacy) els.legacy.checked = legacy;
+  els.legacy?.addEventListener('change', () => {
+    legacy = els.legacy.checked;
+    try { localStorage.setItem(LEGACY_KEY, legacy ? '1' : '0'); } catch { /* private browsing, ignore */ }
+    draw();
+  });
 
-  function match(s) {
-    if (category !== 'all' && s.category !== category) return false;
-    if (!text) return true;
-    return s.name.toLowerCase().includes(text) || s.num.includes(text);
-  }
+  function match(s) { return matchesFilter(s, { text, category, legacy }); }
 
   function draw() {
+    hidePop(); // a re-render invalidates whatever row the preview belonged to
     let filtered = sets.filter(match);
     const cmp = SORTS[sort];
     if (cmp) filtered = filtered.slice().sort(cmp);
     const shown = filtered.slice(0, 400); // cap DOM for perf
-    els.count.textContent = `${filtered.length} sets`;
+    // With Legacy off, say how many retired sets the current search/category is hiding — that's
+    // how users discover the toggle.
+    const hidden = legacy ? 0
+      : sets.filter((s) => matchesFilter(s, { text, category, legacy: true })).length - filtered.length;
+    els.count.textContent = `${filtered.length} sets` + (hidden > 0 ? ` · ${hidden} retired hidden` : '');
     const scroll = els.list.scrollTop; // preserve scroll position across in-place refreshes (owned/wishlist toggles)
     els.list.innerHTML = '';
     const frag = document.createDocumentFragment();
@@ -152,6 +179,33 @@ export function renderCatalog(els, sets, {
     els.list.appendChild(frag);
     els.list.scrollTop = scroll;
   }
+
+  // ---- 5b: enlarged hover preview (mouse only) -------------------------------------------------
+  // One shared fixed-position node (pattern: .drag-ghost); pointer-events:none so it can never
+  // steal the hover. Touch is excluded — a coarse-pointer press on the swatch already starts the
+  // drag ghost, and the bigger swatches are the touch answer.
+  let pop = null;
+  const finePointer = () => { try { return matchMedia('(hover:hover) and (pointer:fine)').matches; } catch { return false; } };
+  function hidePop() { pop?.remove(); pop = null; }
+  els.list.addEventListener('mouseover', (e) => {
+    if (!finePointer()) return;
+    const rowEl = e.target.closest?.('.set');
+    const img = rowEl?.querySelector('.swatch img');
+    if (!rowEl || !img) { hidePop(); return; }
+    if (!pop) {
+      pop = document.createElement('div');
+      pop.className = 'thumb-pop';
+      pop.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(pop);
+    }
+    pop.innerHTML = `<img src="${esc(img.getAttribute('src'))}" alt="">`;
+    const r = rowEl.getBoundingClientRect();
+    pop.style.top = Math.max(8, Math.min(r.top, (window.innerHeight || 600) - 244)) + 'px';
+    pop.style.left = (r.right + 10) + 'px';
+  });
+  els.list.addEventListener('mouseleave', hidePop);
+  els.list.addEventListener('scroll', hidePop, { passive: true });
+  els.list.addEventListener('dragstart', hidePop, true); // don't let the popup shadow a mouse drag
 
   // Small "own this" star + retailer buy links live on every row. Owned state is app/localStorage
   // state (never part of the placed[]/undo model), so toggling only re-styles the button and
@@ -167,19 +221,20 @@ export function renderCatalog(els, sets, {
   }
 
   function row(s) {
-    const approx = s.footprint.source !== 'curated';
+    const approx = s.footprint.source === 'estimated'; // derived (inventory-based) sizes are trusted
     const owned = !!isOwned(s.set_num);
     const faved = !!isFavorite(s.set_num);
     const wished = !!isWishlisted(s.set_num);
     const el = document.createElement('div');
     el.className = 'set' + (owned ? ' owned' : '');
     el.innerHTML = `
-      <div class="swatch" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
+      <div class="swatch${s.img ? ' has-img' : ''}" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
         s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
-          style="width:100%;height:100%;object-fit:cover"
+          style="width:100%;height:100%;object-fit:contain"
           onerror="this.remove()">` : schematicSVG(s.kind, s.footprint, s.name)}</div>
-      <div class="set-meta"><div class="set-name" title="${esc(s.name)}">${esc(s.name)}</div>
-        <div class="set-sub"><span>${esc(s.num)}</span><span>${s.year || ''}</span>
+      <div class="set-meta"><div class="set-name" title="${esc(s.name)}${s.year ? ` (${s.year})` : ''}">${esc(s.name)}</div>
+        <div class="set-sub"><span class="set-num">${esc(s.num)}${s.year ? ` · ${s.year}` : ''}</span>
+          ${s.retired ? '<span class="ret" title="Retired set — LEGO no longer sells it new; find it second-hand (BrickLink / Amazon)">Retired</span>' : ''}
           <span class="fp${approx ? ' approx' : ''}">${approx ? '≈ ' : ''}${s.footprint.w}×${s.footprint.h}</span>
           ${priceLabel(s)}
         </div>
@@ -252,9 +307,9 @@ export function renderCatalog(els, sets, {
     b.className = 'rail-item';
     b.title = `${s.name} (${s.num}) — click to place another`;
     b.setAttribute('aria-label', `Place another ${s.name}`);
-    b.innerHTML = `<span class="swatch" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
+    b.innerHTML = `<span class="swatch${s.img ? ' has-img' : ''}" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
       s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
-        style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">`
+        style="width:100%;height:100%;object-fit:contain" onerror="this.remove()">`
         : schematicSVG(s.kind, s.footprint, s.name)}</span>`;
     b.addEventListener('click', () => onAdd(s));
     return b;

@@ -192,3 +192,74 @@ test('drawIsoScene paints a background then every tile without throwing', () => 
   const fills = ctx.calls.filter(([n]) => n === 'fill').length;
   assert.ok(fills >= 5, `expected several polygon fills, got ${fills}`);
 });
+
+// ---- Round-1 feedback: rotatable 3D view (camera yaw threaded through the pure pipeline) --------
+
+test('isoProject honours yaw: a quarter turn maps +x onto +y', () => {
+  const o = { unit: 10, ratio: 0.5 };
+  const turned = isoProject(1, 0, 0, { ...o, yaw: Math.PI / 2 });
+  const straight = isoProject(0, 1, 0, o);
+  assert.ok(Math.abs(turned.x - straight.x) < 1e-9);
+  assert.ok(Math.abs(turned.y - straight.y) < 1e-9);
+  // default yaw 0 reproduces the unrotated mapping exactly
+  assert.deepEqual(isoProject(3, 5, 2, o), isoProject(3, 5, 2, { ...o, yaw: 0 }));
+});
+
+test('yaw leaves height alone — pitch stays fixed', () => {
+  const o = { unit: 10, ratio: 0.5, elev: 8, yaw: Math.PI / 3 };
+  const ground = isoProject(2, 4, 0, o);
+  const lifted = isoProject(2, 4, 3, o);
+  assert.equal(lifted.x, ground.x);
+  assert.ok(Math.abs((ground.y - lifted.y) - 3 * 8) < 1e-9);
+});
+
+test('isoDepthKey flips front/back under a half turn', () => {
+  const back = tile({ x: 0, y: 0, w: 2, h: 2 });
+  const front = tile({ x: 20, y: 20, w: 2, h: 2 });
+  assert.ok(isoDepthKey(front) > isoDepthKey(back)); // yaw 0 baseline
+  assert.ok(isoDepthKey(front, Math.PI) < isoDepthKey(back, Math.PI)); // θ=180° reverses depth
+});
+
+test('sortForIso at yaw π reverses building order; flat-first survives any yaw', () => {
+  const back = tile({ id: 'b', x: 0, y: 0 });
+  const front = tile({ id: 'f', x: 30, y: 30 });
+  assert.deepEqual(sortForIso([front, back], Math.PI).map((t) => t.id), ['f', 'b']);
+  const plate = tile({ id: 'plate', kind: 'baseplate', layer: 0, x: 40, y: 40, w: 32, h: 32 });
+  const shed = tile({ id: 'shed', kind: 'building', x: 0, y: 0, w: 2, h: 2 });
+  for (const yaw of [Math.PI / 4, Math.PI]) {
+    assert.deepEqual(sortForIso([shed, plate], yaw).map((t) => t.id), ['plate', 'shed'],
+      `ground never paints over a building at yaw ${yaw}`);
+  }
+});
+
+test('fitProjection carries yaw and still contains the rotated scene', () => {
+  const tiles = [tile({ x: 0, y: 0, w: 20, h: 8, kind: 'building' })];
+  const proj = fitProjection(tiles, { width: 800, height: 600, pad: 20, yaw: 0.7 });
+  assert.equal(proj.yaw, 0.7);
+  const b = isoSceneBounds(tiles, { unit: proj.unit, ratio: proj.ratio, elev: proj.elev, yaw: 0.7 });
+  assert.ok(proj.ox + b.minX >= 20 - 1e-6);
+  assert.ok(proj.oy + b.minY >= 20 - 1e-6);
+  assert.ok(proj.ox + b.maxX <= 800 - 20 + 1e-6);
+  assert.ok(proj.oy + b.maxY <= 600 - 20 + 1e-6);
+});
+
+test('a full 2π turn is the identity projection', () => {
+  const tiles = [tile({ x: 3, y: 5, w: 8, h: 4, kind: 'building' })];
+  const a = fitProjection(tiles, { width: 640, height: 480, yaw: 0 });
+  const b = fitProjection(tiles, { width: 640, height: 480, yaw: 2 * Math.PI });
+  assert.ok(Math.abs(a.unit - b.unit) < 1e-9);
+  assert.ok(Math.abs(a.ox - b.ox) < 1e-9);
+  assert.ok(Math.abs(a.oy - b.oy) < 1e-9);
+});
+
+test('drawIsoScene renders a yawed scene without throwing', () => {
+  const tiles = [
+    tile({ id: 'plate', kind: 'baseplate', layer: 0, x: 0, y: 0, w: 32, h: 32, color: 'var(--g-green)' }),
+    tile({ id: 'house', kind: 'building', x: 4, y: 4, w: 6, h: 6, category: 'modular' }),
+  ];
+  const proj = fitProjection(tiles, { width: 400, height: 300, yaw: 2.1 });
+  const ctx = mockCtx();
+  assert.doesNotThrow(() => drawIsoScene(ctx, { tiles, proj, width: 400, height: 300 }));
+  const fills = ctx.calls.filter(([n]) => n === 'fill').length;
+  assert.ok(fills >= 4, `expected several polygon fills, got ${fills}`);
+});

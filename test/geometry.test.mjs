@@ -117,6 +117,35 @@ test('snapConnect falls back to edge-align when no ports face each other', () =>
   assert.equal(s.y, 32); // top edge snaps flush to b's bottom
   assert.equal(s.x, 0);
 });
+// Round-1 feedback: the generic edge magnet is gated by its OWN weaker threshold so ordinary
+// sets can rest on any stud, while ports/plates keep the stronger pull.
+test('snapConnect with a small edgeThreshold leaves an in-between building alone', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'building', layer: 2 };
+  // 3-stud gap: within the old 6-stud magnet, but outside the new 2-stud edge threshold
+  const a = { id: 'a', x: 35, y: 1, w: 16, h: 16, rot: 0, kind: 'building', layer: 2 };
+  assert.deepEqual(snapConnect(a, [b], 6, 2), { x: 35, y: 1 });
+});
+test('snapConnect with a small edgeThreshold still snaps a nearly-flush building', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'building', layer: 2 };
+  const a = { id: 'a', x: 33, y: 1, w: 16, h: 16, rot: 0, kind: 'building', layer: 2 }; // 1-stud gap
+  const s = snapConnect(a, [b], 6, 2);
+  assert.equal(s.x, 32); // flush
+  assert.equal(s.y, 0); // aligned
+});
+test('port joining ignores edgeThreshold — roads still leap together at 6 studs', () => {
+  const straight = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
+  const curve = { id: 'a', x: 35, y: 2, w: 32, h: 32, rot: 180, kind: 'road', name: 'Road — Curve (Right)', layer: 1 };
+  const s = snapConnect(curve, [straight], 8, 2);
+  assert.equal(s.x, 32); // port-to-port join unaffected by the weak edge threshold
+  assert.equal(s.y, 0);
+});
+test('baseplate tiling ignores edgeThreshold — plates still butt flush at 6 studs', () => {
+  const base = { id: 'base', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'baseplate', layer: 0 };
+  const small = { id: 'small', x: 35, y: 1, w: 16, h: 16, rot: 0, kind: 'baseplate', layer: 0 };
+  const s = snapConnect(small, [base], 6, 2);
+  assert.equal(s.x, 32); // plate branch runs on the main threshold, not edgeThreshold
+  assert.equal(s.y, 0);
+});
 test('grownCanvas expands to content + margin in whole baseplates, never shrinks', () => {
   // content reaches x=200; +16 margin = 216 → rounds up to 224 (7 plates)
   assert.deepEqual(grownCanvas(200, 50, 128, 96), { w: 224, h: 96 });

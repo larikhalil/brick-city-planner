@@ -14,6 +14,11 @@ import { scaleRefSVG } from './scale-ref.js';
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
 const HANDLES = '<div class="rotate-handle" title="Drag to rotate"></div>';
+// Round-1 feedback: notes + custom MOC blocks are drag-resizable (catalog sets stay fixed-size —
+// their footprints are real; resize for sets was removed on purpose in f00ae43).
+const SIZE_HANDLE = '<div class="size-handle" title="Drag to resize"></div>';
+const handlesFor = (t) => HANDLES + ((t.kind === 'note' || t.kind === 'custom') ? SIZE_HANDLE : '');
+const RESIZE_MIN = 4; // studs — matches the custom-rect tool's dragged minimum
 const DEFAULT_W = 128, DEFAULT_H = 96; // studs — a 4×3 baseplate table to start
 const HISTORY_MAX = 60; // undo depth (spec: at least 50 steps)
 const PASTE_STEP = 8; // studs each paste/duplicate is nudged so copies don't hide the originals
@@ -40,6 +45,9 @@ export function createGrid(board, {
   layerVis: initLayerVis = null, layerLocks: initLayerLocks = null, kidMode: initKidMode = false,
   // PLAN-8 scale-reference overlay prefs (localStorage-backed in app.js; view-only, not in the city).
   scaleRef: initScaleRef = false, scaleUnit: initScaleUnit = 'studs',
+  // Round-1 feedback: magnetic snapping toggle (localStorage-backed in app.js). NOTE the name —
+  // `snap` would shadow the geometry import above.
+  snapEnabled: initSnapEnabled = true,
 } = {}) {
   let placed = [];
   let selection = new Set(); // ids of every selected tile
@@ -53,6 +61,7 @@ export function createGrid(board, {
   // part of placed[]/undo — so they live here, not in the city model.
   let mode = 'select';
   let terrainType = 'grass';
+  let snapEnabled = initSnapEnabled !== false; // 🧲 magnetic snapping (hold Alt while dragging to bypass)
   let gridW = DEFAULT_W, gridH = DEFAULT_H; // canvas size in studs (always whole baseplates)
   const stage = board.parentElement;
   // ACC-5 (touch): only one pointer may drive a board interaction at a time — a 2nd finger never
@@ -223,7 +232,7 @@ export function createGrid(board, {
     return {
       id: 'p' + (seq++), set_num: set.set_num, name: set.name, category: set.category, kind: set.kind || 'generic',
       x, y, w: set.footprint.w, h: set.footprint.h, rot: 0,
-      approx: set.footprint.source !== 'curated', img: set.img || null,
+      approx: set.footprint.source === 'estimated', img: set.img || null,
       layer: set.layer ?? 2, z: set.layer ?? 2, color: set.color || null,
       // PLAN-10: carry a curved-track piece's real radius class + turn increment onto the placed
       // tile so mismatch-warning (radiusMismatch) and rotation snapping (rotationStep) are data-driven.
@@ -381,7 +390,7 @@ export function createGrid(board, {
         el.className = 'tile note' + (selection.has(t.id) ? ' selected' : '') + (notEditable ? ' noedit' : '');
         el.tabIndex = 0;
         el.innerHTML = `<div class="note-text"${counter}>${esc(t.text || '')}</div>`;
-        if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', HANDLES);
+        if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', handlesFor(t));
         board.appendChild(el);
         continue;
       }
@@ -389,7 +398,9 @@ export function createGrid(board, {
         // ACC-2: overlap is never colour-only — the red outline (.tile.warn) is joined by a
         // hazard-stripe texture (CSS ::before) AND an explicit ⚠ badge naming the state in text.
         const isOver = over.has(t.id);
-        el.className = 'tile custom' + (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '') + (notEditable ? ' noedit' : '');
+        const sizeCls = Math.min(t.w, t.h) < 8 ? ' tiny' : (Math.min(t.w, t.h) < 14 ? ' small' : ''); // item 5a
+        el.className = 'tile custom' + sizeCls + (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '') + (notEditable ? ' noedit' : '');
+        el.title = `${t.name} — ${t.w}×${t.h}`;
         el.tabIndex = 0;
         el.dataset.cat = '';
         if (t.color) el.style.background = t.color;
@@ -397,7 +408,7 @@ export function createGrid(board, {
           `<div class="tlabel"${counter}>` +
           `<div class="tn">${esc(t.name)}</div>` +
           `<div class="tsub"><span>MOC</span><span>${t.w}×${t.h}</span></div></div>`;
-        if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', HANDLES);
+        if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', handlesFor(t));
         board.appendChild(el);
         continue;
       }
@@ -406,10 +417,15 @@ export function createGrid(board, {
       const layer = t.layer ?? 2;
       const lightGround = /--g-(white|sand)/.test(t.color || '');
       const isOver = over.has(t.id);
-      el.className = 'tile' + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
+      // Item 5a: small tiles drop their sub-line, tiny tiles show art only (CSS keys off these).
+      // Stud-based (not screen px) — w/h only change through re-rendering paths, zoom never does.
+      const minSide = Math.min(t.w, t.h);
+      const sizeCls = minSide < 8 ? ' tiny' : (minSide < 14 ? ' small' : '');
+      el.className = 'tile' + sizeCls + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
         (layer < 2 ? ' flat' : '') +
         (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '') +
         (t.locked ? ' locked' : '') + (notEditable ? ' noedit' : '');
+      el.title = `${t.name} — ${t.w}×${t.h}`; // hidden labels stay reachable on hover
       // ACC-2c: colorblind-safe theme hook — CSS keys a texture overlay off [data-cat] when the
       // user has the colorblind-safe toggle on, so categories stay distinguishable without hue.
       el.dataset.cat = t.category || '';
@@ -457,8 +473,10 @@ export function createGrid(board, {
       // QOL-8: a lock badge names the frozen state in text/icon (only for a per-tile lock — a whole
       // locked LAYER is signalled in the Layers menu instead, to avoid badging every ground tile).
       const lockBadge = t.locked ? '<span class="lock-flag" aria-hidden="true" title="Locked">🔒</span>' : '';
+      // Item 5a: no '≈' on the tile face any more — the estimated-footprint state stays visible in
+      // the catalog card, the summary count and the Check-my-city panel.
       const labelHTML = `<div class="tlabel"${counter}>` +
-        `<div class="tn">${esc(t.name)}${t.approx ? ' <span style="opacity:.8;font-weight:400">≈</span>' : ''}</div>` +
+        `<div class="tn">${esc(t.name)}</div>` +
         `<div class="tsub"><span>${esc(t.set_num.replace(/-\d+$/, ''))}</span><span>${t.w}×${t.h}</span></div></div>`;
       if (clip) {
         // Shaped: the schematic + facade go INSIDE the clipped wrapper; badges + label stay on the
@@ -471,7 +489,7 @@ export function createGrid(board, {
       }
       // QOL-8/10: only an editable tile gets the free-rotate handle — a locked, layer-locked or
       // Kid-Mode-frozen tile must not expose the one gesture that would otherwise bypass the lock.
-      if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', HANDLES);
+      if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', handlesFor(t));
       board.appendChild(el);
     }
     board.appendChild(grip);
@@ -552,8 +570,8 @@ export function createGrid(board, {
       el.classList.toggle('selected', isSel);
       const wantHandle = isSel && single && p.id === selectedId && editable(p);
       const hasHandles = !!el.querySelector('.rotate-handle');
-      if (wantHandle && !hasHandles) el.insertAdjacentHTML('beforeend', HANDLES);
-      else if (!wantHandle && hasHandles) el.querySelectorAll('.rotate-handle').forEach((h) => h.remove());
+      if (wantHandle && !hasHandles) el.insertAdjacentHTML('beforeend', handlesFor(p));
+      else if (!wantHandle && hasHandles) el.querySelectorAll('.rotate-handle,.size-handle').forEach((h) => h.remove());
     }
     updateSelBox();
     if (selectedId) tileEl(selectedId)?.focus({ preventScroll: true });
@@ -974,7 +992,16 @@ export function createGrid(board, {
   function setScaleUnit(u) { scaleUnit = u === 'cm' ? 'cm' : 'studs'; if (scaleRefOn) buildScaleOverlay(); }
   function getScaleRef() { return scaleRefOn; }
 
-  function applyZoom() { board.style.transform = `scale(${zoom})`; board.style.transformOrigin = '0 0'; }
+  // Round-1 feedback: 🧲 magnetic-snapping toggle (view/interaction pref, not in the city model).
+  function setSnapEnabled(on) { snapEnabled = !!on; }
+  function getSnapEnabled() { return snapEnabled; }
+
+  function applyZoom() {
+    board.style.transform = `scale(${zoom})`; board.style.transformOrigin = '0 0';
+    // Item 9: fade per-stud grid detail as you zoom away (CSS keys off these; plate lines stay).
+    board.classList?.toggle('zoom-mid', zoom < 0.75);
+    board.classList?.toggle('zoom-far', zoom < 0.5);
+  }
   function setZoom(z) {
     zoom = Math.min(2, Math.max(0.25, z)); applyZoom();
     refreshCull(); // PERF-1: zooming out enlarges the visible studs-area — reveal any newly-exposed tiles
@@ -1116,6 +1143,48 @@ export function createGrid(board, {
       ev.preventDefault();
       return;
     }
+    // Round-1 feedback: bottom-right size grip on notes/custom blocks (handlesFor only injects it
+    // for those kinds — catalog sets keep their real fixed footprints). Runs before the generic
+    // tile-drag hit test below, since the grip is a child of .tile.
+    if (ev.target.classList.contains('size-handle')) {
+      const t = placed.find((p) => p.id === selectedId);
+      if (!t) return;
+      if (!editable(t)) return; // defensive: a stale grip on a locked/frozen tile must never resize it
+      const sx = ev.clientX, sy = ev.clientY, ow = t.w, oh = t.h;
+      activePointerId = ev.pointerId;
+      try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+      function rsMove(e) {
+        if (e.pointerId !== ev.pointerId || gestureLock) return;
+        // Rotate the screen delta into the tile's own axes so resize follows the corner.
+        const r = -((t.rot || 0) * Math.PI) / 180, co = Math.cos(r), si = Math.sin(r);
+        const dx = (e.clientX - sx) / PX / zoom, dy = (e.clientY - sy) / PX / zoom;
+        t.w = Math.max(RESIZE_MIN, snap(ow + dx * co - dy * si));
+        t.h = Math.max(RESIZE_MIN, snap(oh + dx * si + dy * co));
+        const el = tileEl(t.id);
+        if (el) {
+          el.style.width = t.w * PX + 'px';
+          el.style.height = t.h * PX + 'px';
+          const sizeSpan = el.querySelector('.tsub span:last-child'); // custom blocks' live W×H readout
+          if (sizeSpan) sizeSpan.textContent = `${t.w}×${t.h}`;
+        }
+        refreshOverlaps(); updateSelBox();
+      }
+      function rsEnd(e) {
+        if (e.pointerId !== ev.pointerId) return;
+        board.removeEventListener('pointermove', rsMove);
+        board.removeEventListener('pointerup', rsEnd);
+        board.removeEventListener('pointercancel', rsEnd);
+        activePointerId = null;
+        growToFit();
+        onAnnounce(`${t.name} resized to ${t.w} by ${t.h} studs.`);
+        finalize(t.kind === 'note' ? 'Resize note' : 'Resize block');
+      }
+      board.addEventListener('pointermove', rsMove);
+      board.addEventListener('pointerup', rsEnd);
+      board.addEventListener('pointercancel', rsEnd);
+      ev.preventDefault();
+      return;
+    }
     // MOTION-3 / UI-5 tool modes take over the empty-canvas gesture (grip + rotate-handle above
     // still work in every mode). Terrain fills are pointer-transparent, so a press "on" one still
     // starts a fresh paint stroke rather than grabbing the fill.
@@ -1168,12 +1237,19 @@ export function createGrid(board, {
       // rest by the same delta so the group keeps its shape.
       let nx = Math.max(0, snap(pox + (e.clientX - startX) / PX / zoom));
       let ny = Math.max(0, snap(poy + (e.clientY - startY) / PX / zoom));
-      const probe = { ...primary, x: nx, y: ny };
-      const s = snapConnectInfo(probe, placed.filter((p) => !selection.has(p.id)), 6);
-      nx = Math.max(0, s.x); ny = Math.max(0, s.y);
-      // PLAN-10: remember whether this port-to-port join is between mismatched radius classes, so
-      // the drag-end can hard-warn. Non-blocking — the snap itself still happens.
-      mismatchNeighbour = (s.connectedTo && radiusMismatch(primary, s.connectedTo)) ? s.connectedTo : null;
+      // Magnetic snap (round-1 feedback: tamed). Ports/plates keep the 6-stud pull; ordinary sets
+      // magnetize only within 2 studs so they can rest on any stud. 🧲 off or Alt held = pure
+      // 1-stud placement (skipping the call also saves the per-frame port scan).
+      if (snapEnabled && !e.altKey) {
+        const probe = { ...primary, x: nx, y: ny };
+        const s = snapConnectInfo(probe, placed.filter((p) => !selection.has(p.id)), 6, 2);
+        nx = Math.max(0, s.x); ny = Math.max(0, s.y);
+        // PLAN-10: remember whether this port-to-port join is between mismatched radius classes, so
+        // the drag-end can hard-warn. Non-blocking — the snap itself still happens.
+        mismatchNeighbour = (s.connectedTo && radiusMismatch(primary, s.connectedTo)) ? s.connectedTo : null;
+      } else {
+        mismatchNeighbour = null; // bypassed frames must clear any stale port join (no ghost warns)
+      }
       const dx = nx - pox, dy = ny - poy;
       for (const { t, ox, oy } of origins) {
         t.x = Math.max(0, ox + dx); t.y = Math.max(0, oy + dy);
@@ -1274,6 +1350,8 @@ export function createGrid(board, {
     setLayerVisible, setLayerLocked, getLayerState,
     // PLAN-8: realistic scale-reference overlay
     setScaleRef, setScaleUnit, getScaleRef,
+    // 🧲 magnetic snapping (round-1 feedback)
+    setSnapEnabled, getSnapEnabled,
     // history
     undo, redo, canUndo, canRedo, getHistory, jumpHistory,
     _state: () => ({ placed, selectedId, selection: [...selection] }),

@@ -9,7 +9,7 @@ import {
 import { encodeCity, decodeCity } from './share.js';
 import { fmtDims } from './units.js';
 import { bbox } from './geometry.js';
-import { resolvePrice, baseNum, bricklinkXml, setListCsv, buyLinks } from './pricing.js';
+import { resolvePrice, baseNum, bricklinkXml, setListCsv, buyLinks, packRollup } from './pricing.js';
 import { pushRecent } from './lists.js';
 import { esc } from './util.js';
 import { TERRAIN_TYPES, isCitySet, isPhysical } from './objects.js';
@@ -39,6 +39,7 @@ let cityName = 'Untitled city';
 let gridSize = { w: 128, h: 96, pw: 4, ph: 3 };
 let catalog, grid, catalogUI;
 let prices = {}; // real MSRPs from data/prices.json (keyed by bare set number)
+let packs = {}; // bundle-pack contents from data/packs.json (round-1 feedback 3b; keyed by bare pack number)
 let templates = []; // curated starter cities from data/templates.json (QOL-6)
 let sharedCity = null; // decoded+validated payload from a '#d=' share link, pending user confirm (QOL-5b)
 
@@ -295,6 +296,27 @@ function toggleScaleRef() {
   toast(next ? 'Scale reference on — silhouettes + ruler are true stud scale.' : 'Scale reference off.');
 }
 
+// ---- Round-1 feedback: 🧲 magnetic-snapping toggle ----------------------------------------------
+// Edge magnetism is handy for flush placement but must never forbid in-between positions; the
+// geometry side is already tamed (2-stud edge pull), this toggle turns the magnet off entirely.
+// Hold Alt while dragging for a one-off bypass. Persisted per browser, default ON.
+const SNAP_KEY = 'bcp.snap';
+function getSnapPref() { try { return localStorage.getItem(SNAP_KEY) !== '0'; } catch { return true; } }
+function syncSnapButton(on) {
+  const btn = $('btn-snap'); if (!btn) return;
+  btn.setAttribute('aria-pressed', String(on));
+  btn.classList.toggle('on', on);
+  const label = on ? 'Magnetic snapping on — hold Alt while dragging to bypass' : 'Magnetic snapping off — pieces place on any stud';
+  btn.title = label; btn.setAttribute('aria-label', label);
+}
+function toggleSnapPref() {
+  const next = !getSnapPref();
+  try { localStorage.setItem(SNAP_KEY, next ? '1' : '0'); } catch (e) { console.warn('Could not save snapping setting:', e.message); }
+  grid.setSnapEnabled(next);
+  syncSnapButton(next);
+  toast(next ? 'Magnetic snapping on. Hold Alt while dragging to bypass.' : 'Magnetic snapping off — pieces place on any stud.');
+}
+
 // ---- QOL-10 / QOL-8: per-layer show-hide + lock, and Kid Mode ---------------------------------
 // layerVis / layerLocks are view + interaction prefs (localStorage); Kid Mode is per browser
 // session (sessionStorage). All three are kept OUT of placed[]/undo and out of the saved city —
@@ -467,7 +489,7 @@ function buildSampleCity() {
   tiles.push(building
     ? { id: 'p4', set_num: building.set_num, name: building.name, category: building.category, kind: building.kind,
         x: 4, y: 36, w: building.footprint.w, h: building.footprint.h, rot: 0,
-        approx: building.footprint.source !== 'curated', img: building.img || null,
+        approx: building.footprint.source === 'estimated', img: building.img || null,
         layer: building.layer ?? 2, z: building.layer ?? 2, color: building.color || null }
     : { id: 'p4', set_num: 'sample-building', name: 'City Building', category: 'city', kind: 'building',
         x: 4, y: 36, w: 16, h: 16, rot: 0, approx: false, img: null, layer: 2, z: 2, color: null });
@@ -497,7 +519,7 @@ function toggleShortcuts() { $('shortcuts-backdrop').hidden ? openShortcuts() : 
 
 function drawSummary() {
   renderSummary($('summary'), grid.getPlaced(), catalog.byNum, unitState,
-    { prices, owned, overrides, onToggleOwn: toggleOwned, onSetPrice: setPriceOverride,
+    { prices, owned, overrides, packs, onToggleOwn: toggleOwned, onSetPrice: setPriceOverride,
       wishlist, onPromoteWishlist: promoteWishlist, onRemoveWishlist: toggleWishlist });
   wireSummaryButtons();
 }
@@ -652,21 +674,29 @@ function wireSummaryButtons() {
   const q = (id) => $('summary').querySelector(id);
   q('#btn-save')?.addEventListener('click', doSave);
   q('#btn-export2')?.addEventListener('click', doExport);
-  q('#btn-setlist')?.addEventListener('click', doExportSetList);
-  q('#btn-csv')?.addEventListener('click', doExportCsv);
-  q('#btn-bricklink')?.addEventListener('click', doExportBricklink);
+  q('#btn-shoplist')?.addEventListener('click', openShopDialog);
 }
 
 // Unique sets still to buy (owned sets excluded, like every export). Rows carry a resolved USD
 // price — a manual override or real MSRP when known, else null (unknown). Sorted by set number.
+// Round-1 feedback 3b: placed pack pieces (plants, lamps, track segments…) roll up into whole-pack
+// rows first — you buy the box, not the element.
 function buildBuyRows() {
+  const cityTiles = grid.getPlaced().filter(isCitySet); // terrain / notes / custom blocks aren't purchasable
+  const { plain, packRows } = packRollup(cityTiles, catalog.byNum, packs);
   const counts = new Map();
-  for (const t of grid.getPlaced()) {
-    if (!isCitySet(t)) continue; // terrain / notes / custom blocks aren't purchasable sets
+  for (const t of plain) {
     const num = baseNum(t.set_num);
     if (owned.has(num)) continue; // already own it → not on the shopping list
     const e = counts.get(num) || { num, set_num: t.set_num, name: t.name, qty: 0 };
     e.qty += 1;
+    counts.set(num, e);
+  }
+  for (const pr of packRows) {
+    const num = baseNum(pr.set_num);
+    if (owned.has(num)) continue;
+    const e = counts.get(num) || { num, set_num: pr.set_num, name: pr.name, qty: 0 };
+    e.qty += pr.qty; // boxes needed, not pieces placed
     counts.set(num, e);
   }
   return [...counts.values()]
@@ -852,12 +882,50 @@ function closePngDialog() {
   $('btn-png')?.focus();
 }
 
+// ---- Round-1 feedback: one Shopping-list button + format chooser --------------------------------
+// The three sibling export buttons (.txt / .csv / BrickLink .xml) confused users — same list,
+// three formats. One button now opens a small chooser dialog; each choice downloads via the
+// UNCHANGED doExport* handlers below. Last-used format is remembered per browser.
+const SHOPFMT_KEY = 'bcp.shopfmt';
+let shopFmt = 'txt';
+function loadShopFmt() {
+  try {
+    const v = localStorage.getItem(SHOPFMT_KEY);
+    if (v === 'txt' || v === 'csv' || v === 'xml') shopFmt = v;
+  } catch { /* default stands */ }
+}
+function saveShopFmt() {
+  try { localStorage.setItem(SHOPFMT_KEY, shopFmt); } catch (e) { console.warn('Could not save shopping-list format:', e.message); }
+}
+function syncShopDialog() {
+  $('shop-modal')?.querySelectorAll('button[data-fmt]').forEach((b) => {
+    const on = b.dataset.fmt === shopFmt;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  });
+}
+function openShopDialog() {
+  // Nothing to buy → keep the toast-instead-of-open behaviour the old buttons had.
+  if (!buildBuyRows().length) { toast(grid.getPlaced().length ? 'Every placed set is marked owned.' : 'No sets placed yet.'); return; }
+  syncShopDialog();
+  $('shop-backdrop').hidden = false;
+  ($('shop-modal').querySelector('button[data-fmt].on') || $('shop-close'))?.focus();
+}
+function closeShopDialog() {
+  $('shop-backdrop').hidden = true;
+  $('btn-shoplist')?.focus(); // fresh node after a summary re-render still carries the id
+}
+
 // ---- PLAN-12: read-only 3D / isometric preview -------------------------------------------------
 // A full-stage overlay renders the current city as extruded blocks on a plain <canvas>, using the
 // pure projection maths in isometric.js (world studs → iso screen, painter's depth sort). No editing
 // happens in this mode — "← Back to 2D" (or Esc) returns to the primary top-down board. The scene is
 // drawn straight from the placed[] model, honouring the same visible-layer filter as the PNG export.
 let isoOpen = false;
+// Round-1 feedback: camera yaw for the rotatable 3D view. Session-scoped (like isoOpen), driven by
+// the ⟳ button (90° steps) and by horizontal drag on the canvas; pitch stays fixed.
+let isoYaw = 0;
+let isoDragging = false;
+const ISO_QT = Math.PI / 2;
 
 // The tiles the preview draws: only currently-visible layers (a hidden layer is invisible on the
 // board, so it's absent from the 3D view too), with the same all-hidden fallback the export uses.
@@ -880,7 +948,7 @@ function renderIso() {
   const ctx = canvas.getContext('2d');
   const tiles = isoTiles();
   const dark = effectiveTheme() === 'dark';
-  const proj = fitProjection(tiles, { width: canvas.width, height: canvas.height, pad: 34 * dpr });
+  const proj = fitProjection(tiles, { width: canvas.width, height: canvas.height, pad: 34 * dpr, yaw: isoYaw });
   drawIsoScene(ctx, {
     tiles, proj, width: canvas.width, height: canvas.height,
     bg: dark ? '#1a2130' : '#eef2f8', dark,
@@ -900,12 +968,22 @@ function openIso() {
 function closeIso() {
   if (!isoOpen) return;
   isoOpen = false;
+  isoDragging = false; // Esc mid-drag: a stale flag must never eat the first pointerdown next open
   $('iso-overlay').hidden = true;
   $('btn-iso')?.setAttribute('aria-pressed', 'false');
   $('btn-iso')?.classList.remove('on');
   $('btn-iso')?.focus();
 }
 function toggleIso() { isoOpen ? closeIso() : openIso(); }
+
+// ⟳ button: snap to the NEXT clean 90° multiple (composes with drag — an odd dragged angle rounds
+// to the nearest quarter first, then advances one quarter; four clicks always return to start).
+function rotateIso() {
+  isoYaw = ((Math.round(isoYaw / ISO_QT) + 1) * ISO_QT) % (2 * Math.PI);
+  if (isoYaw < 0) isoYaw += 2 * Math.PI;
+  renderIso();
+  announce(`3D view rotated to ${Math.round((isoYaw * 180) / Math.PI)} degrees.`);
+}
 
 // ---- PLAN-3: buildability checker ("Check my city") --------------------------------------------
 // Runs the pure checkCity() scan over the live grid and renders a click-to-zoom results list. The
@@ -1189,10 +1267,11 @@ function dismissSharedBanner() {
 }
 
 async function boot() {
-  try { catalog = await loadCatalog(); prices = catalog.prices || {}; }
+  try { catalog = await loadCatalog(); prices = catalog.prices || {}; packs = catalog.packs || {}; }
   catch (e) { $('catalog-list').innerHTML = `<div class="note">Couldn't load the set catalog. ${e.message}</div>`; return; }
   loadOwned();
   loadOverrides();
+  loadShopFmt();
   loadFavorites();
   loadWishlist();
   loadRecent();
@@ -1223,14 +1302,18 @@ async function boot() {
     layerVis, layerLocks, kidMode,
     // PLAN-8 scale-reference overlay, restored from localStorage (unit follows the toolbar toggle).
     scaleRef: getScaleRef(), scaleUnit: unitState,
+    // 🧲 magnetic snapping, restored from localStorage (default on).
+    snapEnabled: getSnapPref(),
   });
   applyKidMode(kidMode); // stamp the DOM attribute + button state (grid already has the flag)
   syncScaleRefButton(getScaleRef()); // reflect the restored overlay state on the toolbar button
+  syncSnapButton(getSnapPref()); // reflect the restored snapping state on the toolbar button
   buildTerrainBar();
 
   catalogUI = renderCatalog(
     { list: $('catalog-list'), search: $('catalog-search'), chips: $('catalog-chips'),
-      count: $('catalog-count'), sort: $('catalog-sort'), viewToggle: $('catalog-view'), rail: $('catalog-rail') },
+      count: $('catalog-count'), sort: $('catalog-sort'), viewToggle: $('catalog-view'),
+      legacy: $('catalog-legacy'), rail: $('catalog-rail') },
     catalog.sets, {
       onAdd: (s) => placeSet(s), onAddAt: (s, x, y) => placeSet(s, x, y), isOwned, onToggleOwn: toggleOwned,
       isFavorite, onToggleFavorite: toggleFavorite, getFavorites,
@@ -1248,6 +1331,7 @@ async function boot() {
   $('btn-theme')?.addEventListener('click', toggleTheme);
   $('btn-cbsafe')?.addEventListener('click', toggleCbSafe);
   $('btn-scaleref')?.addEventListener('click', toggleScaleRef);
+  $('btn-snap')?.addEventListener('click', toggleSnapPref);
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!getStoredTheme()) syncThemeButton(); }); }
   catch { /* older browsers without addEventListener on MediaQueryList — the button just won't live-sync */ }
 
@@ -1356,6 +1440,7 @@ async function boot() {
       else if (!$('shortcuts-backdrop').hidden) closeShortcuts();
       else if (!$('check-backdrop').hidden) closeCheck();
       else if (!$('png-backdrop').hidden) closePngDialog();
+      else if (!$('shop-backdrop').hidden) closeShopDialog();
       else if (!$('templates-backdrop').hidden) closeTemplatesMenu();
       else if (!$('cities-backdrop').hidden) closeCitiesMenu();
       else if (!$('layers-menu').hidden) { closeLayersMenu(); $('btn-layers').focus(); }
@@ -1407,6 +1492,16 @@ async function boot() {
   $('png-card')?.addEventListener('change', (e) => { pngCard = e.target.checked; syncPngDialog(); });
   $('png-go')?.addEventListener('click', () => { closePngDialog(); doExportPng(); });
 
+  // Round-1 feedback: shopping-list format chooser dialog
+  $('shop-close')?.addEventListener('click', closeShopDialog);
+  $('shop-backdrop')?.addEventListener('click', (e) => { if (e.target === $('shop-backdrop')) closeShopDialog(); });
+  $('shop-modal')?.addEventListener('keydown', (e) => trapTabKey(e, $('shop-modal')));
+  $('shop-modal')?.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-fmt]'); if (!b) return;
+    shopFmt = b.dataset.fmt; saveShopFmt(); closeShopDialog();
+    ({ txt: doExportSetList, csv: doExportCsv, xml: doExportBricklink })[shopFmt]?.();
+  });
+
   // PLAN-12: 3D / isometric preview overlay (read-only)
   $('btn-iso')?.addEventListener('click', toggleIso);
   $('iso-back')?.addEventListener('click', closeIso);
@@ -1418,6 +1513,29 @@ async function boot() {
     if (!isoOpen || isoResizeRaf) return;
     isoResizeRaf = requestAnimationFrame(() => { isoResizeRaf = 0; if (isoOpen) renderIso(); });
   });
+  // Round-1 feedback: rotate the 3D view — ⟳ button (90° steps) + horizontal drag on the canvas
+  // (smooth yaw, fixed pitch). Pointer events for mouse/touch parity; repaints are rAF-coalesced
+  // like the resize handler above so a move storm costs one render per frame.
+  $('iso-rotate')?.addEventListener('click', rotateIso);
+  const isoCanvas = $('iso-canvas');
+  let isoDragX = 0, isoDragYaw = 0, isoDragRaf = 0;
+  isoCanvas?.addEventListener('pointerdown', (e) => {
+    if (!isoOpen) return;
+    isoDragging = true;
+    isoDragX = e.clientX; isoDragYaw = isoYaw;
+    try { isoCanvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    e.preventDefault();
+  });
+  isoCanvas?.addEventListener('pointermove', (e) => {
+    if (!isoDragging || !isoOpen) return;
+    // ~0.56°/px → a full turn in ~640 px of drag. Vertical motion is ignored (pitch fixed).
+    isoYaw = (isoDragYaw + (e.clientX - isoDragX) * (Math.PI / 320)) % (2 * Math.PI);
+    if (isoYaw < 0) isoYaw += 2 * Math.PI;
+    if (!isoDragRaf) isoDragRaf = requestAnimationFrame(() => { isoDragRaf = 0; if (isoOpen) renderIso(); });
+  });
+  const isoDragEnd = () => { isoDragging = false; };
+  isoCanvas?.addEventListener('pointerup', isoDragEnd);
+  isoCanvas?.addEventListener('pointercancel', isoDragEnd);
 
   // Drag a catalog item onto the grid to drop it there.
   const gstage = $('grid-stage');

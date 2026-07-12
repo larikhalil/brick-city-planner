@@ -127,3 +127,39 @@ test('terrain / notes / custom blocks: create, undo, select-exclude, serialize',
   assert.equal(gr.getPlaced().filter((p) => p.kind === 'note').length, 1);
   assert.equal(gr.getPlaced().filter((p) => p.kind === 'custom').length, 1);
 });
+
+// Round-1 feedback: sticky-note sizes are customizable. The drag grip is DOM glue; the model
+// path it drives (updateTile w/h → undo → serialize) is what we pin here.
+test('notes resize via updateTile, undo restores, and sizes serialize', async () => {
+  const { createGrid } = await import('../js/grid.js');
+  const board = new El('div');
+  const stage = new El('div'); stage.clientWidth = 800; stage.clientHeight = 600; stage.scrollTo = () => {};
+  stage.appendChild(board); board.parent = stage;
+  Object.defineProperty(board, 'parentElement', { get() { return stage; } });
+  const g = createGrid(board, {});
+
+  const note = g.addNoteAt(10, 10, 'Depot');
+  assert.deepEqual([note.w, note.h], [26, 16], 'default note size');
+  g.updateTile(note.id, { w: 40, h: 20 });
+  let n = g.getPlaced().find((p) => p.id === note.id);
+  assert.deepEqual([n.w, n.h], [40, 20], 'note resized');
+  assert.equal(n.kind, 'note', 'still a note (stays out of overlap warnings)');
+  g.undo();
+  n = g.getPlaced().find((p) => p.id === note.id);
+  assert.deepEqual([n.w, n.h], [26, 16], 'one undo step restores the old size');
+  g.redo();
+
+  // resized note survives a save/load round-trip with no migration
+  const g2 = g.getGrid();
+  const city = serializeCity({ name: 'R', units: 'studs', placed: g.getPlaced(), grid: { w: g2.w, h: g2.h } });
+  const res = validateCity(city);
+  assert.ok(res.ok);
+  const board2 = new El('div'); const stage2 = new El('div');
+  stage2.clientWidth = 800; stage2.clientHeight = 600; stage2.scrollTo = () => {};
+  stage2.appendChild(board2); board2.parent = stage2;
+  Object.defineProperty(board2, 'parentElement', { get() { return stage2; } });
+  const gr = createGrid(board2, {});
+  gr.setPlaced(res.city.placed, res.city.grid);
+  const back = gr.getPlaced().find((p) => p.kind === 'note');
+  assert.deepEqual([back.w, back.h], [40, 20], 'resized note round-trips');
+});

@@ -26,11 +26,18 @@ export function isBaseplate(t) {
   return !!t && (t.layer ?? 2) === 0;
 }
 
-// Does this tile need ground under it? Every physical piece that isn't itself the ground: roads,
-// tracks, buildings, generic sets and custom MOC blocks (all layer ≥ 1). Terrain paint and sticky
-// notes (excluded by isPhysical) are annotation, not bricks, so they never need support.
+// Round-1 feedback (item 8): road plates ARE stylized baseplates — they are their own ground AND
+// support whatever stands on them. The ground union for coverage() is baseplates + roads.
+export function providesGround(t) {
+  return !!t && ((t.layer ?? 2) === 0 || t.kind === 'road');
+}
+
+// Does this tile need ground under it? Every physical piece that isn't itself the ground: tracks,
+// buildings, generic sets and custom MOC blocks (all layer ≥ 1). Road plates are exempt (item 8 —
+// they're baseplates themselves); terrain paint and sticky notes (excluded by isPhysical) are
+// annotation, not bricks, so they never need support.
 export function needsSupport(t) {
-  return isPhysical(t) && (t.layer ?? 2) > 0;
+  return isPhysical(t) && (t.layer ?? 2) > 0 && t.kind !== 'road';
 }
 
 // Max interior sample points per axis when measuring baseplate coverage — one per stud, capped so a
@@ -79,7 +86,7 @@ export function checkCity(placed, { trackReport = null } = {}) {
   const issues = [];
 
   // ---- (a)+(c) ground support -----------------------------------------------------------------
-  const plates = tiles.filter(isBaseplate);
+  const plates = tiles.filter(providesGround); // baseplates + road plates (item 8)
   const supportSeekers = tiles.filter(needsSupport);
   if (!plates.length) {
     // No ground at all: rather than flag every piece separately, surface one actionable issue —

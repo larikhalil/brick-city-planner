@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Brick City Planner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧱</text></svg>">
   <!-- UI-3: stamp any EXPLICIT saved theme/colorblind-safe choice before first paint, so there's
        no flash-of-wrong-theme. Absent a stored choice, no attribute is set here at all — the
        :root[data-theme] rules in css/styles.css stay silent and the plain `@media
@@ -48,6 +49,8 @@
           aria-label="Turn on colorblind-safe patterns" aria-pressed="false">◐</button>
         <button class="btn icon" id="btn-scaleref" type="button" title="Show scale reference (minifig / car / ruler)"
           aria-label="Show scale reference (minifig / car / ruler)" aria-pressed="false">📏</button>
+        <button class="btn icon" id="btn-snap" type="button" title="Magnetic snapping on — hold Alt while dragging to bypass"
+          aria-label="Turn off magnetic snapping" aria-pressed="true">🧲</button>
         <button class="btn" id="btn-kid" type="button" aria-pressed="false"
           title="Kid Mode — freeze the layout so only new pieces can be added and arranged"
           aria-label="Turn on Kid Mode">🧒 Kid Mode</button>
@@ -86,6 +89,9 @@
             <button type="button" class="on" data-view="list" aria-pressed="true" title="List view" aria-label="List view">☰</button>
             <button type="button" data-view="grid" aria-pressed="false" title="Grid view" aria-label="Grid view">▦</button>
           </div>
+          <label class="legacy" for="catalog-legacy"
+            title="Include legacy sets — retired sets LEGO no longer sells new">
+            <input type="checkbox" id="catalog-legacy"> Legacy</label>
           <label class="sort" for="catalog-sort">Sort
             <select id="catalog-sort" aria-label="Sort catalog">
               <option value="default">Featured</option>
@@ -164,8 +170,12 @@
         </div>
         <div class="iso-overlay" id="iso-overlay" role="region" aria-label="3D isometric preview" hidden>
           <div class="iso-bar">
-            <span class="iso-title">🧊 3D preview <small>— read-only</small></span>
-            <button class="btn primary sm" id="iso-back" type="button">← Back to 2D</button>
+            <span class="iso-title">🧊 3D preview <small>— read-only · drag to rotate</small></span>
+            <div class="iso-actions">
+              <button class="btn sm" id="iso-rotate" type="button" title="Rotate view 90° — or drag the scene"
+                aria-label="Rotate view 90 degrees">⟳ Rotate</button>
+              <button class="btn primary sm" id="iso-back" type="button">← Back to 2D</button>
+            </div>
           </div>
           <canvas id="iso-canvas"></canvas>
         </div>
@@ -230,6 +240,7 @@
           <div class="sc-row"><span>Drag a set from the catalog onto the grid</span><kbd>drag &amp; drop</kbd></div>
           <div class="sc-row"><span>Drag a tile</span><kbd>move</kbd></div>
           <div class="sc-row"><span>Alt-drag a tile</span><kbd>Alt + drag</kbd></div>
+          <div class="sc-row"><span>Hold Alt while dragging (or 🧲 off)</span><kbd>bypass snapping</kbd></div>
           <div class="sc-row"><span>Drag the node above a selected tile</span><kbd>free rotate</kbd></div>
           <div class="sc-row"><span>Drag the bottom-right corner grip</span><kbd>resize table</kbd></div>
           <div class="sc-row"><span>Drag on empty canvas</span><kbd>box-select</kbd></div>
@@ -303,6 +314,26 @@
         <div class="png-actions">
           <button class="btn" id="png-cancel" type="button">Cancel</button>
           <button class="btn primary" id="png-go" type="button">⬇ Download PNG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="shop-backdrop" hidden>
+    <div class="modal" id="shop-modal" role="dialog" aria-modal="true" aria-labelledby="shop-title">
+      <div class="modal-h">
+        <h2 id="shop-title">Shopping list</h2>
+        <button class="modal-close" id="shop-close" aria-label="Close shopping list">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="note">One list of the sets still to buy (sets marked owned are excluded) — pick a format:</p>
+        <div class="shop-fmts" role="group" aria-label="Shopping list format">
+          <button class="btn shop-fmt" type="button" data-fmt="txt" aria-pressed="false">🧾 Simple list (.txt)
+            <small>Easy to read or print — set numbers, names and store links.</small></button>
+          <button class="btn shop-fmt" type="button" data-fmt="csv" aria-pressed="false">📄 Spreadsheet (.csv)
+            <small>Opens in Excel / Google Sheets — number, name, qty, price columns.</small></button>
+          <button class="btn shop-fmt" type="button" data-fmt="xml" aria-pressed="false">🧱 BrickLink import (.xml)
+            <small>Wanted-List file to upload at bricklink.com › Want › Upload.</small></button>
         </div>
       </div>
     </div>

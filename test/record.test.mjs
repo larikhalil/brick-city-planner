@@ -14,7 +14,15 @@ test('builds a normalized catalog record', () => {
     theme_id: 61, theme: 'Police', root: 'City', category: 'police',
     pieces: 668, img: 'img/sets/60316-1.jpg',
     footprint: { w: 48, h: 32, source: 'curated' },
+    retired: false,
   });
+});
+
+test('retired flag passes through (and defaults false when absent)', () => {
+  const raw = { set_num: '60097-1', name: 'City Square', year: '2015', theme_id: '52', num_parts: '1683', img_url: '' };
+  const ctx = { themeName: 'City', root: 'City', category: 'city', footprint: { w: 48, h: 32, source: 'curated' }, img: null };
+  assert.equal(buildSetRecord(raw, { ...ctx, retired: true }).retired, true);
+  assert.equal(buildSetRecord(raw, ctx).retired, false);
 });
 
 test('null image is preserved', () => {

@@ -212,6 +212,9 @@ export function schematicSVG(kind, e, name) {
     case 'building': inner = building(); break;
     case 'park': inner = park(); break;
     case 'vehicle': inner = vehicle(wide); break;
+    // pack decor piece (plant / lamp / prop): a simple centred stud-dot so a 1x1 element still
+    // reads as SOMETHING when its part photo is missing (photos normally cover it)
+    case 'decor': inner = '<circle cx="50" cy="50" r="26" fill="rgba(255,255,255,.75)"/><circle cx="50" cy="50" r="12" fill="rgba(0,0,0,.25)"/>'; break;
     default: return ''; // baseplate (flat colour) / generic (photo)
   }
   return `<svg class="schem" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${inner}</svg>`;
