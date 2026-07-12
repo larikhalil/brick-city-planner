@@ -1,0 +1,484 @@
+<title>Brick City Planner — Feedback Board</title>
+<style>
+  :root{
+    --bg:#f2efe7; --surface:#ffffff; --surface-2:#faf8f2; --ink:#1b1a17; --muted:#6c685f;
+    --line:#e4ded1; --line-2:#d6cfbe;
+    --red:#d01516; --yellow:#eab308; --blue:#1a6dd0; --green:#3f9a3a; --grey:#8b8578;
+    --shadow:0 1px 2px rgba(40,34,20,.06),0 8px 24px rgba(40,34,20,.07);
+    --brand:#d01516;
+    --qol:#1a6dd0; --ui:#8b5cf6; --motion:#e0791b; --perf:#0e9488; --plan:#d01516; --acc:#3f9a3a;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#14161b; --surface:#1c1f26; --surface-2:#20242c; --ink:#ececea; --muted:#9a968c;
+      --line:#2b2f38; --line-2:#3a3f4a;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f2efe7; --surface:#ffffff; --surface-2:#faf8f2; --ink:#1b1a17; --muted:#6c685f;
+    --line:#e4ded1; --line-2:#d6cfbe; --shadow:0 1px 2px rgba(40,34,20,.06),0 8px 24px rgba(40,34,20,.07);
+  }
+  :root[data-theme="dark"]{
+    --bg:#14161b; --surface:#1c1f26; --surface-2:#20242c; --ink:#ececea; --muted:#9a968c;
+    --line:#2b2f38; --line-2:#3a3f4a; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased}
+  .mono{font-family:"SF Mono",ui-monospace,"Cascadia Code","Roboto Mono",Consolas,monospace}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---- Header ---- */
+  header{position:relative;overflow:hidden;background:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,.14) 1.6px, transparent 1.9px) 0 0/22px 22px,
+    linear-gradient(135deg,#b81214,#7a0d0e 60%,#4a1a3d);
+    color:#fff;border-bottom:4px solid #f6c026}
+  .head-in{padding:34px 20px 30px;max-width:1180px;margin:0 auto}
+  .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#ffd873;font-weight:700}
+  h1{font-size:clamp(26px,4vw,40px);line-height:1.08;margin:8px 0 6px;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+  .sub{color:rgba(255,255,255,.86);max-width:70ch;font-size:15px}
+  .stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+  .stat{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:11px;
+    padding:9px 14px;backdrop-filter:blur(2px)}
+  .stat b{display:block;font-size:22px;font-weight:800;line-height:1}
+  .stat span{font-size:11.5px;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.05em}
+
+  /* ---- Editor note ---- */
+  .note{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);
+    border-radius:12px;padding:16px 18px;margin:22px 0;box-shadow:var(--shadow)}
+  .note h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .note p{margin:0;font-size:14.5px}
+  .warn{background:color-mix(in srgb,var(--yellow) 12%,var(--surface));border-color:color-mix(in srgb,var(--yellow) 40%,var(--line));border-left-color:var(--yellow)}
+
+  /* ---- Toolbar ---- */
+  .bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 0;margin-bottom:18px}
+  .bar-in{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .search{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;background:var(--surface);
+    border:1px solid var(--line-2);border-radius:10px;padding:8px 12px}
+  .search input{border:0;background:transparent;color:var(--ink);width:100%;font-size:14px;outline:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--line-2);background:var(--surface);color:var(--muted);border-radius:999px;
+    padding:6px 12px;font-size:12.5px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap}
+  .chip:hover{border-color:var(--ink)}
+  .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .chip .dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  .toggle{margin-left:auto;display:flex;gap:8px;align-items:center}
+  select,.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line-2);background:var(--surface);
+    color:var(--ink);border-radius:10px;padding:8px 12px;cursor:pointer}
+  .btn:hover{border-color:var(--ink)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  h2.sec{font-size:20px;font-weight:800;letter-spacing:-.01em;margin:34px 0 4px}
+  .sec-sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+  .count-line{color:var(--muted);font-size:13px;margin:0 0 14px}
+
+  /* ---- Cards ---- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px;position:relative;
+    border-top:3px solid var(--cat,var(--line-2));transition:transform .12s,box-shadow .12s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.08),0 14px 34px rgba(0,0,0,.1)}
+  .card.pick{box-shadow:0 0 0 2px color-mix(in srgb,var(--yellow) 55%,transparent),var(--shadow)}
+  .card.sel{box-shadow:0 0 0 2px var(--brand),var(--shadow)}
+  .c-top{display:flex;align-items:center;gap:9px}
+  .c-check{width:18px;height:18px;flex:none;accent-color:var(--brand);cursor:pointer}
+  .c-id{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em}
+  .c-star{color:var(--yellow);font-size:13px}
+  .rec{margin-left:auto;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .rec.qw{background:color-mix(in srgb,var(--green) 16%,var(--surface));color:var(--green)}
+  .rec.sb{background:color-mix(in srgb,var(--blue) 16%,var(--surface));color:var(--blue)}
+  .rec.nth{background:color-mix(in srgb,var(--yellow) 18%,var(--surface));color:#a9790a}
+  .rec.skip{background:color-mix(in srgb,var(--grey) 20%,var(--surface));color:var(--grey)}
+  .c-title{font-weight:700;font-size:15.5px;line-height:1.25}
+  .c-desc{font-size:13.2px;color:var(--ink);opacity:.9}
+  .c-rat{font-size:12.5px;color:var(--muted);font-style:italic;border-left:2px solid var(--line-2);padding-left:9px}
+  .c-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;align-items:center}
+  .tag{font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px;border:1px solid var(--line-2);color:var(--muted)}
+  .tag.imp-High{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,var(--line-2))}
+  .tag.imp-Medium{color:#a9790a;border-color:color-mix(in srgb,var(--yellow) 40%,var(--line-2))}
+  .tag.imp-Low{color:var(--grey)}
+  .tag.eff-Small{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,var(--line-2))}
+  .tag.eff-Medium{color:#a9790a;border-color:color-mix(in srgb,var(--yellow) 40%,var(--line-2))}
+  .tag.eff-Large{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,var(--line-2))}
+  .src{display:flex;flex-wrap:wrap;gap:5px}
+  .src span{font-size:10.5px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+    padding:2px 7px;border-radius:6px}
+  .src span.persona{color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,var(--line))}
+  .src span.comm{color:var(--blue);border-color:color-mix(in srgb,var(--blue) 30%,var(--line))}
+  .src span.comp{color:var(--motion);border-color:color-mix(in srgb,var(--motion) 30%,var(--line))}
+
+  /* ---- Selection bar ---- */
+  .selbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--ink);color:var(--bg);
+    transform:translateY(110%);transition:transform .25s ease;box-shadow:0 -6px 24px rgba(0,0,0,.25)}
+  .selbar.show{transform:none}
+  .selbar-in{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .selbar b{font-size:14px}
+  .selbar .ids{font-size:12.5px;opacity:.85;flex:1;min-width:160px;word-break:break-word}
+  .selbar .btn{background:transparent;color:var(--bg);border-color:color-mix(in srgb,var(--bg) 40%,transparent)}
+  .selbar .btn.primary{background:var(--yellow);color:#3a2a00;border-color:var(--yellow)}
+
+  /* ---- Personas ---- */
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+  details.persona{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  details.persona>summary{list-style:none;cursor:pointer;padding:15px 16px;display:flex;gap:12px;align-items:flex-start}
+  details.persona>summary::-webkit-details-marker{display:none}
+  .pav{width:42px;height:42px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:20px;
+    background:color-mix(in srgb,var(--brand) 14%,var(--surface));border:1px solid var(--line-2)}
+  .pname{font-weight:800;font-size:15px}
+  .prole{font-size:12px;color:var(--muted)}
+  .psum{font-size:12.8px;color:var(--ink);opacity:.85;margin-top:5px}
+  .pexp{font-size:11px;color:var(--brand);font-weight:700;margin-top:6px}
+  .pbody{padding:0 16px 16px}
+  .pain{border-top:1px solid var(--line);padding:12px 0}
+  .pain-h{display:flex;gap:8px;align-items:center;margin-bottom:5px}
+  .sev{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em}
+  .sev.Critical{background:color-mix(in srgb,var(--red) 18%,var(--surface));color:var(--red)}
+  .sev.Major{background:color-mix(in srgb,var(--yellow) 20%,var(--surface));color:#a9790a}
+  .sev.Minor{background:color-mix(in srgb,var(--grey) 18%,var(--surface));color:var(--grey)}
+  .pain-t{font-weight:700;font-size:13.5px}
+  .pain-s{font-size:12.6px;color:var(--muted);margin:3px 0 6px}
+  .pain-a{font-size:12.6px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  .pain-a b{color:var(--green)}
+
+  /* ---- Community ---- */
+  .beat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .beat h4{margin:0 0 12px;font-size:15px}
+  .find{border-top:1px solid var(--line);padding:11px 0}
+  .find:first-of-type{border-top:0}
+  .find-t{font-weight:650;font-size:13.6px}
+  .find-c{font-size:12.5px;color:var(--muted);margin:4px 0}
+  .signal{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;text-transform:uppercase;margin-left:6px}
+  .signal.High{background:color-mix(in srgb,var(--green) 18%,var(--surface));color:var(--green)}
+  .signal.Medium{background:color-mix(in srgb,var(--yellow) 20%,var(--surface));color:#a9790a}
+  .signal.Low{background:color-mix(in srgb,var(--grey) 18%,var(--surface));color:var(--grey)}
+  .unv{font-size:10px;font-weight:700;color:var(--motion);border:1px solid color-mix(in srgb,var(--motion) 35%,var(--line));border-radius:5px;padding:1px 6px;margin-left:6px}
+  .comp{margin-top:10px;font-size:12.5px;color:var(--ink);opacity:.9}
+  .comp li{margin:5px 0}
+  footer{color:var(--muted);font-size:12.5px;text-align:center;padding:30px 20px 90px;border-top:1px solid var(--line);margin-top:36px}
+  .theme-btn{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+    color:#fff;border-radius:9px;padding:7px 10px;cursor:pointer;font-size:15px}
+  @media (max-width:560px){.grid,.pgrid{grid-template-columns:1fr}.toggle{margin-left:0;width:100%}}
+</style>
+
+<header>
+  <button class="theme-btn" id="themeBtn" title="Toggle theme">🌓</button>
+  <div class="head-in">
+    <div class="kicker">Brick City Planner · User-testing &amp; research harvest</div>
+    <h1>Feedback Board</h1>
+    <p class="sub">Everything a 15-agent fleet surfaced: enhancement ideas, six aggressive persona stress-tests, and real forum/competitor research — deduped into one board. Tick the ones you want built, hit <b>Copy picks</b>, and paste the IDs back to me.</p>
+    <div class="stats" id="stats"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="note" id="editorNote"></div>
+  <div class="note warn"><h3>⚠ One honesty note on sourcing</h3><p>Reddit (reddit.com) was <b>blocked in the research sandbox</b> for both search and direct fetch, so Reddit-specific asks are knowledge-based and tagged <span class="unv">UNVERIFIED</span>. The forum &amp; competitor findings below (Eurobricks, Brickset, BlueBrick/MattzoBricks, brickpile, l-gauge, SCARM) are from <b>real pages with working links</b>.</p></div>
+</div>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <label class="search">🔍<input id="q" placeholder="Search ideas, e.g. undo, price, track, mobile…" aria-label="Search"></label>
+    <div class="chips" id="catChips"></div>
+    <div class="toggle">
+      <label class="chip" id="pickToggle" style="cursor:pointer">★ Top picks only</label>
+      <select id="sort" aria-label="Sort">
+        <option value="default">Sort: grouped</option>
+        <option value="impact">Sort: impact</option>
+        <option value="effort">Sort: effort (easy→hard)</option>
+        <option value="rec">Sort: recommendation</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="chips" id="recChips" style="margin-bottom:14px"></div>
+  <p class="count-line" id="countLine"></p>
+  <div class="grid" id="grid"></div>
+
+  <h2 class="sec">🎭 What the testers said</h2>
+  <p class="sec-sub">Six specific people who each spent 30+ minutes hammering the site in character. Click a card to read their pain points and the fix they asked for.</p>
+  <div class="pgrid" id="personas"></div>
+
+  <h2 class="sec">🔎 From the community &amp; rival tools</h2>
+  <p class="sec-sub">Sourced from AFOL forums and competitor teardowns. <span class="unv">UNVERIFIED</span> = knowledge-based (Reddit was unreachable).</p>
+  <div id="community"></div>
+</div>
+
+<div class="selbar" id="selbar">
+  <div class="selbar-in">
+    <b><span id="selCount">0</span> selected</b>
+    <span class="ids mono" id="selIds"></span>
+    <button class="btn" id="clearBtn">Clear</button>
+    <button class="btn primary" id="copyBtn">📋 Copy picks</button>
+  </div>
+</div>
+
+<footer>
+  Generated from workflow <span class="mono">bcp-feedback-fleet</span> · 43 ideas · 6 personas · 4 research beats · 15 agents.<br>
+  A planning aid for <b>Brick City Planner</b> — pick freely; nothing here is committed until you say so.
+</footer>
+
+<script>
+const CATS = [
+  ["Quality of life","var(--qol)"],["UI & visual","var(--ui)"],["Graphics & motion","var(--motion)"],
+  ["Performance","var(--perf)"],["LEGO planning","var(--plan)"],["Accessibility","var(--acc)"]
+];
+const CATVAR = {"Quality of life":"var(--qol)","UI & visual":"var(--ui)","Graphics & motion":"var(--motion)","Performance":"var(--perf)","LEGO planning":"var(--plan)","Accessibility":"var(--acc)"};
+const RECMAP = {"Quick win":"qw","Strategic bet":"sb","Nice to have":"nth","Skip":"skip"};
+const TOP = ["QOL-1","QOL-2","QOL-3","PLAN-1","PLAN-4","PLAN-5","MOTION-6","ACC-2","UI-1"];
+const EDITOR = "The loudest, most cross-cutting theme: the core editing model is too primitive for the scale people actually build at — every power-user persona and the ideation set independently demand multi-select, copy/paste/duplicate, and real undo/redo. These are table stakes, not enhancements. Second theme: the tool nails “plan” but abandons “buy” — real prices, owned/wishlist tracking, buy links, and above all a clean shareable image/link export are requested by nearly every source, and are the highest-leverage way to make the tool finish its own job. Underneath sit two neglected audiences — accessibility/touch and serious train builders — each currently served badly enough to drive a rage-quit.";
+
+const ITEMS = [
+ ["QOL-1","Undo/redo with a visible history panel","Quality of life","High","Medium","Strategic bet","In-memory snapshot stack (50+ steps) on every place/move/rotate/delete, wired to Ctrl+Z / Ctrl+Shift+Z plus always-visible toolbar buttons and a dropdown of recent actions to jump back to a specific state.","Most-requested QoL feature in any layout tool and the biggest source of lost-work anxiety across three personas.",["Ideation","p:Marcus","p:Priya","p:Sven"]],
+ ["QOL-2","Marquee multi-select + group move/rotate/delete","Quality of life","High","Medium","Strategic bet","Rubber-band box select plus shift/ctrl-click with a combined bounding box; drag/nudge/rotate/delete act on the whole selection, and Ctrl+G binds a selection into a reusable block that snaps as a unit.","Marcus calls one-at-a-time editing the single biggest speed killer; essential once a city passes ~20 pieces.",["Ideation","p:Marcus"]],
+ ["QOL-3","Copy/paste, duplicate, and Alt-drag clone","Quality of life","High","Small","Quick win","Ctrl+C/V and Ctrl+D on single tiles or multi-selections (paste at an offset), plus Alt-drag to leave a copy behind, all layer-aware so roads stay on the road layer.","Cities are inherently repetitive (same junction, same house row); cheap to build and removes constant catalog re-searching.",["Ideation","p:Marcus"]],
+ ["QOL-4","Align & distribute toolbar for multi-selections","Quality of life","Medium","Medium","Nice to have","When 2+ tiles are selected, a floating bar offers align left/right/top/bottom/center and distribute-evenly on stored coordinates — especially for lining up baseplate rows.","Real pain for clean baseplate grids, but only valuable once multi-select (QOL-2) ships first.",["Ideation","p:Marcus"]],
+ ["QOL-5","Shareable design link (compressed URL) + named saves","Quality of life","High","Medium","Strategic bet","Serialize + compress the city JSON into a #d= fragment, copy to clipboard; opening loads read-only-first with an 'Import' guard. Plus named save slots for 2-3 alternative plans.","One-click sharing is far more viral than JSON email for a forum/Discord hobby community and stays fully client-side.",["Ideation","c:r/lego + Eurobricks","x:BlueBrick"]],
+ ["QOL-6","Starter templates / example-cities gallery","Quality of life","Medium","Small","Quick win","Ship 4-6 curated starter JSON files (Town Square, Train Loop, Modular Street) as thumbnails in a 'New from Template' modal with an overwrite guard.","Cheap onboarding lift that defuses the empty-grid-plus-1725-set paralysis for new visitors.",["Ideation"]],
+ ["QOL-7","Recently-used & favorites catalog rail","Quality of life","Medium","Small","Quick win","A pinned strip above the catalog showing the last ~8 placed sets plus star-toggle favorites; click a thumbnail to place another copy without re-searching.","Layouts reuse the same few pieces heavily; surfacing them kills redundant catalog scrolling.",["Ideation","p:Marcus"]],
+ ["QOL-8","Lock pieces + 'Kid Mode' / freeze-layout","Quality of life","High","Medium","Strategic bet","Per-tile (or lock-all-except-selected) lock toggle so finished sections can't be dragged, plus a 'freeze existing, only add new' mode and a simplified big-button touch layout.","Priya's critical pain: an 8-year-old's stray thumb wrecks 20 minutes of layout with no way to protect finished work.",["Ideation","p:Priya"]],
+ ["QOL-9","'Saved just now' autosave indicator","Quality of life","Medium","Small","Quick win","A small persistent Google-Docs-style status ('All changes saved' / 'Saving…') so users have visible reassurance before closing the tab.","Trivial reassurance that removes real end-of-session anxiety about lost work.",["p:Priya"]],
+ ["QOL-10","Per-layer show/hide + lock toggle","Quality of life","Medium","Small","Quick win","Visibility and lock toggles for each of the 3 stacking layers so users can isolate a roads-only or buildings-only view, going beyond bring-to-front/send-to-back.","High community demand ('blank out layers to focus'); small work on the existing layer model.",["c:r/lego + Eurobricks","x:BlueBrick"]],
+ ["UI-1","First-run guided empty state","UI & visual","High","Small","Quick win","When the canvas is empty, show a friendly 3-step illustrated tip, a 'Load a sample city' button, and a pulsing highlight on the search box; dismisses once the first tile is placed.","Near-zero engineering that converts first-10-seconds curiosity into a first placed tile.",["Ideation"]],
+ ["UI-2","Resize-grip affordance + keyboard cheat-sheet","UI & visual","Medium","Small","Quick win","Give the corner resize grip a striped handle icon, hover cursor/tooltip and a one-time pulse. Add a '?' button/key opening a modal of all shortcuts and gestures (drag-rotate node, corner grip, drag-drop).","Surfaces already-built features that are currently discoverable only by accident.",["Ideation"]],
+ ["UI-3","Dark mode with LEGO-brick accent palette","UI & visual","High","Medium","Strategic bet","Toolbar sun/moon toggle swapping a CSS custom-property theme (charcoal grid, muted studs, brighter red/yellow/blue accents), persisted and defaulting to prefers-color-scheme.","Top-3 ask for any long-session creative tool; pure CSS-variable work that also strengthens the brand feel.",["Ideation"]],
+ ["UI-4","Catalog grid/list view toggle + larger thumbnails","UI & visual","Medium","Medium","Nice to have","A view-switcher above catalog results: a 2-3 column grid of larger square thumbnails for visual browsing vs the current dense list for power users, remembered in localStorage.","Broadens appeal to parents/kids browsing by looks without touching data or filters.",["Ideation"]],
+ ["UI-5","Canvas annotations / sticky notes + custom-rectangle MOC blocking","UI & visual","Medium","Small","Quick win","Let users drop text labels on the canvas ('grocery here') and draw precisely-sized custom footprint rectangles for MOCs or not-yet-chosen buildings, independent of any catalog set.","Both are explicit high-demand community gaps (people fall back to paper cutouts to write on); cheap to add.",["c:r/lego + Eurobricks","x:BlueBrick","x:Track Designer"]],
+ ["MOTION-1","Set-thumbnail / icon tile skins + facade-direction cue","Graphics & motion","High","Medium","Strategic bet","Fill building tiles with the Rebrickable set thumbnail (top-down crop) or a per-type icon instead of a flat rectangle, and add a directional 'front' edge/arrow that rotates with the piece for street-facing facades.","Yuki's dealbreaker: the layout currently reads like 'a spreadsheet wearing a grid' and can't be parsed at a glance.",["p:Yuki","Ideation"]],
+ ["MOTION-2","Styled road/track rendering","Graphics & motion","Medium","Medium","Nice to have","Upgrade the schematic road/track SVGs with asphalt fill, dashed centre lanes that continue across curves/junctions, sidewalk strips, rounded curbs, and a subtle bevel off the baseplate.","Roads are on nearly every city and are the plainest element; big look payoff, but cosmetic vs the editing/buying gaps.",["p:Yuki","Ideation"]],
+ ["MOTION-3","Terrain / zone paint layer (grass, water, plaza, sand)","Graphics & motion","Medium","Medium","Strategic bet","A simple area-fill layer under buildings for landscaping, plus optional zoning tints (residential/commercial/industrial), so empty space reads as intentional rather than as a hole.","Landscaping is half of what makes a city shot look good and is completely absent today.",["p:Yuki","c:r/lego + Eurobricks"]],
+ ["MOTION-4","Non-rectangular footprints for corner/L-shaped sets","Graphics & motion","Medium","Large","Nice to have","Support real non-rectangular outlines (e.g. Assembly Square's corner shape) instead of a bounding-box rectangle, so corner modulars nestle at intersections.","Correct only where the illusion matters most (corners), but a meaningful data + geometry lift for a subset of sets.",["p:Yuki"]],
+ ["MOTION-5","Magnetic snap preview: ghost outline + pulsing port glow","Graphics & motion","High","Small","Quick win","While dragging near a valid snap target, render a semi-transparent ghost at the exact snap position and pulse a ring on the specific port/edge that will connect, updating live.","Snapping is silent today so users can't see which connection will be made; highest-leverage 'feel' fix, and it makes it fun for kids.",["Ideation","p:Priya"]],
+ ["MOTION-6","Interaction juice: pop-in, eased rotation, marching-ants select","Graphics & motion","Medium","Small","Quick win","Scale-in with slight overshoot on placement, fade+scale on delete, short eased tweens on rotation snaps, a subtle drag-lift, and an animated dashed 'marching ants' selection outline.","Cheap CSS/Web-Animations polish that makes every interaction feel considered rather than mechanical.",["Ideation"]],
+ ["PERF-1","Viewport culling + dirty-rect layer caching","Performance","High","Medium","Strategic bet","Cache the 3 layers separately, render only tiles intersecting the visible viewport (+margin), and redraw only the changed layer — pure bookkeeping, no libraries.","At 300+ tiles / a 50-baseplate layout, full-scene redraws are the exact jank a planner must not have as cities grow.",["Ideation","p:Marcus"]],
+ ["PERF-2","GPU transform-batched drag via requestAnimationFrame","Performance","High","Medium","Strategic bet","During a drag, stop writing layout-triggering x/y per pointermove; accumulate the latest position and apply once per frame as a CSS transform on the tile's own layer, committing coords on drop.","Standard fix that turns choppy attribute-write dragging into buttery transform dragging, especially once scenes are heavier.",["Ideation"]],
+ ["PERF-3","Smooth pointer-anchored zoom + pinch + kinetic pan","Performance","Medium","Small","Quick win","Continuous eased zoom anchored to the cursor/pinch-centre (the stud under the pointer stays put), driven by wheel + native trackpad/touch pinch, plus inertial pan.","Cheap 'feels professional vs feels like a toy' upgrade, and delivers the pinch Priya's iPad session kept expecting.",["Ideation","p:Priya"]],
+ ["PLAN-1","'I own this' toggle + owned-vs-buy budget split","LEGO planning","High","Small","Quick win","Per-set 'Owned' checkbox shown on catalog + placed tiles; the summary splits cost into 'Already own ($0)' vs 'Still need to buy', and owned sets drop out of the shopping-list. Foundation for a 'My Collection' inventory.","AFOLs already own overlapping sets; today's budget overstates cost by treating every tile as a fresh purchase.",["Ideation","p:Dana"]],
+ ["PLAN-2","Real MSRP price data + per-set manual override","LEGO planning","High","Medium","Strategic bet","Bundle a static set-number→MSRP JSON from the existing build pipeline; use real prices when known (fall back to $0.11/piece with an 'estimated' badge), let users type the price they paid, and add price-based catalog sort.","Dana's critical complaint: the flat per-piece heuristic is 'actually-misleading wrong' for modulars/licensed sets, and the data already flows through the build.",["Ideation","p:Dana","c:r/lego + Eurobricks"]],
+ ["PLAN-3","Buildability checker ('Check my city')","LEGO planning","High","Medium","Strategic bet","A one-pass scan listing concrete problems — tiles off a baseplate edge, misaligned road/track ports despite visual adjacency, wrong-layer stacking, remaining '~' estimated footprints — with click-to-zoom to each.","Catches 'this plan won't actually assemble' before money is spent — exactly the moment a planner should earn its keep.",["Ideation"]],
+ ["PLAN-4","High-resolution PNG export + presentation mode","LEGO planning","High","Medium","Strategic bet","Render the canvas to a downloadable PNG at 1x/2x/4x via offscreen canvas, with a no-UI/no-grid clean-background toggle and an optional title card + summary stats along one edge.","The most cross-cited request in the whole corpus; many users' entire point is to show off a plan before buying, and today they can only crop a messy screenshot.",["Ideation","p:Yuki","c:r/lego","c:r/legotrains","x:Sprattronics"]],
+ ["PLAN-5","Direct buy links per set (+ generic pieces)","LEGO planning","High","Small","Quick win","On each catalog row and in the export, add LEGO.com set-page links plus BrickLink/Amazon search links; for generic road/track/baseplate primitives, a small JSON maps each shape to real part numbers with a BrickLink link.","Dana's critical gap: the tool dumps users at a text export instead of closing the plan-to-cart loop; pure static links, no server.",["p:Dana","Ideation"]],
+ ["PLAN-6","Wishlist tab separate from the grid","LEGO planning","Medium","Medium","Nice to have","A star-to-save wishlist panel with its own subtotal, independent of placed-on-grid totals, that users can browse and later promote into the real plan.","Distinct from ownership tracking and genuinely sticky, but secondary to getting real prices and buy links in first.",["p:Dana"]],
+ ["PLAN-7","More baseplate sizes + custom plate dimensions","LEGO planning","Medium","Small","Quick win","Support 48×48, 48×32, 16×16 and user-defined baseplate sizes, not just the 32×32 standard, with snapping adjusted accordingly.","Explicitly requested at both the large (48×48) and small (16×16) ends; modest change to the existing baseplate model.",["c:r/lego + Eurobricks","x:Sprattronics"]],
+ ["PLAN-8","Realistic scale reference overlay","LEGO planning","Low","Small","Nice to have","Toggle faint true-stud-scale silhouettes (minifig, car, door) next to the build plus a one-click ruler with 10/50/100-stud ticks, so builders can judge believable scale.","Cheap and on-mission (the grid already encodes stud-to-cm), but a nicety rather than a blocker.",["Ideation"]],
+ ["PLAN-9","BrickLink-compatible wanted-list / CSV export","LEGO planning","Medium","Medium","Nice to have","Export the shopping list (and, for scratch-built track sections, individual piece counts) in a BrickLink wanted-list format, since train/MOC builders buy piece-by-piece.","Recurring cross-tool friction ('BrickLink doesn't accept CSV'); most valuable to the train/MOC segment once track pieces map to real part numbers.",["c:r/lego + Eurobricks","c:r/legotrains","x:Stud.io"]],
+ ["PLAN-10","Real curve-radius classes + mismatch warnings + true switch geometry","LEGO planning","High","Large","Strategic bet","Tag every track piece with its real radius class (R40/R56/R72/R104…) and hard-warn on a snap between mismatched radii; snap curve rotation to the piece's real turn increment; model switches as through + diverging ports at the correct ~16.5° angle.","The one thing that stops users designing physically-impossible loops; high demand from a passionate niche, but a real data+geometry investment.",["p:Sven","c:r/legotrains","x:TrixBrix","x:BlueBrick"]],
+ ["PLAN-11","Track continuity / loop-closure validator + buffer stops","LEGO planning","High","Medium","Strategic bet","When a chain of track ports forms a cycle, verify every port pairs exactly (position + heading) and highlight any gap; add a buffer-stop marker so intentional spurs differ from unfinished track; encode 16-stud parallel spacing + 45° diagonal helpers.","Sven's oval 'looked closed' but had a real port gap he only caught by accident; a track-specific extension of the buildability checker.",["p:Sven","c:r/legotrains"]],
+ ["PLAN-12","3D / isometric + elevation preview toggle","LEGO planning","High","Large","Strategic bet","An optional extruded-height / isometric view (keeping fast 2D top-down as primary) plus levels — road vs rail vs water, bridges, slopes — to sanity-check spatial relationships and clearances before buying.","The single most-cited reason AFOLs abandon 2D grid tools for Studio/SCARM; a real differentiator but a large client-side build — sequence after the quick wins.",["c:r/lego + Eurobricks","c:r/legotrains","x:Stud.io","x:SCARM"]],
+ ["PLAN-13","Freeform / non-grid road placement","LEGO planning","Medium","Large","Skip","Allow angled/curvy 'twisty-lane' roads not locked to the 32-stud orthogonal grid, as BlueBrick offers.","Directly fights the app's grid-snap identity and is a large lift for a minority of MOCers; revisit only if the tool pivots away from stud-grid precision.",["c:r/lego + Eurobricks","x:BlueBrick"]],
+ ["PLAN-14","Live multiplayer / collaborative editing","LEGO planning","Low","Large","Skip","Real-time shared or view/comment editing of one city plan for club/exhibition planning.","Infeasible on a static GitHub-Pages site with no backend/accounts; the compressed share-link (QOL-5) covers the realistic slice of this need.",["c:r/lego + Eurobricks"]],
+ ["ACC-1","Full keyboard-driven placement & rotation pipeline","Accessibility","High","Medium","Strategic bet","Auto-select a tile on placement so it's immediately arrow-nudgeable, add a Shift+Arrow 'nudge by 10 studs' modifier, and give free rotation a keyboard path (Shift+[/] for 15°, Ctrl+[/] for 1°) so a whole city can be built mouse-free.","Theo's RSI makes the mouse-only rotate node unusable; the drag node can stay but must not be the only path to an arbitrary angle.",["p:Theo","p:Priya"]],
+ ["ACC-2","Non-color signals for filters, overlaps + colorblind-safe theme","Accessibility","High","Small","Quick win","Put text/icon labels on every filter chip, category tag and layer badge (never color alone); give overlap warnings a non-color signal (hazard-stripe border / badge / text toast); offer a high-contrast theme swapping hue for patterns.","Theo literally can't tell Police from Fire chips and nearly shipped a list with two sets stacked; mostly labelling/CSS with outsized inclusivity payoff.",["p:Theo"]],
+ ["ACC-3","High-contrast focus ring + larger, AA-contrast panels","Accessibility","Medium","Small","Quick win","A thick high-contrast keyboard-focus ring visible on both light and dark grids, plus bumped base font/icon sizes in the side panels and layer buttons meeting WCAG AA contrast.","Theo repeatedly lost track of keyboard focus and had to lean in to read the summary; cheap, standard accessibility hygiene.",["p:Theo"]],
+ ["ACC-4","ARIA live region announcing placement / rotation / overlap","Accessibility","Medium","Medium","Nice to have","A polite live region emitting status like 'Fire Station placed at row 4, col 12, rotated 90°' / 'Overlap detected', surfaced as on-screen status text too.","Meaningful for screen-reader and colorblind users and reinforces the keyboard pipeline (ACC-1), though a smaller audience than the visual fixes.",["p:Theo"]],
+ ["ACC-5","Mobile bottom-sheet catalog + 44px touch targets + native gestures","Accessibility","High","Medium","Strategic bet","On mobile, replace the side-panel catalog with a swipe-up bottom sheet; bump rotate/delete/toolbar buttons to 44×44px; make press-and-hold on a thumbnail enter a finger-following drag (or a big 'Add' tap); support two-finger pinch/pan and tap-confirm before delete.","Mobile is flagged untested and Priya's iPad session nearly rage-quit on tiny handles, failed drag-drop, and missing pinch; high leverage for the tablet-at-the-build-table use case.",["Ideation","p:Priya","c:r/lego + Eurobricks","x:Mecabricks"]]
+];
+
+const PERSONAS = [
+ ["Marcus Vale","🏗️","MOC power-user · 50-baseplate convention city",
+  "Likes the catalog, snapping and layer system — but the complete absence of multi-select, copy/paste, grouping and align turned fast bulk layout into painful one-piece-at-a-time repetition, the exact opposite of the speed he needs.",
+  [["No multi-select / box-select","Critical","Tried to drag-select a 6×6 cluster of roads to nudge them one stud so a baseplate seam lined up. Clicking just picked the single tile and deselected everything. Ended up click-drag-nudge for 40 tiles to fix one seam.","Rubber-band box select, shift-click to add/remove, and group nudge/rotate/delete/move."],
+   ["No copy/paste or duplicate","Critical","Built a perfect 4-way intersection with curbs and wanted it identical on plates #7, #12, #19. No Ctrl+C/V, no duplicate — had to re-place every piece three more times reading my own screenshot.","Ctrl+C/V (paste at offset) and Ctrl+D duplicate, on single tiles AND multi-selections."],
+   ["No grouping","Major","Got the Police Station + parking + road frontage arranged, wanted to move the whole cluster 32 studs left. Had to move 6 pieces individually and broke two edge-snaps, triggering overlap warnings.","Select → 'Group' so they move/rotate/delete as one unit, still respecting snapping."],
+   ["No align/distribute","Major","Had 5 baseplates in a row and wanted edges perfectly flush and evenly spaced. Even at 200% zoom I couldn't tell if plate #4 was 1 stud off until the road snapping started fighting me.","Align + distribute buttons for a multi-selection, at least for baseplates."],
+   ["Undo feels shallow / unconfirmed","Major","Fat-fingered a delete on an angled switch, Ctrl+Z brought it back — good — but later I wanted to undo further and wasn't sure I'd blown past the buffer. No visible stack, so I was mashing blind.","A visible undo/redo history list to jump back with confidence; confirm stack depth."],
+   ["Bulk placement is slow","Minor","Placing 15 identical baseplates meant dragging the same catalog row 15 times, re-scrolling to find it each time the list re-sorted.","A 'place N more' quick-add or a pinned/recent tray so repeats don't need re-searching."]]],
+ ["Priya","📱","Parent + 8-year-old · iPad, touch only",
+  "The core idea delighted them both, but the desktop-first touch UX punished exactly what an 8-year-old brings to a tablet: chaotic taps, imprecise drags, impatience. Nearly a rage-quit.",
+  [["No lock/protect for placed pieces","Critical","Got the fire station + road loop just right. Milo grabbed the iPad to add the police station and dragged three roads and a baseplate half off the grid because his thumb hit a placed tile instead of empty canvas.","Per-tile or per-area 'lock' (or lock-all-except-selected) so kids can experiment in one zone safely."],
+   ["Accidental delete, weak undo","Critical","Kid tapped a piece then tapped again near the edge to rotate; a stray gesture removed a modular building placed 15 minutes ago. Undo only went back one step and he'd already tapped twice more.","Multi-level undo (15-20 steps) and a tap-confirm before delete on touch."],
+   ["Rotate node too small for a finger","Major","The little rotate handle is clearly sized for a mouse. Milo tried for two minutes to grab it and kept dragging the whole tile or selecting the wrong tile underneath.","A 44×44px touch hit area for the rotate handle, or big '+15°/-15°' tap buttons in touch mode."],
+   ["No pinch-to-zoom","Major","Every zoom meant reaching to the corner control instead of pinching like every other iPad app. Milo kept pinching, nothing happened, then jabbed the screen in frustration.","Native two-finger pinch-zoom and pan on touch."],
+   ["Catalog drag-drop fails on touch","Major","Starting a drag from the small thumbnail was unreliable — half the time it scrolled the list instead. Gave up and used the + button every time, then had to hunt where it landed.","Press-and-hold enters a 'ghost follows finger' drag, or a big 'Add to canvas' tap button."],
+   ["No 'it saved' reassurance","Minor","Had to stop for dinner, closed Safari assuming autosave, then worried all evening it was lost. It reloaded fine, but there was no confirmation in the moment.","A persistent 'All changes saved' indicator like Google Docs."],
+   ["Toolbar targets bunched tight","Minor","Milo kept hitting 'send to back' instead of 'rotate 90°' because the small icons are packed together. Fine for a cursor, not a finger.","Space out and enlarge action buttons in the touch/mobile layout."]]],
+ ["Sven","🚂","Train-layout perfectionist · Eurobricks regular",
+  "The generic road/track abstraction let him build something that LOOKED plausible in 2D but silently violated real LEGO track topology — mismatched radii snapping together, a loop that visually closed but had a real gap, a switch that's just a symbol. He doesn't trust it corresponds to a buildable layout.",
+  [["Loops don't know they're loops","Critical","Laid a full oval of eight curves plus straights; the tool let me leave a 2-stud gap at the last joint because the last curve snapped by its footprint corner to a baseplate edge instead of port-to-port. It LOOKED closed at 100% zoom.","A track-continuity validator: confirm every port in a cycle pairs exactly, flag any gap."],
+   ["Curve radius is a texture, not a constraint","Critical","Put a 'curve L' next to what I assumed was the same radius from another set's footprint; ports lined up but the actual curvature was two different radii. R40 vs R56 will never physically mesh even if the 2D snap says the endpoints touch.","Tag each track piece with its real radius class and refuse/hard-warn a snap between mismatched radii."],
+   ["Switches are generic icons","Major","Dropped a 'switch L' to branch a siding into a yard and it's just a symbol — no divergent angle, no distinction between through and diverging route. Eyeballed where the siding lands and it was wrong twice.","Model switches as two real port pairs at the correct LEGO switch geometry (~16.5°) so downstream track auto-aligns."],
+   ["No siding/spur concept","Major","Wanted a freight siding off the main loop to a depot. No way to mark a dead-end buffer; the tool treats an intentional stub identically to a piece I forgot to route.","A buffer-stop / end-of-line marker so intentional open ends differ from topology errors."],
+   ["15° snap ≠ real curve angles","Major","Real curves turn in fixed increments (e.g. 22.5°), not a 15° drag-snap. I rotated a curve to 'look' aligned and the port math didn't match the physical piece, throwing off my curves-per-circle count.","Snap track rotation to the piece's real turn angle, and show 'curves used / needed for a full circle'."],
+   ["Footprints hide real track counts","Minor","Wanted to know how many curve pieces a train set contributes, but the footprint is one rectangle with a '~' — can't tell how many discrete segments are inside.","For train sets, break the footprint into its real constituent track pieces from part-out data."]]],
+ ["Dana","💸","Budget shopper · plan → buy this month",
+  "The layout stuff worked and was fun, but the second she tried to turn a plan into a shopping decision — real prices, buy links, excluding what she owns, a wishlist — the tool wasn't built for it. She left with a pretty picture and all her purchasing homework still to do by hand.",
+  [["The '$0.11/piece' number is fiction","Critical","Laid out ~9 sets; the budget was off piece count. Modulars run far more per piece, some City sets far less. My 'budget' was actually-misleading wrong and I've no idea if I'm actually under.","Pull real per-set prices and sum those, or let me override per-set with a price I paste; make the total use real prices when available."],
+   ["No buy links anywhere","Critical","Once I had my 9 sets there was nothing clickable to buy them. Had to manually search LEGO.com and Amazon for each set number. Going plan→cart is the entire point and it dumps me at a text export.","Direct links per row + in the export (LEGO.com by set number, BrickLink/Amazon search)."],
+   ["Can't mark what I already own","Major","I own two road-baseplate sets and a small police set; dragging them in counted them in the total like I still need to buy them. Had to subtract in my head.","An 'I own this' toggle that keeps it on the grid but excludes it from cost and the shopping list."],
+   ["No wishlist separate from the grid","Major","Wanted a running list of sets I'm considering (the pricey Downtown Diner) without cluttering my grid or budget. Every set either stays in the catalog or goes on the grid.","A wishlist panel with its own subtotal, independent of the placed total, promotable later."],
+   ["No cheaper alternatives","Minor","Wanted a $250 police station I can't afford; no 'here's a smaller/cheaper set of similar footprint' suggestion. Had to scroll and squint comparing chips.","Surface 2-3 same-category alternatives sorted by price when I select an expensive set."],
+   ["Estimated footprints trusted like curated","Minor","A few sets were flagged '~' (estimated) but the budget folds them in with no distinction; only noticed by re-checking each tile.","Show a caveat on the summary total itself ('includes N estimated footprints')."]]],
+ ["Theo","♿","Accessibility · colorblind + keyboard/RSI",
+  "Tried to lay out a downtown block almost entirely by keyboard and hit walls everywhere: color-only chips and overlap warnings he can't read, a rotation control that needs exactly the fine mouse motion his RSI can't tolerate, and placement that still forces manual drag-into-place.",
+  [["Filter chips are colour-only blobs","Critical","Wanted to isolate Police from Fire; half the chips are the same reddish smear to me. Couldn't tell Police from Fire from Town by colour — had to hover every one and read the tooltip.","Text label or icon on every chip, tag and legend swatch — never colour alone."],
+   ["Rotate node is a mouse-only bullseye","Critical","Fine circular dragging to snap a curve at 15° flares my RSI after a couple of tiles. I gave up on free rotation and just mashed the 90° button even when it gave the wrong angle, because at least it didn't hurt.","A full keyboard path for rotation (Shift+[/] 15°, Ctrl+[/] 1°). The drag node can stay, but not as the only path."],
+   ["No keyboard path for catalog→canvas","Critical","Using + button plus keyboard, placement dumps the tile at a default spot and I have to mouse-drag it. Arrow-nudge moves one tile slowly. For a 40-set city that's 40 rounds of drag-into-place.","Auto-select the new tile for immediate arrow-keying, plus a Shift+Arrow 'nudge by 10' modifier."],
+   ["Overlap warnings are colour-only","Major","Two buildings overlapped and I only noticed a faint reddish outline flash. Nearly shipped a list with two sets stacked on one footprint.","A non-colour overlap signal: hazard-stripe border, exclamation badge, or a text toast naming both pieces."],
+   ["Small toolbar text/icons","Major","The summary panel and layer front/back buttons are small; at 100% zoom I leaned in to read the piece count and the icons are nearly indistinguishable.","Bump base font/icon size in the side panels and meet WCAG AA contrast."],
+   ["Invisible keyboard focus","Major","Tabbing through placed tiles to find one to delete, I kept losing which was focused — no visible outline, or one that blends into the grid.","A thick high-contrast focus ring visible on both light and dark grids."]]],
+ ["Yuki","🏙️","Aesthetic modularist · judges it on looks",
+  "Snapping, rotation and search worked, but the tool completely failed the goal Yuki cares about: making the city LOOK GOOD. Flat rectangles with tiny labels, wiring-diagram roads, no grass/water/plaza, no facade cues, and — the dealbreaker — no way to export a clean image.",
+  [["Everything is a flat colored rectangle","Critical","Dragged in Bookshop and Downtown Diner and both show as beige boxes with a label. Spent five minutes squinting to tell which footprint was which before reading tiny labels. It looks like a spreadsheet wearing a grid.","Use the real Rebrickable set image as a tile fill, or at minimum a distinct icon per building type."],
+   ["No image export / presentation mode","Critical","After getting it half-decent I wanted to post it. The only exports are JSON and a text shopping list — neither is a picture. I Windows-Snipped the canvas and the toolbar chrome and grid lines came along.","One-click 'Export image' rendering just the canvas (optionally hiding grid/toolbar/handles) to a PNG, with a clean-background toggle."],
+   ["No facade / front-door orientation","Major","Rotated my modular row to line the street but can't indicate which side is the front with the windows vs the blank back wall. Couldn't tell if I'd built a street-facing row or a row of backsides.","A directional 'front' arrow/edge on building tiles that rotates with the piece."],
+   ["Roads are ugly schematic lines","Major","A whole road loop looks like a wiring diagram — thin grey lines, no lane markings, no sidewalk, no curb. Kills any desire to share a screenshot.","Asphalt fill with lane dashes, sidewalk strips, rounded curb corners on curves."],
+   ["No grass/water/plaza zone tool","Major","Wanted a green space between modulars and a pond by the tracks; no way to paint terrain, so I left cells empty — which reads as a hole, not a park.","A terrain/zone paint layer (grass, water, plaza, sand) under the buildings layer."],
+   ["Grid lines dominate when zoomed out","Minor","At 50% zoom the stud grid competes with the buildings — reads more like graph paper than a city map.","Fade/thin grid lines at low zoom, or a toggle to hide the grid."],
+   ["Rectangles ignore real shape variety","Minor","Corner-shaped sets like Assembly Square render as a plain rectangle, throwing off how buildings meet at a street corner.","Support non-rectangular outlines for known corner/L-shaped official footprints."]]]
+];
+
+const COMMUNITY = [
+ ["Forums — LEGO city/town (Eurobricks, Brickset, Lions Gate)",
+  [["3D / isometric preview toggle, not just flat 2D","Builders gravitate to BrickLink Studio because its 3D view lets them 'rotate builds from every angle'; the 2D-vs-3D tradeoff is the core reason people abandon simpler grid tools once a layout gets complex.","https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/","High",false],
+   ["Precise custom-rectangle footprints for un-catalogued MOC buildings","Users want a top-down bird's-eye layout with a grid overlay and the ability to 'create precisely sized footprint outlines' of buildings for scale, independent of a specific set.","https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/","High",false],
+   ["Elevation / height support — bridges, slopes, water vs road vs rail levels","City-planning guides tell builders to decide road/rail/water LEVELS and mark bridges/slopes; the current 3-layer stack has no concept of height at all.","https://lionsgatemodels.com/planning-and-building-a-lego-city/designing-your-lego-city-layout/","Medium",false],
+   ["Live running parts list panel (not just an end export)","Brickset on Stud.io: 'it keeps a running list of every part in the build.' We have an export, but not a live always-visible panel.","https://brickset.com/article/24920/building-with-stud-io","Medium",false],
+   ["BrickLink-compatible wanted-list export ('BrickLink doesn't accept CSV')","Recurring frustration getting a design's parts list into a BrickLink-purchasable format; our export is plain-text only.","https://www.eurobricks.com/forum/forums/topic/191613-studio-export-parts-list-with-pictures/","Medium",false],
+   ["Verify road-plate / part compatibility & obtainability before buying","Real road-plate compatibility (discontinued 4108-4111 plates now pricey) and pieces like monorail running through buildings are recurring planning pains; people want confidence a plan assembles with obtainable parts.","https://www.eurobricks.com/forum/forums/topic/194790-ultimate-city-layout/","Medium",false],
+   ["Named/multiple saved layout slots to compare alternatives","AFOLs sketch 2-3 alternative layouts before committing budget; single-autosave + JSON import/export is friction. (Reddit unreachable — knowledge-based.)","","Medium",true],
+   ["Zone colour-coding (residential/commercial/industrial) before placing sets","Planning guides recommend zoning as an early step, independent of actual pieces.","https://lionsgatemodels.com/planning-and-building-a-lego-city/designing-your-lego-city-layout/","Low",false]]],
+ ["Forums — LEGO trains (brickpile, l-gauge, MattzoBricks, transponderings)",
+  [["Multiple curve-radius presets (R40 / R56 / R72 / R104…), not just stock R40","Standard R40 curves look unrealistic for long trains (overhang, coach collisions); BlueBrick's popularity is partly its libraries covering many radii so builders plan with the geometry they'll buy.","https://transponderings.blog/2024/05/03/the-straight-the-curved-and-the-pointy-of-lego-compatible-train-track/","High",false],
+   ["Validate real track geometry (16-stud parallel spacing, 45° diagonal helper)","Reference lays out exactly these constraints (parallel spacing in multiples of 16, the 5-12-13 diagonal trick) as things planners work out by hand today.","https://www.brickpile.com/articles/track-layout-geometry/","High",false],
+   ["Full switch/turnout variety — left, right, wye, double-slip/crossing","L-Gauge CAD wiki and BlueBrick libraries list these as first-class pieces distinct from curves/straights; users actively request new switch components.","http://l-gauge.org/wiki/index.php/CAD_Tools","Medium",false],
+   ["Elevation / grade planning (inclines, tunnels, bridges) with side-profile","3D Train Studio is the go-to over BlueBrick specifically for 2D+3D planning to check grades/clearances before buying incline track.","https://mattzobricks.com/lego-track-planning","Medium",false],
+   ["Electrical-isolation / short-circuit warnings for powered wye/reverse loops","Powered (9V/RC) wyes need inserted paper/gaps to avoid shorting — a planner flagging 'this loop will short on powered track' is a train-specific feature no generic tile planner offers.","https://www.brickpile.com/articles/track-layout-geometry/","Low",false],
+   ["A modern browser-based planner (BlueBrick is Windows-only & dated)","Train community has long-running BlueBrick fatigue; a free cross-platform no-install planner would draw them for that reason alone. (Reddit unreachable — knowledge-based.)","","Medium",true]]],
+ ["Competitor tools worth stealing from",
+  [["BrickLink Studio (Stud.io)","Full 3D CAD with realistic snapping + collision detection ('tells you when something doesn't quite work'), rotate from any angle, simulate unlimited virtual bricks, and a live running parts list. Most-cited reason AFOLs prefer it over flat 2D — despite being far slower at city scale.","https://www.bricklink.com/v3/studio/download.page","High",false],
+   ["BlueBrick","Purpose-built free 2D LEGO layout planner: assignable per-element drawing layers with show/hide, auto parts-list generation, on-canvas text annotations, pluggable community part libraries (RC/9V/ME/TrixBrix/BrickTracks), and easier 'outside the grid' placement. Closest direct competitor.","https://bluebrick.lswproject.com/","High",false],
+   ["3D Train Studio / SCARM","Combine 2D planning with an instant one-click 3D preview + layout simulation and elevation tools — validates that a lightweight 3D/elevation preview is a recurring want across the whole landscape.","https://www.scarm.info/","Medium",false],
+   ["TrixBrix / BrickTracks","Sell 3D-printed track in radii from R24 to R184 to fix the 'stock R40 looks toy-like' complaint — validates multiple curve-radius presets per curve type, not one-size-fits-all.","https://trixbrix.eu/","Medium",false],
+   ["Excel / Google Sheets grid method","Zero-cost, near-zero-learning-curve: each cell = 8×8 studs, coloured via conditional formatting; praised for simplicity and dead-easy sharing. A reminder that low-friction plain grids + easy sharing beat feature bloat for some users.","","Low",true]]]
+];
+
+/* ---------- render ---------- */
+const grid = document.getElementById('grid');
+let fCat = "All", fRec = "All", pickOnly = false, sortMode = "default", query = "";
+const sel = new Set(JSON.parse(localStorage.getItem('bcp.picks')||'[]'));
+
+// stats
+const catCounts = {}; ITEMS.forEach(i=>catCounts[i[2]]=(catCounts[i[2]]||0)+1);
+document.getElementById('stats').innerHTML = [
+  [ITEMS.length,"ideas"],[6,"personas"],[4,"research beats"],[TOP.length,"top picks"],
+  [ITEMS.filter(i=>i[5]==="Quick win").length,"quick wins"]
+].map(s=>`<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('');
+document.getElementById('editorNote').innerHTML = `<h3>🗂️ Product lead's read on the themes</h3><p>${EDITOR}</p>`;
+
+// category chips
+const catChips = document.getElementById('catChips');
+catChips.innerHTML = `<span class="chip on" data-cat="All">All</span>` + CATS.map(c=>
+  `<span class="chip" data-cat="${c[0]}"><i class="dot" style="background:${c[1]}"></i>${c[0]} <b style="opacity:.6">${catCounts[c[0]]||0}</b></span>`).join('');
+catChips.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;fCat=c.dataset.cat;
+  catChips.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));render();});
+
+// rec chips
+const recChips = document.getElementById('recChips');
+const RECS=["All","Quick win","Strategic bet","Nice to have","Skip"];
+recChips.innerHTML = RECS.map((r,i)=>`<span class="chip ${i===0?'on':''}" data-rec="${r}">${r==='All'?'All tiers':r}</span>`).join('');
+recChips.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;fRec=c.dataset.rec;
+  recChips.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));render();});
+
+document.getElementById('q').addEventListener('input',e=>{query=e.target.value.trim().toLowerCase();render();});
+document.getElementById('sort').addEventListener('change',e=>{sortMode=e.target.value;render();});
+const pickT=document.getElementById('pickToggle');
+pickT.addEventListener('click',()=>{pickOnly=!pickOnly;pickT.classList.toggle('on',pickOnly);render();});
+
+const IMPORD={High:0,Medium:1,Low:2}, EFFORD={Small:0,Medium:1,Large:2}, RECORD={"Quick win":0,"Strategic bet":1,"Nice to have":2,"Skip":3};
+const srcClass=s=>s.startsWith('p:')?'persona':s.startsWith('c:')?'comm':s.startsWith('x:')?'comp':'';
+const srcLabel=s=>s.startsWith('p:')?'👤 '+s.slice(2):s.startsWith('c:')?'💬 '+s.slice(2):s.startsWith('x:')?'⚔ '+s.slice(2):s;
+
+function render(){
+  let list = ITEMS.filter(i=>{
+    if(fCat!=="All" && i[2]!==fCat) return false;
+    if(fRec!=="All" && i[5]!==fRec) return false;
+    if(pickOnly && !TOP.includes(i[0])) return false;
+    if(query){const hay=(i[0]+' '+i[1]+' '+i[6]+' '+i[7]+' '+i[8].join(' ')).toLowerCase();if(!hay.includes(query))return false;}
+    return true;
+  });
+  if(sortMode==="impact") list.sort((a,b)=>IMPORD[a[3]]-IMPORD[b[3]]||EFFORD[a[4]]-EFFORD[b[4]]);
+  else if(sortMode==="effort") list.sort((a,b)=>EFFORD[a[4]]-EFFORD[b[4]]||IMPORD[a[3]]-IMPORD[b[3]]);
+  else if(sortMode==="rec") list.sort((a,b)=>RECORD[a[5]]-RECORD[b[5]]||IMPORD[a[3]]-IMPORD[b[3]]);
+
+  document.getElementById('countLine').textContent = `Showing ${list.length} of ${ITEMS.length} ideas` + (sel.size?` · ${sel.size} picked`:'');
+  grid.innerHTML = list.map(i=>{
+    const[id,title,cat,imp,eff,rec,desc,rat,src]=i;
+    const isPick=TOP.includes(id), isSel=sel.has(id);
+    return `<div class="card ${isPick?'pick':''} ${isSel?'sel':''}" style="--cat:${CATVAR[cat]}">
+      <div class="c-top">
+        <input type="checkbox" class="c-check" data-id="${id}" ${isSel?'checked':''} aria-label="Pick ${id}">
+        <span class="c-id mono">${id}</span>${isPick?'<span class="c-star" title="Top pick">★</span>':''}
+        <span class="rec ${RECMAP[rec]}">${rec}</span>
+      </div>
+      <div class="c-title">${title}</div>
+      <div class="c-desc">${desc}</div>
+      <div class="c-rat">${rat}</div>
+      <div class="c-meta">
+        <span class="tag imp-${imp}">Impact: ${imp}</span>
+        <span class="tag eff-${eff}">Effort: ${eff}</span>
+      </div>
+      <div class="src">${src.map(s=>`<span class="${srcClass(s)}">${srcLabel(s)}</span>`).join('')}</div>
+    </div>`;
+  }).join('') || `<p class="count-line">No ideas match these filters.</p>`;
+
+  grid.querySelectorAll('.c-check').forEach(cb=>cb.addEventListener('change',()=>{
+    cb.checked?sel.add(cb.dataset.id):sel.delete(cb.dataset.id);
+    localStorage.setItem('bcp.picks',JSON.stringify([...sel]));
+    cb.closest('.card').classList.toggle('sel',cb.checked);
+    updateSelbar(); document.getElementById('countLine').textContent = `Showing ${list.length} of ${ITEMS.length} ideas` + (sel.size?` · ${sel.size} picked`:'');
+  }));
+}
+function orderedPicks(){ return ITEMS.map(i=>i[0]).filter(id=>sel.has(id)); }
+function updateSelbar(){
+  const bar=document.getElementById('selbar'), ids=orderedPicks();
+  document.getElementById('selCount').textContent=ids.length;
+  document.getElementById('selIds').textContent=ids.join(', ');
+  bar.classList.toggle('show',ids.length>0);
+}
+document.getElementById('copyBtn').addEventListener('click',()=>{
+  const t=orderedPicks().join(', ');
+  navigator.clipboard.writeText(t).then(()=>{const b=document.getElementById('copyBtn');b.textContent='✓ Copied!';setTimeout(()=>b.textContent='📋 Copy picks',1400);});
+});
+document.getElementById('clearBtn').addEventListener('click',()=>{sel.clear();localStorage.setItem('bcp.picks','[]');updateSelbar();render();});
+
+// personas
+document.getElementById('personas').innerHTML = PERSONAS.map(p=>{
+  const[name,emoji,role,summary,pains]=p;
+  return `<details class="persona"><summary>
+    <div class="pav">${emoji}</div>
+    <div><div class="pname">${name}</div><div class="prole">${role}</div>
+    <div class="psum">${summary}</div><div class="pexp">▾ ${pains.length} pain points + fixes</div></div>
+  </summary><div class="pbody">${pains.map(pn=>`<div class="pain">
+    <div class="pain-h"><span class="sev ${pn[1]}">${pn[1]}</span><span class="pain-t">${pn[0]}</span></div>
+    <div class="pain-s">“${pn[2]}”</div>
+    <div class="pain-a"><b>Wants:</b> ${pn[3]}</div></div>`).join('')}</div></details>`;
+}).join('');
+
+// community
+document.getElementById('community').innerHTML = COMMUNITY.map(beat=>{
+  const isComp = beat[0].startsWith('Competitor');
+  return `<div class="beat"><h4>${beat[0]}</h4>${beat[1].map(f=>{
+    const[t,c,url,sig,unv]=f;
+    return `<div class="find">
+      <div class="find-t">${isComp?'⚔ ':''}${url?`<a href="${url}" target="_blank" rel="noopener">${t}</a>`:t}
+        <span class="signal ${sig}">${sig} demand</span>${unv?'<span class="unv">UNVERIFIED</span>':''}</div>
+      <div class="find-c">${c}</div>
+    </div>`;
+  }).join('')}</div>`;
+}).join('');
+
+// theme toggle
+const root=document.documentElement, tb=document.getElementById('themeBtn');
+tb.addEventListener('click',()=>{
+  const cur=root.getAttribute('data-theme')|| (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  root.setAttribute('data-theme',cur==='dark'?'light':'dark');
+});
+
+render(); updateSelbar();
+</script>

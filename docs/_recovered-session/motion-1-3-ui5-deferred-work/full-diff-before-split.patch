@@ -1,0 +1,1431 @@
+diff --git a/css/styles.css b/css/styles.css
+index 4f9dd11..8688a7c 100644
+--- a/css/styles.css
++++ b/css/styles.css
+@@ -314,10 +314,32 @@ button{font-family:inherit;cursor:pointer}
+   display:flex;justify-content:space-between;align-items:flex-end;gap:6px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+ .tile.dark-txt{color:#1c1405}
+ .tile.dark-txt .tn{text-shadow:none}.tile.dark-txt .tsub{text-shadow:none}
++/* MOTION-1: photo-fill building tiles. A dark scrim top & bottom (where the label sits) keeps the
++   text legible over any thumbnail, in both themes — so photo tiles always use light text, winning
++   over .dark-txt above by source order (equal specificity). */
++.tile.photo{color:#fff}
++.tile.photo .tn,.tile.photo .tsub{text-shadow:0 1px 3px rgba(0,0,0,.75)}
++.tile.photo .tlabel{background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 34%,transparent 64%,rgba(0,0,0,.55))}
++/* MOTION-1: front-edge "facade" cue — a bright bar on the building's FRONT edge (default = the
++   tile's bottom/"south" edge) with an outward chevron. It's tile content, never counter-rotated, so
++   rotating the whole tile turns the facade to face any street. */
++.facade{position:absolute;left:14%;right:14%;bottom:3px;height:5px;border-radius:3px;z-index:1;
++  background:var(--accent);box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.4);pointer-events:none}
++.facade::after{content:"";position:absolute;left:50%;top:-6px;margin-left:-5px;width:0;height:0;
++  border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--accent);
++  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+ .tile .rot{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:6px;z-index:2;
+   background:rgba(0,0,0,.28);display:grid;place-items:center;font-size:11px;opacity:0;transition:opacity .12s}
+ .tile:hover .rot{opacity:1}
+ .tile.warn{outline:2px solid var(--danger);outline-offset:1px;box-shadow:0 0 0 4px rgba(216,56,42,.22),0 2px 5px rgba(0,0,0,.22)}
++/* ACC-2: overlap is never colour-only. The red outline above is joined by (a) a hazard-stripe
++   texture — overrides the stud-dot ::before with repeating diagonal stripes — and (b) a ⚠ badge
++   (.ov-flag) naming the state in text, both regardless of theme/colourblind mode. */
++.tile.warn::before{
++  background-image:repeating-linear-gradient(45deg, rgba(216,56,42,.9) 0 6px, rgba(255,255,255,.85) 6px 12px);
++  background-size:17px 17px; background-position:0 0; opacity:.5}
++.ov-flag{position:absolute;top:3px;left:3px;z-index:6;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
++  font-family:var(--mono);padding:2px 6px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.3);white-space:nowrap}
+ .tile.selected{outline:2px solid var(--accent-deep);outline-offset:1px;z-index:6;overflow:visible}
+ /* High-contrast keyboard focus ring (ACC-3): a "halo" — a thin ring matching the panel colour
+    (so it reads on both light and dark surfaces) inside a thick accent ring outside it. outline/
+@@ -363,6 +385,51 @@ button{font-family:inherit;cursor:pointer}
+ }
+ @media (prefers-reduced-motion:reduce){.tile{animation:none;transition:none}}
+ 
++/* ============ MOTION-3 / UI-5: canvas tools, terrain paint, notes & custom blocks ============ */
++/* Tool switcher (pointer / paint / note / block) — active tool gets the construction-yellow chip. */
++.seg.tools button{font-size:14px}
++.seg.tools button.on{background:var(--accent);color:var(--accent-ink)}
++/* Mode cursors on the board */
++.board.mode-terrain,.board.mode-rect{cursor:crosshair}
++.board.mode-note{cursor:copy}
++/* Rubber-band preview while painting terrain / drawing a block */
++.paint-preview{position:absolute;z-index:8;pointer-events:none;border-radius:3px;
++  border:1.5px dashed var(--accent-deep);background:rgba(255,207,51,.14)}
++.paint-preview.erase{border-color:var(--danger);background:rgba(216,56,42,.14)}
++.paint-preview.rect{border-color:var(--ink-soft);background:rgba(120,137,165,.14)}
++/* Floating terrain palette, top-left of the canvas while the 🖌 tool is active (mirrors .align-bar) */
++.terrain-bar{position:absolute;top:106px;left:14px;z-index:20;display:flex;align-items:center;gap:4px;
++  flex-wrap:wrap;max-width:calc(100% - 28px);background:var(--panel);border:1px solid var(--line-2);
++  border-radius:11px;padding:5px 7px;box-shadow:var(--shadow)}
++.terrain-bar[hidden]{display:none}
++.tb-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 4px}
++.tb-swatch{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line-2);background:var(--panel-2);
++  color:var(--ink-soft);font-size:11.5px;font-weight:600;padding:4px 8px;border-radius:8px;cursor:pointer}
++.tb-swatch i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.2);flex:none}
++.tb-swatch:hover{border-color:var(--plate);color:var(--ink)}
++.tb-swatch.on{border-color:var(--accent-deep);background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--accent-deep) inset}
++.tb-swatch.erase{color:var(--danger)}
++.tb-swatch.erase.on{border-color:var(--danger);box-shadow:0 0 0 1px var(--danger) inset}
++/* Terrain fill: a flat colour patch, painted below the baseplates. Pointer-transparent so it never
++   blocks selecting the pieces above it; no pop animation (a landscaped city has many patches). */
++.tile.terrain{pointer-events:none;box-shadow:none;border:0;border-radius:0;padding:0;animation:none;
++  opacity:.92}
++.tile.terrain::before{opacity:.18}
++.tile.terrain::after{display:none}
++/* Sticky note: a small paper label that floats above the plan. */
++.tile.note{background:#fff3b0;color:#3a2f05;border:1px solid rgba(0,0,0,.18);border-radius:4px;
++  box-shadow:0 3px 8px rgba(0,0,0,.28);padding:5px 7px;overflow:hidden}
++.tile.note::before,.tile.note::after{display:none}
++.note-text{position:absolute;inset:0;padding:5px 7px;font-size:11px;font-weight:600;line-height:1.25;
++  overflow:hidden;transform-origin:center;pointer-events:none;white-space:pre-wrap;word-break:break-word}
++/* Custom MOC-blocking rectangle: a translucent, dashed footprint placeholder. */
++.tile.custom{background:repeating-linear-gradient(45deg,rgba(120,137,165,.22),rgba(120,137,165,.22) 8px,
++  rgba(120,137,165,.10) 8px,rgba(120,137,165,.10) 16px);color:var(--ink);
++  border:1.5px dashed var(--ink-soft);box-shadow:none}
++.tile.custom::after{display:none}
++.tile.custom .tn{color:var(--ink);text-shadow:none;font-weight:700}
++.tile.custom .tsub{color:var(--ink-soft);text-shadow:none}
++
+ /* ---- Summary ---- */
+ .sum{padding:14px;display:flex;flex-direction:column;gap:14px}
+ .stat-lead{display:flex;flex-direction:column;gap:2px}
+@@ -521,3 +588,73 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
+   background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:10px;
+   font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+ #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
++
++/* ============ ACC-4: visually-subtle live-region announcer ============
++   Off-screen but still perceivable to a screen reader (unlike `display:none`/`visibility:hidden`,
++   which some assistive tech ignores entirely). Distinct from #toast — which is the highly-visible
++   confirmation pill — so a placement/rotate/delete/overlap announcement never has to fight the
++   toast's own timing or spam it for events that don't need a visible bubble. */
++.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
++  clip:rect(0,0,0,0);white-space:nowrap;border:0}
++
++/* ============ UI-3 / ACC-2c: theme + colorblind-safe toggles ============ */
++.btn.icon[aria-pressed="true"]{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
++
++/* ============ ACC-2c: colorblind-safe theme ============
++   Toggled via [data-cbsafe="true"] on <html> (localStorage 'bcp.cbSafe'). Augments each category
++   colour with a distinct value/pattern texture — stripes, dots or crosshatch — layered as a ::after
++   overlay ON TOP of whatever background-colour the element already has (inline, JS-set), so turning
++   this on/off never touches a single colour value anywhere. Applied wherever a category colour
++   alone would otherwise be the only distinguishing signal: catalog swatches, placed tiles on the
++   grid, and the summary's category-breakdown bar segments (the filter chips + breakdown rows
++   already carry a text label per-category, so they don't need this on top). */
++:root[data-cbsafe="true"] .tile[data-cat="police"]::after,
++:root[data-cbsafe="true"] .tile[data-cat="arctic"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="police"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="arctic"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="police"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="arctic"]::after{
++  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
++  background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.6) 0 3px, transparent 3px 9px)}
++:root[data-cbsafe="true"] .tile[data-cat="fire"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="fire"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="fire"]::after{
++  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
++  background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.6) 0 3px, transparent 3px 9px)}
++:root[data-cbsafe="true"] .tile[data-cat="train"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="train"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="train"]::after{
++  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
++  background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.55) 0 2px, transparent 2px 7px)}
++:root[data-cbsafe="true"] .tile[data-cat="modular"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="modular"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="modular"]::after{
++  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;
++  background-image:radial-gradient(rgba(0,0,0,.35) 1.6px, transparent 2px);background-size:9px 9px}
++:root[data-cbsafe="true"] .tile[data-cat="city"]::after,
++:root[data-cbsafe="true"] .tile[data-cat="harbor"]::after,
++:root[data-cbsafe="true"] .tile[data-cat="airport"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="city"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="harbor"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="airport"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="city"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="harbor"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="airport"]::after{
++  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
++  background-image:
++    repeating-linear-gradient(0deg, rgba(255,255,255,.45) 0 2px, transparent 2px 9px),
++    repeating-linear-gradient(90deg, rgba(255,255,255,.45) 0 2px, transparent 2px 9px)}
++:root[data-cbsafe="true"] .tile[data-cat="park"]::after,
++:root[data-cbsafe="true"] .tile[data-cat="farm"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="park"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="farm"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="park"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="farm"]::after{
++  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;background-size:auto;
++  background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 3px, transparent 3px 9px)}
++:root[data-cbsafe="true"] .tile[data-cat="space"]::after,
++:root[data-cbsafe="true"] .swatch[data-cat="space"]::after,
++:root[data-cbsafe="true"] .bar i[data-cat="space"]::after{
++  content:"";position:absolute;inset:0;pointer-events:none;background-position:0 0;
++  background-image:radial-gradient(rgba(255,255,255,.65) 2.4px, transparent 3px);background-size:14px 14px}
++.bar i{position:relative}
+diff --git a/index.html b/index.html
+index aa8162a..5c07bef 100644
+--- a/index.html
++++ b/index.html
+@@ -4,6 +4,16 @@
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>Brick City Planner</title>
++  <!-- UI-3: stamp any EXPLICIT saved theme/colorblind-safe choice before first paint, so there's
++       no flash-of-wrong-theme. Absent a stored choice, no attribute is set here at all — the
++       :root[data-theme] rules in css/styles.css stay silent and the plain `@media
++       (prefers-color-scheme: dark)` block keeps following the OS live (including if the OS theme
++       changes later in the same tab), exactly as the "defaults to prefers-color-scheme" spec wants. -->
++  <script>(function(){try{
++    var t=localStorage.getItem('bcp.theme');
++    if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);
++    if(localStorage.getItem('bcp.cbSafe')==='1')document.documentElement.setAttribute('data-cbsafe','true');
++  }catch(e){}})();</script>
+   <link rel="stylesheet" href="css/styles.css">
+ </head>
+ <body>
+@@ -31,6 +41,10 @@
+         <div class="seg" id="unit-toggle" role="group" aria-label="Units">
+           <button class="on" data-unit="studs">studs</button><button data-unit="cm">cm</button>
+         </div>
++        <button class="btn icon" id="btn-theme" type="button" title="Switch to dark mode"
++          aria-label="Switch to dark mode" aria-pressed="false">🌙</button>
++        <button class="btn icon" id="btn-cbsafe" type="button" title="Turn on colorblind-safe patterns"
++          aria-label="Turn on colorblind-safe patterns" aria-pressed="false">◐</button>
+         <button class="btn" id="btn-new">＋ New city</button>
+         <button class="btn" id="btn-templates" aria-haspopup="dialog" aria-expanded="false">▤ Templates</button>
+         <button class="btn" id="btn-save-as">💾 Save as</button>
+@@ -91,6 +105,13 @@
+           <button class="btn icon" id="btn-forward" title="Bring to front">⬆</button>
+           <button class="btn icon" id="btn-back" title="Send to back (above baseplates)">⬇</button>
+           <button class="btn icon" id="btn-delete" title="Delete selected">🗑</button>
++          <span class="tool-sep" aria-hidden="true"></span>
++          <div class="seg tools" id="tool-mode" role="group" aria-label="Canvas tool">
++            <button type="button" class="on" data-mode="select" aria-pressed="true" title="Select &amp; move" aria-label="Select and move tool">⬚</button>
++            <button type="button" data-mode="terrain" aria-pressed="false" title="Paint terrain / zoning" aria-label="Paint terrain tool">🖌</button>
++            <button type="button" data-mode="note" aria-pressed="false" title="Add a sticky note" aria-label="Add note tool">🗒</button>
++            <button type="button" data-mode="rect" aria-pressed="false" title="Draw a custom block (MOC)" aria-label="Draw custom block tool">▭</button>
++          </div>
+           <div class="gsize" id="grid-size" title="Table size in baseplates — or drag the corner grip">
+             <span class="lab">Table</span>
+             <button class="gstep" data-gs="wdec" aria-label="Fewer baseplates wide">−</button>
+@@ -119,6 +140,7 @@
+             <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
+           </div>
+         </div>
++        <div class="terrain-bar" id="terrain-bar" role="toolbar" aria-label="Terrain type" hidden></div>
+         <div class="align-bar" id="align-bar" role="toolbar" aria-label="Align, distribute and group selection" hidden>
+           <span class="ab-count" id="ab-count"></span>
+           <span class="ab-sep" aria-hidden="true"></span>
+@@ -149,6 +171,10 @@
+     </div>
+   </div>
+   <div id="toast" role="status" aria-live="polite"></div>
++  <!-- ACC-4: a visually-subtle live region for granular editing events (placed/rotated/deleted/
++       overlap-detected) — kept separate from the highly-visible #toast pill above so these don't
++       spam a visible bubble for every commit; a screen reader still hears each one. -->
++  <div id="sr-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+ 
+   <div class="modal-backdrop" id="shortcuts-backdrop" hidden>
+     <div class="modal" id="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+@@ -167,6 +193,9 @@
+           <div class="sc-row"><span>Drag on empty canvas</span><kbd>box-select</kbd></div>
+           <div class="sc-row"><span>Shift/Ctrl-click a tile</span><kbd>add/remove selection</kbd></div>
+           <div class="sc-row"><span>Ctrl + scroll over the canvas</span><kbd>zoom</kbd></div>
++          <div class="sc-row"><span>🖌 tool — drag to paint terrain, ⌫ to erase</span><kbd>terrain</kbd></div>
++          <div class="sc-row"><span>🗒 tool — click to drop a note · ▭ tool — drag a block</span><kbd>annotate</kbd></div>
++          <div class="sc-row"><span>Double-click a note or block to edit it</span><kbd>edit</kbd></div>
+         </div>
+         <div class="sc-group">
+           <h3>Keyboard</h3>
+diff --git a/js/app.js b/js/app.js
+index daf6e77..8bb4ac5 100644
+--- a/js/app.js
++++ b/js/app.js
+@@ -12,6 +12,7 @@ import { bbox } from './geometry.js';
+ import { resolvePrice, baseNum, bricklinkXml, setListCsv, buyLinks } from './pricing.js';
+ import { pushRecent } from './lists.js';
+ import { esc } from './util.js';
++import { TERRAIN_TYPES, isCitySet } from './objects.js';
+ 
+ const $ = (id) => document.getElementById(id);
+ let unitState = 'studs';
+@@ -153,6 +154,82 @@ function toast(msg) {
+   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200);
+ }
+ 
++// ---- ACC-4: ARIA live region for granular editing events -------------------------------------
++// A tiny FIFO queue: two announcements landing in the same tick (e.g. "placed" immediately
++// followed by an overlap check finding a clash) mustn't stomp each other before a screen reader
++// gets to read the first one, so each message gets its own beat before the next is written.
++let announceQueue = [];
++let announceBusy = false;
++function pumpAnnounce() {
++  if (announceBusy || !announceQueue.length) return;
++  announceBusy = true;
++  const el = $('sr-announcer');
++  const msg = announceQueue.shift();
++  if (el) {
++    // Clear first, then set on the next frame — some screen readers won't re-announce identical
++    // text written straight over itself (e.g. two consecutive "Deleted 1 item." in a row).
++    el.textContent = '';
++    requestAnimationFrame(() => { el.textContent = msg; });
++  }
++  setTimeout(() => { announceBusy = false; pumpAnnounce(); }, 350);
++}
++function announce(msg) {
++  if (!msg) return;
++  announceQueue.push(msg);
++  pumpAnnounce();
++}
++
++// ---- UI-3: dark-mode toggle --------------------------------------------------------------------
++// No stored choice → follow the OS live (css/styles.css's plain `@media (prefers-color-scheme)`
++// block does that on its own); an explicit toggle stamps data-theme on <html> and persists it.
++// See the inline <head> script in index.html for the pre-paint stamp that avoids a flash.
++const THEME_KEY = 'bcp.theme';
++function getStoredTheme() {
++  try { const t = localStorage.getItem(THEME_KEY); return (t === 'dark' || t === 'light') ? t : null; }
++  catch { return null; }
++}
++function effectiveTheme() {
++  const stored = getStoredTheme();
++  if (stored) return stored;
++  try { return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch { return 'light'; }
++}
++function syncThemeButton() {
++  const btn = $('btn-theme'); if (!btn) return;
++  const isDark = effectiveTheme() === 'dark';
++  btn.textContent = isDark ? '☀' : '🌙';
++  btn.setAttribute('aria-pressed', String(isDark));
++  const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
++  btn.title = label; btn.setAttribute('aria-label', label);
++}
++function toggleTheme() {
++  const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
++  try { localStorage.setItem(THEME_KEY, next); } catch (e) { console.warn('Could not save theme:', e.message); }
++  document.documentElement.setAttribute('data-theme', next);
++  syncThemeButton();
++  toast(next === 'dark' ? 'Dark mode on.' : 'Light mode on.');
++}
++
++// ---- ACC-2c: colorblind-safe theme toggle -------------------------------------------------------
++const CBSAFE_KEY = 'bcp.cbSafe';
++function getCbSafe() { try { return localStorage.getItem(CBSAFE_KEY) === '1'; } catch { return false; } }
++function syncCbSafeButton(on) {
++  const btn = $('btn-cbsafe'); if (!btn) return;
++  btn.setAttribute('aria-pressed', String(on));
++  const label = on ? 'Turn off colorblind-safe patterns' : 'Turn on colorblind-safe patterns';
++  btn.title = label; btn.setAttribute('aria-label', label);
++}
++function applyCbSafe(on) {
++  if (on) document.documentElement.setAttribute('data-cbsafe', 'true');
++  else document.documentElement.removeAttribute('data-cbsafe');
++  syncCbSafeButton(on);
++}
++function toggleCbSafe() {
++  const next = !getCbSafe();
++  try { localStorage.setItem(CBSAFE_KEY, next ? '1' : '0'); } catch (e) { console.warn('Could not save colorblind-safe setting:', e.message); }
++  applyCbSafe(next);
++  toast(next ? 'Colorblind-safe patterns on.' : 'Colorblind-safe patterns off.');
++}
++
+ // ---- QOL-9: autosave status pill --------------------------------------------
+ function setSaveStatus(saving) {
+   const el = $('save-status');
+@@ -311,6 +388,65 @@ function drawSelection(ids = []) {
+   }
+ }
+ 
++// ---- MOTION-3 / UI-5: canvas tools (terrain paint / notes / custom blocks) -------------------
++// Build the floating terrain-type palette once, straight from TERRAIN_TYPES (single source of
++// truth with the tile fills) plus an eraser. Clicking a swatch sets the active terrain paint.
++function buildTerrainBar() {
++  const bar = $('terrain-bar');
++  if (!bar) return;
++  const swatch = (key, label, color) =>
++    `<button class="tb-swatch" type="button" data-terrain="${esc(key)}" aria-pressed="false" title="${esc(label)}">` +
++    `<i style="background:${color}"></i>${esc(label)}</button>`;
++  bar.innerHTML = '<span class="tb-lbl">Terrain</span>' +
++    TERRAIN_TYPES.map((t) => swatch(t.key, t.label, t.color)).join('') +
++    '<span class="ab-sep" aria-hidden="true"></span>' +
++    '<button class="tb-swatch erase" type="button" data-terrain="erase" aria-pressed="false" title="Erase terrain">⌫ Erase</button>';
++  bar.addEventListener('click', (e) => {
++    const b = e.target.closest('button[data-terrain]'); if (!b) return;
++    grid.setTerrainType(b.dataset.terrain);
++  });
++}
++// Reflect the live tool mode + terrain paint on the toolbar: highlight the active tool button,
++// show the terrain palette only in terrain mode, and mark the chosen swatch.
++function drawToolMode(mode, terrainType) {
++  $('tool-mode')?.querySelectorAll('button').forEach((b) => {
++    const on = b.dataset.mode === mode;
++    b.classList.toggle('on', on);
++    b.setAttribute('aria-pressed', String(on));
++  });
++  const bar = $('terrain-bar');
++  if (bar) {
++    bar.hidden = mode !== 'terrain';
++    bar.querySelectorAll('button[data-terrain]').forEach((b) => {
++      const on = b.dataset.terrain === terrainType;
++      b.classList.toggle('on', on);
++      b.setAttribute('aria-pressed', String(on));
++    });
++  }
++}
++// Prompt-based editor for a note's text or a custom block's label + dimensions (UI-5). Grid.js
++// calls this on creation and on double-click; we patch the tile back through grid.updateTile so
++// the change is a normal undoable/serializable step.
++function editObject(tile) {
++  if (tile.kind === 'note') {
++    const txt = prompt('Note text:', tile.text || '');
++    if (txt !== null) grid.updateTile(tile.id, { text: txt });
++    return;
++  }
++  if (tile.kind === 'custom') {
++    const label = prompt('Label for this block:', tile.name || 'MOC');
++    if (label === null) return;
++    const dims = prompt('Size in studs (width × height):', `${tile.w} × ${tile.h}`);
++    const patch = { name: label.trim() || 'MOC' };
++    if (dims !== null) {
++      const m = dims.match(/(\d+(?:\.\d+)?)\s*[×x*,\s]\s*(\d+(?:\.\d+)?)/);
++      if (m) { patch.w = Math.round(+m[1]); patch.h = Math.round(+m[2]); }
++      else if (dims.trim() !== '') { toast('Couldn’t read those dimensions — kept the old size.'); }
++    }
++    grid.updateTile(tile.id, patch);
++  }
++}
++
+ function wireSummaryButtons() {
+   const q = (id) => $('summary').querySelector(id);
+   q('#btn-save')?.addEventListener('click', doSave);
+@@ -325,6 +461,7 @@ function wireSummaryButtons() {
+ function buildBuyRows() {
+   const counts = new Map();
+   for (const t of grid.getPlaced()) {
++    if (!isCitySet(t)) continue; // terrain / notes / custom blocks aren't purchasable sets
+     const num = baseNum(t.set_num);
+     if (owned.has(num)) continue; // already own it → not on the shopping list
+     const e = counts.get(num) || { num, set_num: t.set_num, name: t.name, qty: 0 };
+@@ -640,7 +777,11 @@ async function boot() {
+     onResize: (w, h) => { gridSize = { w, h, pw: w / 32, ph: h / 32 }; drawGridSize(); },
+     onHistory: drawHistory,
+     onSelect: drawSelection,
++    onMode: drawToolMode,
++    onRequestEdit: editObject,
++    onAnnounce: announce,
+   });
++  buildTerrainBar();
+ 
+   catalogUI = renderCatalog(
+     { list: $('catalog-list'), search: $('catalog-search'), chips: $('catalog-chips'),
+@@ -651,6 +792,16 @@ async function boot() {
+       isWishlisted, onToggleWishlist: toggleWishlist, getRecent,
+     });
+ 
++  // UI-3 / ACC-2c: theme + colorblind-safe toggles. The <head> inline script already stamped an
++  // explicit stored choice pre-paint; this just syncs the buttons' icon/label/pressed state and
++  // (for theme) keeps them in sync if the OS preference changes live while no explicit choice is set.
++  syncThemeButton();
++  applyCbSafe(getCbSafe());
++  $('btn-theme')?.addEventListener('click', toggleTheme);
++  $('btn-cbsafe')?.addEventListener('click', toggleCbSafe);
++  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!getStoredTheme()) syncThemeButton(); }); }
++  catch { /* older browsers without addEventListener on MediaQueryList — the button just won't live-sync */ }
++
+   // toolbar
+   $('unit-toggle').addEventListener('click', (e) => {
+     const u = e.target.dataset.unit; if (!u) return;
+@@ -662,6 +813,12 @@ async function boot() {
+   $('btn-forward').addEventListener('click', () => grid.bringForward());
+   $('btn-back').addEventListener('click', () => grid.sendBackward());
+ 
++  // Canvas tool switcher: pointer / paint-terrain / add-note / draw-block (MOTION-3 / UI-5)
++  $('tool-mode').addEventListener('click', (e) => {
++    const b = e.target.closest('button[data-mode]'); if (!b) return;
++    grid.setMode(b.dataset.mode);
++  });
++
+   // Undo / redo + history dropdown
+   $('btn-undo').addEventListener('click', () => grid.undo());
+   $('btn-redo').addEventListener('click', () => grid.redo());
+@@ -707,6 +864,7 @@ async function boot() {
+       if (!$('shortcuts-backdrop').hidden) closeShortcuts();
+       else if (!$('templates-backdrop').hidden) closeTemplatesMenu();
+       else if (!$('cities-backdrop').hidden) closeCitiesMenu();
++      else if (grid?.getMode?.() && grid.getMode() !== 'select') grid.setMode('select'); // leave a tool
+     }
+   });
+ 
+diff --git a/js/catalog.js b/js/catalog.js
+index e2354a5..f9a803d 100644
+--- a/js/catalog.js
++++ b/js/catalog.js
+@@ -119,7 +119,7 @@ export function renderCatalog(els, sets, {
+     const el = document.createElement('div');
+     el.className = 'set' + (owned ? ' owned' : '');
+     el.innerHTML = `
+-      <div class="swatch" style="background:${s.color || catColor(s.category)}">${
++      <div class="swatch" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
+         s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
+           style="width:100%;height:100%;object-fit:cover"
+           onerror="this.remove()">` : schematicSVG(s.kind, s.footprint, s.name)}</div>
+@@ -187,7 +187,7 @@ export function renderCatalog(els, sets, {
+     b.className = 'rail-item';
+     b.title = `${s.name} (${s.num}) — click to place another`;
+     b.setAttribute('aria-label', `Place another ${s.name}`);
+-    b.innerHTML = `<span class="swatch" style="background:${s.color || catColor(s.category)}">${
++    b.innerHTML = `<span class="swatch" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
+       s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
+         style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">`
+         : schematicSVG(s.kind, s.footprint, s.name)}</span>`;
+diff --git a/js/geometry.js b/js/geometry.js
+index 4198414..9fdb879 100644
+--- a/js/geometry.js
++++ b/js/geometry.js
+@@ -165,21 +165,41 @@ export function snapConnect(t, others, threshold = 6) {
+   return { x: t.x + dx, y: t.y + dy };
+ }
+ 
+-export function anyOverlaps(tiles) {
+-  const ids = new Set();
++// Overlapping tile PAIRS (same layer/kind rules as anyOverlaps below) — kept as the actual tile
++// objects, not just ids, so a caller can name the offending pieces (ACC-4 announcements need
++// "Overlap detected between X and Y", not just a set of ids).
++export function overlapPairs(tiles) {
++  const pairs = [];
+   for (let i = 0; i < tiles.length; i++) {
+     for (let j = i + 1; j < tiles.length; j++) {
+       const a = tiles[i], b = tiles[j];
++      // Terrain fills and sticky notes are landscaping/annotation, not physical footprints —
++      // they never warn (against each other or anything else). Custom MOC rectangles DO warn,
++      // like the buildings they stand in for (they sit on the same layer 2).
++      if (a.kind === 'terrain' || a.kind === 'note' || b.kind === 'terrain' || b.kind === 'note') continue;
+       // Overlap warnings only fire within the same stacking layer (0 baseplate,
+       // 1 road/track, 2 building). A building on a baseplate, or a car on a road,
+       // is intended; two roads or two buildings overlapping still flag.
+       if ((a.layer ?? 2) !== (b.layer ?? 2)) continue;
+-      if (overlaps(a, b)) { ids.add(a.id); ids.add(b.id); }
++      if (overlaps(a, b)) pairs.push([a, b]);
+     }
+   }
++  return pairs;
++}
++
++export function anyOverlaps(tiles) {
++  const ids = new Set();
++  for (const [a, b] of overlapPairs(tiles)) { ids.add(a.id); ids.add(b.id); }
+   return ids;
+ }
+ 
++// Stud coordinates → a friendly 1-indexed row/column pair, on the same coarse 8-stud cell the
++// terrain brush snaps to (objects.js CELL) — used only for accessibility announcements (ACC-4),
++// e.g. "placed at row 3, column 5", so screen-reader users get a spatial reference without colour.
++export function toRowCol(x, y, cell = 8) {
++  return { row: Math.floor(y / cell) + 1, col: Math.floor(x / cell) + 1 };
++}
++
+ // Shed floating-point noise from rotation while keeping genuine fractions; -0 → 0.
+ const round4 = (v) => Math.round(v * 1e4) / 1e4 || 0;
+ 
+diff --git a/js/grid.js b/js/grid.js
+index a4d68e9..53d580f 100644
+--- a/js/grid.js
++++ b/js/grid.js
+@@ -1,10 +1,11 @@
+ import { catColor } from './catalog.js';
+ import {
+-  anyOverlaps, bbox, snap, snapConnect, grownCanvas, clampedCanvas, BP,
++  anyOverlaps, overlapPairs, toRowCol, bbox, snap, snapConnect, grownCanvas, clampedCanvas, BP,
+   tilesInRect, alignTiles, distributeTiles, rotateGroup,
+ } from './geometry.js';
+ import { esc } from './util.js';
+ import { schematicSVG } from './schematic.js';
++import { makeTerrain, makeNote, makeCustom, snapRect, rectsIntersect, CELL } from './objects.js';
+ 
+ export const PX = 6; // pixels per stud
+ const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
+@@ -23,13 +24,22 @@ function prefersReducedMotion() {
+   catch { return false; }
+ }
+ 
+-export function createGrid(board, { onChange = () => {}, onResize = () => {}, onHistory = () => {}, onSelect = () => {} } = {}) {
++export function createGrid(board, {
++  onChange = () => {}, onResize = () => {}, onHistory = () => {}, onSelect = () => {},
++  onMode = () => {}, onRequestEdit = () => {}, onAnnounce = () => {},
++} = {}) {
+   let placed = [];
+   let selection = new Set(); // ids of every selected tile
+   let selectedId = null; // the primary/last selected — drives the rotate handle & focus
+   let seq = 1;
+   let groupSeq = 1;
+   let zoom = 1;
++  // UI-5 / MOTION-3 interaction mode: 'select' (default drag/select) | 'terrain' (paint area
++  // fills) | 'note' (drop a sticky label) | 'rect' (draw a custom footprint block). `terrainType`
++  // is the active terrain paint (a TERRAIN_TYPES key) or 'erase'. Both are pure UI state — never
++  // part of placed[]/undo — so they live here, not in the city model.
++  let mode = 'select';
++  let terrainType = 'grass';
+   let gridW = DEFAULT_W, gridH = DEFAULT_H; // canvas size in studs (always whole baseplates)
+   const stage = board.parentElement;
+ 
+@@ -41,6 +51,30 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+   let clipboard = null;
+   let pasteCount = 0;
+ 
++  // ---- ACC-4: overlap-detection announcements ----------------------------------
++  // Tracks which overlapping PAIRS have already been announced (keyed 'idA|idB', lower id first)
++  // so a still-standing overlap doesn't re-announce on every unrelated commit — only a genuinely
++  // NEW overlap does. The baseline is resynced (silently) whenever `placed` is replaced wholesale
++  // (load/undo/redo) so that a pre-existing overlap in a loaded/restored city never gets mistaken
++  // for "new" on the next live edit.
++  let lastOverlapKeys = new Set();
++  const pairKey = (a, b) => (a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`);
++  function syncOverlapBaseline() {
++    lastOverlapKeys = new Set(overlapPairs(placed).map(([a, b]) => pairKey(a, b)));
++  }
++  function checkOverlapAnnounce() {
++    const pairs = overlapPairs(placed);
++    const keys = new Set();
++    let fresh = null;
++    for (const [a, b] of pairs) {
++      const k = pairKey(a, b);
++      keys.add(k);
++      if (!fresh && !lastOverlapKeys.has(k)) fresh = [a, b];
++    }
++    lastOverlapKeys = keys;
++    if (fresh) onAnnounce(`Overlap detected between ${fresh[0].name} and ${fresh[1].name}.`);
++  }
++
+   // Bottom-right corner grip for dragging the canvas bigger/smaller (snaps to baseplates).
+   const grip = document.createElement('div');
+   grip.className = 'grip';
+@@ -106,6 +140,7 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     selection = new Set((snap.sel || []).filter((id) => placed.some((p) => p.id === id)));
+     selectedId = (snap.primary && selection.has(snap.primary)) ? snap.primary : (selection.size ? [...selection][selection.size - 1] : null);
+     coalesceKey = null;
++    syncOverlapBaseline(); // undo/redo never announces — just keeps the "is this new?" baseline honest
+     render(); applySize(); onChange(); onHistory(); emitSelect();
+   }
+   function undo() { if (canUndo()) { histIndex -= 1; restore(history[histIndex]); } }
+@@ -117,7 +152,7 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+   function getHistory() { return { entries: history.map((h) => h.label), index: histIndex }; }
+ 
+   // Commit a structural/positional mutation: refresh the app, then snapshot for undo.
+-  function finalize(label, key = null) { onChange(); commit(label, key); }
++  function finalize(label, key = null) { onChange(); checkOverlapAnnounce(); commit(label, key); }
+ 
+   // Keep the id/group counters ahead of anything already placed.
+   function bumpSeqs(p) {
+@@ -135,13 +170,25 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+       layer: set.layer ?? 2, z: set.layer ?? 2, color: set.color || null,
+     };
+   }
+-  function addSet(set) { const t = makeTile(set, 0, 0); placed.push(t); selectOnly(t.id); render(); growToFit(); finalize('Add ' + set.set_num); }
++  // ACC-4: "Fire Station placed at row 3, column 5." — announced BEFORE finalize() so it queues
++  // ahead of any overlap announcement finalize's own commit might trigger for the same drop.
++  function announcePlacement(set, t) {
++    const { row, col } = toRowCol(t.x, t.y);
++    onAnnounce(`${set.name} placed at row ${row}, column ${col}.`);
++  }
++  function addSet(set) {
++    const t = makeTile(set, 0, 0); placed.push(t); selectOnly(t.id); render(); growToFit();
++    announcePlacement(set, t);
++    finalize('Add ' + set.set_num);
++  }
+   // Drop from the catalog at screen coordinates, centring the piece on the drop point.
+   function addSetAt(set, clientX, clientY) {
+     const rect = board.getBoundingClientRect();
+     const x = Math.max(0, Math.round((clientX - rect.left) / zoom / PX - set.footprint.w / 2));
+     const y = Math.max(0, Math.round((clientY - rect.top) / zoom / PX - set.footprint.h / 2));
+-    const t = makeTile(set, x, y); placed.push(t); selectOnly(t.id); render(); growToFit(); finalize('Add ' + set.set_num);
++    const t = makeTile(set, x, y); placed.push(t); selectOnly(t.id); render(); growToFit();
++    announcePlacement(set, t);
++    finalize('Add ' + set.set_num);
+   }
+ 
+   function getPlaced() { return placed; }
+@@ -161,6 +208,7 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     // guarantees the canvas is never smaller than the content it now holds.
+     gridW = (size && Number.isFinite(size.w)) ? size.w : DEFAULT_W;
+     gridH = (size && Number.isFinite(size.h)) ? size.h : DEFAULT_H;
++    syncOverlapBaseline(); // loading a city with pre-existing overlaps must not "announce" them
+     render();
+     growToFit();
+     applySize();
+@@ -188,17 +236,18 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     }
+     const over = anyOverlaps(placed);
+     board.innerHTML = '';
+-    // Paint order: baseplates always at the bottom; everything else by its z (user-adjustable).
+-    const paintKey = (p) => (p.layer === 0 ? -1000 : (p.z ?? p.layer ?? 2));
++    // Paint order: terrain fills paint first (below the baseplates), baseplates next, then
++    // everything by its z (user-adjustable), and sticky notes always on top.
++    const paintKey = (p) => (
++      p.kind === 'terrain' ? -2000 :
++      p.kind === 'note' ? 9000 + (p.z ?? 3) :
++      p.layer === 0 ? -1000 : (p.z ?? p.layer ?? 2));
+     const paintOrder = [...placed].sort((a, b) => paintKey(a) - paintKey(b));
+     const single = selection.size === 1;
++    const counterStyle = (t) => (t.rot ? ` style="transform:rotate(${-t.rot}deg)"` : '');
+     for (const t of paintOrder) {
+-      const layer = t.layer ?? 2;
+-      const lightGround = /--g-(white|sand)/.test(t.color || '');
++      const kind = t.kind || 'generic';
+       const el = document.createElement('div');
+-      el.className = 'tile' + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
+-        (layer < 2 ? ' flat' : '') +
+-        (over.has(t.id) ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '');
+       // Tile is sized to its own footprint and rotated about its centre.
+       el.style.left = t.x * PX + 'px';
+       el.style.top = t.y * PX + 'px';
+@@ -206,19 +255,82 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+       el.style.height = t.h * PX + 'px';
+       if (t.rot) el.style.transform = `rotate(${t.rot}deg)`;
+       el.style.setProperty?.('--rot', (t.rot || 0) + 'deg'); // read by the pop-in keyframe (MOTION-6)
++      el.dataset.id = t.id;
++
++      // ---- MOTION-3 / UI-5: non-catalog canvas objects render on their own paths ----
++      if (kind === 'terrain') {
++        // A flat colour fill — no label, no schematic, and pointer-transparent (CSS) so it never
++        // blocks selecting the pieces above it. Painted/erased via the terrain tool, never dragged.
++        el.className = 'tile terrain flat';
++        el.style.background = t.color || 'var(--g-green)';
++        board.appendChild(el);
++        continue;
++      }
++      if (kind === 'note') {
++        el.className = 'tile note' + (selection.has(t.id) ? ' selected' : '');
++        el.tabIndex = 0;
++        el.innerHTML = `<div class="note-text"${counterStyle(t)}>${esc(t.text || '')}</div>`;
++        if (single && t.id === selectedId) el.insertAdjacentHTML('beforeend', HANDLES);
++        board.appendChild(el);
++        continue;
++      }
++      if (kind === 'custom') {
++        // ACC-2: overlap is never colour-only — the red outline (.tile.warn) is joined by a
++        // hazard-stripe texture (CSS ::before) AND an explicit ⚠ badge naming the state in text.
++        const isOver = over.has(t.id);
++        el.className = 'tile custom' + (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '');
++        el.tabIndex = 0;
++        if (t.color) el.style.background = t.color;
++        el.innerHTML = (isOver ? '<span class="ov-flag" aria-hidden="true" title="Overlap">⚠</span>' : '') +
++          `<div class="tlabel"${counterStyle(t)}>` +
++          `<div class="tn">${esc(t.name)}</div>` +
++          `<div class="tsub"><span>MOC</span><span>${t.w}×${t.h}</span></div></div>`;
++        if (single && t.id === selectedId) el.insertAdjacentHTML('beforeend', HANDLES);
++        board.appendChild(el);
++        continue;
++      }
++
++      const layer = t.layer ?? 2;
++      const lightGround = /--g-(white|sand)/.test(t.color || '');
++      const isOver = over.has(t.id);
++      el.className = 'tile' + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
++        (layer < 2 ? ' flat' : '') +
++        (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '');
++      // ACC-2c: colorblind-safe theme hook — CSS keys a texture overlay off [data-cat] when the
++      // user has the colorblind-safe toggle on, so categories stay distinguishable without hue.
++      el.dataset.cat = t.category || '';
+       el.style.background = t.color || catColor(t.category);
+-      const schem = schematicSVG(t.kind || 'generic', { w: t.w, h: t.h }, t.name);
+-      if (t.img && !schem) { // generic sets keep the tinted box photo
++      let schem = '';
++      if (kind === 'building' && t.img) {
++        // MOTION-1: buildings show the set's real thumbnail as the tile fill for a top-down feel,
++        // tinted just enough by the category colour that the label stays readable — no schematic art
++        // beneath it. A dark scrim under the label (.tile.photo CSS) keeps text legible on any photo.
++        el.classList.add('photo');
+         el.style.backgroundImage =
+-          `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
++          `linear-gradient(${catColor(t.category)}80, ${catColor(t.category)}80), url("${t.img}")`;
+         el.style.backgroundSize = 'cover';
++        el.style.backgroundPosition = 'center';
+         el.style.backgroundBlendMode = 'multiply';
++      } else {
++        schem = schematicSVG(kind, { w: t.w, h: t.h }, t.name);
++        if (t.img && !schem) { // generic sets keep the tinted box photo
++          el.style.backgroundImage =
++            `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
++          el.style.backgroundSize = 'cover';
++          el.style.backgroundBlendMode = 'multiply';
++        }
+       }
++      // MOTION-1: a front-edge "facade" cue on buildings, defaulting to the tile's bottom edge. It
++      // lives in tile content (never counter-rotated like the label), so rotating the whole tile
++      // turns the facade — letting users aim each building's front at a street. Purely visual, so it
++      // needs no persistence and no undo entry of its own.
++      const facade = kind === 'building' ? '<div class="facade" aria-hidden="true"></div>' : '';
+       el.dataset.id = t.id;
+       el.tabIndex = 0;
+       // Labels counter-rotate so they stay upright on angled tiles.
+       const counter = t.rot ? ` style="transform:rotate(${-t.rot}deg)"` : '';
+-      el.innerHTML = schem + `<div class="tlabel"${counter}>` +
++      const warnBadge = isOver ? '<span class="ov-flag" aria-hidden="true" title="Overlap">⚠</span>' : '';
++      el.innerHTML = schem + facade + warnBadge + `<div class="tlabel"${counter}>` +
+         `<div class="tn">${esc(t.name)}${t.approx ? ' <span style="opacity:.8;font-weight:400">≈</span>' : ''}</div>` +
+         `<div class="tsub"><span>${esc(t.set_num.replace(/-\d+$/, ''))}</span><span>${t.w}×${t.h}</span></div></div>`;
+       if (single && t.id === selectedId) el.insertAdjacentHTML('beforeend', HANDLES);
+@@ -232,10 +344,20 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+ 
+   function tileEl(id) { return board.querySelector(`.tile[data-id="${id}"]`); }
+ 
+-  // Live overlap-highlight refresh without rebuilding the DOM (used during drag/rotate).
++  // Live overlap-highlight refresh without rebuilding the DOM (used during drag/rotate). Keeps
++  // the ⚠ badge (ACC-2's non-colour signal) in sync too, in place — no full render().
+   function refreshOverlaps() {
+     const over = anyOverlaps(placed);
+-    for (const p of placed) tileEl(p.id)?.classList.toggle('warn', over.has(p.id));
++    for (const p of placed) {
++      const el = tileEl(p.id);
++      if (!el) continue;
++      const isOver = over.has(p.id);
++      el.classList.toggle('warn', isOver);
++      if (p.kind === 'terrain' || p.kind === 'note') continue; // never warn, never get a badge
++      const hasBadge = !!el.querySelector('.ov-flag');
++      if (isOver && !hasBadge) el.insertAdjacentHTML('afterbegin', '<span class="ov-flag" aria-hidden="true" title="Overlap">⚠</span>');
++      else if (!isOver && hasBadge) el.querySelectorAll('.ov-flag').forEach((b) => b.remove());
++    }
+   }
+ 
+   // The combined bounding box of a 2+ selection, drawn as a dashed outline over the board.
+@@ -291,7 +413,13 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     selectedId = primary && selection.has(primary) ? primary : (selection.size ? [...selection][selection.size - 1] : null);
+     refreshSelectionUI();
+   }
+-  function selectAll() { selectIds(placed.map((p) => p.id), placed.length ? placed[placed.length - 1].id : null); }
++  // Terrain fills are paint, not pieces — they're never part of a normal selection (kept out of
++  // select-all, marquee and group/align). They're edited only through the terrain tool.
++  const isSelectable = (t) => t.kind !== 'terrain';
++  function selectAll() {
++    const sel = placed.filter(isSelectable);
++    selectIds(sel.map((p) => p.id), sel.length ? sel[sel.length - 1].id : null);
++  }
+   // Shift/Ctrl-click: add or remove a tile (or its group) from the selection.
+   function toggleSelect(id) {
+     const members = groupMembers(id);
+@@ -313,7 +441,7 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     if (!el) return;
+     el.style.transform = t.rot ? `rotate(${t.rot}deg)` : '';
+     el.style.setProperty?.('--rot', (t.rot || 0) + 'deg');
+-    const lab = el.querySelector('.tlabel');
++    const lab = el.querySelector('.tlabel') || el.querySelector('.note-text');
+     if (lab) lab.style.transform = t.rot ? `rotate(${-t.rot}deg)` : '';
+   }
+ 
+@@ -337,7 +465,9 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+         applyTilePos(t); applyRot(t);
+       }
+     }
+-    refreshOverlaps(); updateSelBox(); growToFit(); finalize('Rotate');
++    refreshOverlaps(); updateSelBox(); growToFit();
++    onAnnounce(sel.length === 1 ? `${sel[0].name} rotated 90 degrees.` : `Rotated ${sel.length} items 90 degrees.`);
++    finalize('Rotate');
+   }
+   // Fade+scale-out "ghost" clones left behind by a delete (MOTION-6). Purely cosmetic and fully
+   // decoupled from the real state change — deleteSelected() itself stays 100% synchronous (the
+@@ -358,14 +488,18 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+   }
+   function deleteSelected() {
+     if (!selection.size) return;
++    const doomedTiles = selectedTiles();
+     // Snapshot what the doomed tiles looked like on screen before they're gone.
+-    const doomed = selectedTiles().map((t) => ({
++    const doomed = doomedTiles.map((t) => ({
+       left: t.x * PX, top: t.y * PX, w: t.w * PX, h: t.h * PX,
+       rot: t.rot || 0, bg: t.color || catColor(t.category), flat: (t.layer ?? 2) < 2,
+     }));
++    const names = doomedTiles.map((t) => t.name);
+     placed = placed.filter((p) => !selection.has(p.id));
+     selection.clear(); selectedId = null;
+-    render(); finalize('Delete'); emitSelect();
++    render();
++    onAnnounce(names.length === 1 ? `Deleted ${names[0]}.` : `Deleted ${names.length} items.`);
++    finalize('Delete'); emitSelect();
+     spawnDeleteGhosts(doomed);
+   }
+   // Move the selected tiles to the front/back of the stacking order. Baseplates stay pinned bottom.
+@@ -443,6 +577,107 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     refreshOverlaps(); updateSelBox(); growToFit(); finalize('Distribute');
+   }
+ 
++  // ---- MOTION-3 / UI-5: interaction modes + non-catalog objects ---------------
++  function setMode(m) {
++    mode = (m === 'terrain' || m === 'note' || m === 'rect') ? m : 'select';
++    // classList.remove in the DOM mock only takes one arg — clear the classes individually.
++    board.classList?.remove('mode-terrain');
++    board.classList?.remove('mode-note');
++    board.classList?.remove('mode-rect');
++    if (mode !== 'select') { board.classList?.add('mode-' + mode); select(null); }
++    onMode(mode, terrainType);
++  }
++  function getMode() { return mode; }
++  function setTerrainType(t) { terrainType = t; onMode(mode, terrainType); }
++  function getTerrainType() { return terrainType; }
++
++  // Add one terrain fill of `type` over the (already snapped) rect; returns the new tile.
++  function paintTerrain(rect, type = terrainType) {
++    const t = makeTerrain({ id: 'p' + (seq++), x: rect.x, y: rect.y, w: rect.w, h: rect.h, type });
++    placed.push(t);
++    render(); growToFit(); finalize('Paint terrain');
++    return t;
++  }
++  // Remove every terrain fill whose box intersects `rect` (the eraser drag). Returns how many went.
++  function eraseTerrain(rect) {
++    const before = placed.length;
++    placed = placed.filter((p) => !(p.kind === 'terrain' && rectsIntersect(p, rect)));
++    const removed = before - placed.length;
++    if (removed) { render(); finalize('Erase terrain'); }
++    return removed;
++  }
++  // Drop a sticky note at (x,y); returns the new tile (selected, ready to edit).
++  function addNoteAt(x, y, text = 'Note') {
++    const t = makeNote({ id: 'p' + (seq++), x: Math.max(0, x), y: Math.max(0, y), text });
++    placed.push(t); selectOnly(t.id); render(); growToFit(); finalize('Add note');
++    return t;
++  }
++  // Draw a custom footprint block over the (already snapped) rect; returns the new tile.
++  function addCustomRect(rect, label = 'MOC') {
++    const t = makeCustom({ id: 'p' + (seq++), x: rect.x, y: rect.y, w: rect.w, h: rect.h, label });
++    placed.push(t); selectOnly(t.id); render(); growToFit(); finalize('Add block');
++    return t;
++  }
++  // Patch a note's text or a custom block's label/dimensions in place (an undoable edit).
++  function updateTile(id, patch = {}) {
++    const t = placed.find((p) => p.id === id);
++    if (!t) return null;
++    if (patch.text != null) t.text = String(patch.text);
++    if (patch.name != null) t.name = String(patch.name);
++    if (Number.isFinite(patch.w) && patch.w > 0) t.w = patch.w;
++    if (Number.isFinite(patch.h) && patch.h > 0) t.h = patch.h;
++    render(); growToFit(); finalize('Edit ' + (t.kind === 'note' ? 'note' : 'block'));
++    return t;
++  }
++
++  // Shared drag for the terrain brush and the custom-rectangle tool: rubber-band a preview, then
++  // on release paint / erase / create. A plain click (no drag) drops one default-sized object.
++  function startAreaDrag(ev, purpose) {
++    const origin = toStuds(ev.clientX, ev.clientY);
++    const erasing = purpose === 'terrain' && terrainType === 'erase';
++    const preview = document.createElement('div');
++    preview.className = 'paint-preview' + (erasing ? ' erase' : (purpose === 'rect' ? ' rect' : ''));
++    if (purpose === 'terrain' && !erasing) preview.style.background = makeTerrain({ type: terrainType }).color;
++    board.appendChild(preview);
++    let cur = origin, moved = false;
++    const step = purpose === 'terrain' ? CELL : 1;
++    const min = purpose === 'terrain' ? CELL : 4;
++    try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
++    function draw() {
++      const r = snapRect(origin.x, origin.y, cur.x, cur.y, step, min);
++      preview.style.left = r.x * PX + 'px'; preview.style.top = r.y * PX + 'px';
++      preview.style.width = r.w * PX + 'px'; preview.style.height = r.h * PX + 'px';
++    }
++    draw();
++    function mv(e) {
++      if (e.pointerId !== ev.pointerId) return;
++      cur = toStuds(e.clientX, e.clientY);
++      if (Math.abs(cur.x - origin.x) > 1 || Math.abs(cur.y - origin.y) > 1) moved = true;
++      draw();
++    }
++    function up(e) {
++      if (e.pointerId !== ev.pointerId) return;
++      board.removeEventListener('pointermove', mv);
++      board.removeEventListener('pointerup', up);
++      board.removeEventListener('pointercancel', up);
++      preview.remove();
++      if (purpose === 'terrain') {
++        const r = snapRect(origin.x, origin.y, cur.x, cur.y, CELL, CELL); // a click → one CELL cell
++        erasing ? eraseTerrain(r) : paintTerrain(r, terrainType);
++      } else { // custom rectangle — a click makes a default block
++        const r = moved ? snapRect(origin.x, origin.y, cur.x, cur.y, 1, 8)
++          : { x: Math.max(0, snap(origin.x)), y: Math.max(0, snap(origin.y)), w: 16, h: 16 };
++        const t = addCustomRect(r);
++        setMode('select');
++        if (t) onRequestEdit(t);
++      }
++    }
++    board.addEventListener('pointermove', mv);
++    board.addEventListener('pointerup', up);
++    board.addEventListener('pointercancel', up);
++    ev.preventDefault();
++  }
++
+   function applyZoom() { board.style.transform = `scale(${zoom})`; board.style.transformOrigin = '0 0'; }
+   function setZoom(z) { zoom = Math.min(2, Math.max(0.25, z)); applyZoom(); }
+   function zoomBy(d) { setZoom(zoom + d); }
+@@ -484,7 +719,7 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+       if (w > 1 || h > 1) moved = true;
+       rectEl.style.left = x * PX + 'px'; rectEl.style.top = y * PX + 'px';
+       rectEl.style.width = w * PX + 'px'; rectEl.style.height = h * PX + 'px';
+-      const hits = tilesInRect(placed, { x, y, w, h });
++      const hits = tilesInRect(placed.filter(isSelectable), { x, y, w, h });
+       selection = new Set(base);
+       for (const id of hits) for (const m of groupMembers(id)) selection.add(m);
+       selectedId = selection.size ? [...selection][selection.size - 1] : null;
+@@ -556,7 +791,9 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+         board.removeEventListener('pointerup', rend);
+         board.removeEventListener('pointercancel', rend);
+         tileEl(t.id)?.classList.remove('rotating');
+-        growToFit(); finalize('Rotate');
++        growToFit();
++        onAnnounce(`${t.name} rotated to ${t.rot} degrees.`); // free-rotate: absolute angle, not a fixed +90 step
++        finalize('Rotate');
+       }
+       board.addEventListener('pointermove', rot);
+       board.addEventListener('pointerup', rend);
+@@ -564,6 +801,20 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+       ev.preventDefault();
+       return;
+     }
++    // MOTION-3 / UI-5 tool modes take over the empty-canvas gesture (grip + rotate-handle above
++    // still work in every mode). Terrain fills are pointer-transparent, so a press "on" one still
++    // starts a fresh paint stroke rather than grabbing the fill.
++    if (mode === 'terrain') { startAreaDrag(ev, 'terrain'); return; }
++    if (mode === 'rect') { startAreaDrag(ev, 'rect'); return; }
++    if (mode === 'note') {
++      const p = toStuds(ev.clientX, ev.clientY);
++      const t = addNoteAt(Math.max(0, snap(p.x)), Math.max(0, snap(p.y)));
++      setMode('select');
++      if (t) onRequestEdit(t);
++      ev.preventDefault();
++      return;
++    }
++
+     const hit = ev.target.closest('.tile');
+     if (!hit) { startMarquee(ev, ev.shiftKey || ev.ctrlKey || ev.metaKey); return; }
+     const id = hit.dataset.id;
+@@ -632,6 +883,15 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     else if (ev.key.toLowerCase() === 'r' && !ev.ctrlKey && !ev.metaKey) { rotateSelected(); }
+   });
+ 
++  // UI-5: double-click a note or a custom block to edit it (text, or label + dimensions). The
++  // actual prompting is delegated to the host via onRequestEdit so grid.js stays DOM-only.
++  board.addEventListener('dblclick', (ev) => {
++    const hit = ev.target.closest?.('.tile');
++    if (!hit) return;
++    const t = placed.find((p) => p.id === hit.dataset.id);
++    if (t && (t.kind === 'note' || t.kind === 'custom')) { selectOnly(t.id); onRequestEdit(t); }
++  });
++
+   // Editor-wide keyboard shortcuts (undo/redo/copy/paste/duplicate/group/select-all).
+   // Ignored while typing in the catalog search or any input.
+   window.addEventListener('keydown', (ev) => {
+@@ -666,6 +926,9 @@ export function createGrid(board, { onChange = () => {}, onResize = () => {}, on
+     copySelection, paste, duplicate,
+     // align / distribute
+     alignSelection, distributeSelection,
++    // MOTION-3 / UI-5: tool modes + non-catalog canvas objects
++    setMode, getMode, setTerrainType, getTerrainType,
++    paintTerrain, eraseTerrain, addNoteAt, addCustomRect, updateTile,
+     // history
+     undo, redo, canUndo, canRedo, getHistory, jumpHistory,
+     _state: () => ({ placed, selectedId, selection: [...selection] }),
+diff --git a/js/schematic.js b/js/schematic.js
+index 6089a03..bbe08b4 100644
+--- a/js/schematic.js
++++ b/js/schematic.js
+@@ -4,67 +4,185 @@
+ // Returns '' for kinds with no schematic (baseplate uses its flat colour; generic
+ // sets fall back to the tinted box photo).
+ 
+-const W = 'stroke="rgba(255,255,255,.5)" stroke-width="2" fill="none"'; // road edge line
+-const Y = 'stroke="#f4c430" stroke-width="2.6" stroke-dasharray="9 7" fill="none"'; // lane dashes
+-const RAIL = 'fill="none" stroke="#2b2b30" stroke-width="3"';
++// Road/track surface palette (theme-independent — these are painted-on materials, not UI chrome).
++const ROAD_A = '#565b62', ROAD_B = '#494d54', ROAD_C = '#3d4147'; // asphalt light→dark
++const WALK = '#c3c7cd';                                            // sidewalk light grey
++const CURB = 'stroke="rgba(255,255,255,.4)" stroke-width="1.5" fill="none"';                     // kerb highlight
++const LANE = 'stroke="#f4c430" stroke-width="3" stroke-dasharray="10 8" stroke-linecap="round" fill="none"'; // centre dashes
++const BAL_A = '#9ba0a6', BAL_B = '#878c92', BAL_C = '#73787e';     // track ballast light→dark
++const TIE = '#6d5a45', TIE_SH = 'rgba(0,0,0,.28)';                 // sleeper wood + its cast shadow
++const RAILDK = '#33333a', RAILHI = '#7c7c86';                      // steel rail + top highlight
+ 
+-function road(name, wide) {
+-  const n = (name || '').toLowerCase();
+-  if (/curve|curved/.test(n)) {
+-    // quarter-turn road from the bottom edge to the right (or mirrored left) edge
+-    return /left/.test(n)
+-      ? `<path d="M68 100 A68 68 0 0 0 0 32" ${W}/><path d="M32 100 A32 32 0 0 0 0 68" ${W}/><path d="M50 100 A50 50 0 0 0 0 50" ${Y}/>`
+-      : `<path d="M32 100 A68 68 0 0 1 100 32" ${W}/><path d="M68 100 A32 32 0 0 1 100 68" ${W}/><path d="M50 100 A50 50 0 0 1 100 50" ${Y}/>`;
+-  }
+-  const cross = /cross/.test(n);
+-  const tee = !cross && /junction|t-|t &|and t/.test(n); // T = full one way + a half spur
++// A subtle light→dark grey gradient for asphalt / ballast fills, shading ACROSS the direction of
++// travel for a faint rounded-surface feel. Each call mints a fresh gradient id: schematic SVGs are
++// re-generated wholesale on every full render() and never mutated in place, so the id is unique in
++// the live DOM and two tiles never share (or fight over) one definition.
++let _uid = 0;
++function grad(axis, a, b, c) {
++  const id = 'g' + (_uid++);
++  const coords = axis === 'x' ? 'x1="0" y1="0" x2="100" y2="0"' : 'x1="0" y1="0" x2="0" y2="100"';
++  const def = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" ${coords}>` +
++    `<stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs>`;
++  return { id, def };
++}
++
++// ---- roads ------------------------------------------------------------------
++// Ports are unchanged from the old flat art: the roadway spans studs 8..92 across its width and
++// reaches both travel edges, with the centre lane always on the 50-line so dashes line up tile-to-tile.
++function roadStraight(wide) {
++  const g = grad(wide ? 'y' : 'x', ROAD_A, ROAD_B, ROAD_C);
+   if (wide) {
+-    let s = `<line x1="0" y1="9" x2="100" y2="9" ${W}/><line x1="0" y1="91" x2="100" y2="91" ${W}/><line x1="0" y1="50" x2="100" y2="50" ${Y}/>`;
+-    if (cross) s += `<line x1="50" y1="0" x2="50" y2="100" ${Y}/>`;
+-    else if (tee) s += `<line x1="50" y1="50" x2="50" y2="100" ${Y}/>`;
+-    return s;
++    return g.def +
++      `<rect x="0" y="8" width="100" height="84" fill="url(#${g.id})"/>` +
++      `<rect x="0" y="0" width="100" height="8" fill="${WALK}"/><rect x="0" y="92" width="100" height="8" fill="${WALK}"/>` +
++      `<line x1="0" y1="8" x2="100" y2="8" ${CURB}/><line x1="0" y1="92" x2="100" y2="92" ${CURB}/>` +
++      `<line x1="0" y1="50" x2="100" y2="50" ${LANE}/>`;
+   }
+-  let s = `<line x1="9" y1="0" x2="9" y2="100" ${W}/><line x1="91" y1="0" x2="91" y2="100" ${W}/><line x1="50" y1="0" x2="50" y2="100" ${Y}/>`;
+-  if (cross) s += `<line x1="0" y1="50" x2="100" y2="50" ${Y}/>`;
+-  else if (tee) s += `<line x1="50" y1="50" x2="100" y2="50" ${Y}/>`;
+-  return s;
++  return g.def +
++    `<rect x="8" y="0" width="84" height="100" fill="url(#${g.id})"/>` +
++    `<rect x="0" y="0" width="8" height="100" fill="${WALK}"/><rect x="92" y="0" width="8" height="100" fill="${WALK}"/>` +
++    `<line x1="8" y1="0" x2="8" y2="100" ${CURB}/><line x1="92" y1="0" x2="92" y2="100" ${CURB}/>` +
++    `<line x1="50" y1="0" x2="50" y2="100" ${LANE}/>`;
+ }
+ 
+-function track(name, wide) {
+-  const n = (name || '').toLowerCase();
+-  if (/curve|curved/.test(n)) {
+-    const left = /left/.test(n);
+-    let ties = '';
+-    for (const a of [195, 225, 255]) {
+-      const r = (a * Math.PI) / 180;
+-      let x1 = 100 + 38 * Math.cos(r), y1 = 100 + 38 * Math.sin(r);
+-      let x2 = 100 + 62 * Math.cos(r), y2 = 100 + 62 * Math.sin(r);
+-      if (left) { x1 = 100 - x1; x2 = 100 - x2; }
+-      ties += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#4b4038" stroke-width="4"/>`;
+-    }
+-    return ties + (left
+-      ? `<path d="M62 100 A62 62 0 0 0 0 38" ${RAIL}/><path d="M38 100 A38 38 0 0 0 0 62" ${RAIL}/>`
+-      : `<path d="M38 100 A62 62 0 0 1 100 38" ${RAIL}/><path d="M62 100 A38 38 0 0 1 100 62" ${RAIL}/>`);
++function roadCross() {
++  const g = grad('x', ROAD_A, ROAD_B, ROAD_C);
++  const corner = (x, y) => `<rect x="${x}" y="${y}" width="8" height="8" rx="2" fill="${WALK}"/>`;
++  return g.def +
++    `<rect x="0" y="0" width="100" height="100" fill="url(#${g.id})"/>` +
++    corner(0, 0) + corner(92, 0) + corner(0, 92) + corner(92, 92) +
++    `<path d="M8 0 L8 8 L0 8" ${CURB}/><path d="M92 0 L92 8 L100 8" ${CURB}/>` +
++    `<path d="M0 92 L8 92 L8 100" ${CURB}/><path d="M100 92 L92 92 L92 100" ${CURB}/>` +
++    `<line x1="0" y1="50" x2="100" y2="50" ${LANE}/><line x1="50" y1="0" x2="50" y2="100" ${LANE}/>`;
++}
++
++// T-junction: a full through road plus a same-width spur meeting the far edge at centre, so a road
++// tile butted against that edge connects cleanly (spur asphalt fills the same 8..92 band).
++function roadTee(wide) {
++  const g = grad(wide ? 'y' : 'x', ROAD_A, ROAD_B, ROAD_C);
++  if (wide) {
++    return g.def +
++      `<rect x="0" y="8" width="100" height="84" fill="url(#${g.id})"/>` +   // through (L↔R)
++      `<rect x="8" y="50" width="84" height="50" fill="url(#${g.id})"/>` +    // spur (↓)
++      `<rect x="0" y="0" width="100" height="8" fill="${WALK}"/>` +           // far sidewalk (full)
++      `<rect x="0" y="92" width="8" height="8" rx="2" fill="${WALK}"/><rect x="92" y="92" width="8" height="8" rx="2" fill="${WALK}"/>` +
++      `<line x1="0" y1="8" x2="100" y2="8" ${CURB}/>` +
++      `<line x1="0" y1="92" x2="8" y2="92" ${CURB}/><line x1="92" y1="92" x2="100" y2="92" ${CURB}/>` +
++      `<line x1="8" y1="92" x2="8" y2="100" ${CURB}/><line x1="92" y1="92" x2="92" y2="100" ${CURB}/>` +
++      `<line x1="0" y1="50" x2="100" y2="50" ${LANE}/><line x1="50" y1="50" x2="50" y2="100" ${LANE}/>`;
+   }
+-  if (/cross|crossover|diamond/.test(n)) { // two tracks crossing
+-    return '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' +
+-      '<rect x="0" y="33" width="100" height="4" fill="#2b2b30"/><rect x="0" y="63" width="100" height="4" fill="#2b2b30"/>';
++  return g.def +
++    `<rect x="8" y="0" width="84" height="100" fill="url(#${g.id})"/>` +      // through (↕)
++    `<rect x="50" y="8" width="50" height="84" fill="url(#${g.id})"/>` +      // spur (→)
++    `<rect x="0" y="0" width="8" height="100" fill="${WALK}"/>` +
++    `<rect x="92" y="0" width="8" height="8" rx="2" fill="${WALK}"/><rect x="92" y="92" width="8" height="8" rx="2" fill="${WALK}"/>` +
++    `<line x1="8" y1="0" x2="8" y2="100" ${CURB}/>` +
++    `<line x1="92" y1="0" x2="92" y2="8" ${CURB}/><line x1="92" y1="92" x2="92" y2="100" ${CURB}/>` +
++    `<line x1="92" y1="8" x2="100" y2="8" ${CURB}/><line x1="92" y1="92" x2="100" y2="92" ${CURB}/>` +
++    `<line x1="50" y1="0" x2="50" y2="100" ${LANE}/><line x1="50" y1="50" x2="100" y2="50" ${LANE}/>`;
++}
++
++// Quarter-turn: an asphalt annulus (radii 8..92, centre lane on r=50) from the bottom edge to the
++// right edge — or mirrored to the left. Arc kerbs give the rounded corners for free.
++function roadCurve(left) {
++  const g = grad('x', ROAD_A, ROAD_B, ROAD_C);
++  if (left) {
++    return g.def +
++      `<path d="M100 100 A100 100 0 0 0 0 0 L0 8 A92 92 0 0 1 92 100 Z" fill="${WALK}"/>` +   // outer sidewalk
++      `<path d="M8 100 A8 8 0 0 0 0 92 L0 100 Z" fill="${WALK}"/>` +                           // inner sidewalk (corner)
++      `<path d="M92 100 A92 92 0 0 0 0 8 L0 92 A8 8 0 0 1 8 100 Z" fill="url(#${g.id})"/>` +    // asphalt
++      `<path d="M92 100 A92 92 0 0 0 0 8" ${CURB}/><path d="M8 100 A8 8 0 0 0 0 92" ${CURB}/>` +
++      `<path d="M50 100 A50 50 0 0 0 0 50" ${LANE}/>`;
+   }
+-  if (/switch|points/.test(n)) { // straight track with a diverging branch (left or right)
+-    let ties = '';
+-    for (let y = 6; y < 100; y += 12) ties += `<rect x="10" y="${y}" width="62" height="4" fill="#4b4038"/>`;
+-    const branch = /left/.test(n) ? `<path d="M37 44 Q10 52 0 84" ${RAIL}/>` : `<path d="M63 44 Q90 52 100 84" ${RAIL}/>`;
+-    return ties + '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' + branch;
++  return g.def +
++    `<path d="M0 100 A100 100 0 0 1 100 0 L100 8 A92 92 0 0 0 8 100 Z" fill="${WALK}"/>` +
++    `<path d="M92 100 A8 8 0 0 1 100 92 L100 100 Z" fill="${WALK}"/>` +
++    `<path d="M8 100 A92 92 0 0 1 100 8 L100 92 A8 8 0 0 0 92 100 Z" fill="url(#${g.id})"/>` +
++    `<path d="M8 100 A92 92 0 0 1 100 8" ${CURB}/><path d="M92 100 A8 8 0 0 1 100 92" ${CURB}/>` +
++    `<path d="M50 100 A50 50 0 0 1 100 50" ${LANE}/>`;
++}
++
++function road(name, wide) {
++  const n = (name || '').toLowerCase();
++  if (/curve|curved/.test(n)) return roadCurve(/left/.test(n));
++  if (/cross/.test(n)) return roadCross();
++  if (/junction|t-|t &|and t/.test(n)) return roadTee(wide); // T = full one way + a spur
++  return roadStraight(wide);
++}
++
++// ---- tracks -----------------------------------------------------------------
++// Two steel rails on the original 33/63 lines (ports unchanged), each with a thin top highlight
++// for a bit of depth, over wood sleepers on a grey ballast bed.
++function rails(dir) {
++  if (dir === 'v') {
++    return `<rect x="33" y="0" width="4" height="100" fill="${RAILDK}"/><rect x="33" y="0" width="1.4" height="100" fill="${RAILHI}"/>` +
++      `<rect x="63" y="0" width="4" height="100" fill="${RAILDK}"/><rect x="63" y="0" width="1.4" height="100" fill="${RAILHI}"/>`;
+   }
+-  let s = '';
++  return `<rect x="0" y="33" width="100" height="4" fill="${RAILDK}"/><rect x="0" y="33" width="100" height="1.4" fill="${RAILHI}"/>` +
++    `<rect x="0" y="63" width="100" height="4" fill="${RAILDK}"/><rect x="0" y="63" width="100" height="1.4" fill="${RAILHI}"/>`;
++}
++function railArc(d) {
++  return `<path d="${d}" fill="none" stroke="${RAILDK}" stroke-width="4"/><path d="${d}" fill="none" stroke="${RAILHI}" stroke-width="1.4"/>`;
++}
++
++function trackStraight(wide) {
++  const g = grad(wide ? 'y' : 'x', BAL_A, BAL_B, BAL_C);
++  let ties = '';
+   if (wide) {
+-    for (let x = 5; x < 100; x += 11) s += `<rect x="${x}" y="12" width="4" height="76" fill="#4b4038"/>`;
+-    return s + '<rect x="0" y="33" width="100" height="4" fill="#2b2b30"/><rect x="0" y="63" width="100" height="4" fill="#2b2b30"/>';
++    for (let x = 4; x < 100; x += 11) ties += `<rect x="${x}" y="12" width="6" height="76" rx="1" fill="${TIE}"/><rect x="${(x + 6).toFixed(0)}" y="12" width="1.5" height="76" fill="${TIE_SH}"/>`;
++    return g.def + `<rect x="0" y="6" width="100" height="88" fill="url(#${g.id})"/>` + ties + rails('h');
++  }
++  for (let y = 4; y < 100; y += 11) ties += `<rect x="12" y="${y}" width="76" height="6" rx="1" fill="${TIE}"/><rect x="12" y="${(y + 6).toFixed(0)}" width="76" height="1.5" fill="${TIE_SH}"/>`;
++  return g.def + `<rect x="6" y="0" width="88" height="100" fill="url(#${g.id})"/>` + ties + rails('v');
++}
++
++function trackCurve(left) {
++  const g = grad('x', BAL_A, BAL_B, BAL_C);
++  let ties = '';
++  for (const a of [188, 206, 224, 242, 260]) { // radial sleepers spanning the arc (centre at 100,100)
++    const r = (a * Math.PI) / 180;
++    let x1 = 100 + 30 * Math.cos(r), y1 = 100 + 30 * Math.sin(r);
++    let x2 = 100 + 70 * Math.cos(r), y2 = 100 + 70 * Math.sin(r);
++    if (left) { x1 = 100 - x1; x2 = 100 - x2; }
++    ties += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${TIE}" stroke-width="5"/>`;
+   }
+-  for (let y = 5; y < 100; y += 11) s += `<rect x="12" y="${y}" width="76" height="4" fill="#4b4038"/>`;
+-  return s + '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>';
++  const ballast = left
++    ? `<path d="M72 100 A72 72 0 0 0 0 28 L0 72 A28 28 0 0 1 28 100 Z" fill="url(#${g.id})"/>`
++    : `<path d="M28 100 A72 72 0 0 1 100 28 L100 72 A28 28 0 0 0 72 100 Z" fill="url(#${g.id})"/>`;
++  const rr = left
++    ? railArc('M62 100 A62 62 0 0 0 0 38') + railArc('M38 100 A38 38 0 0 0 0 62')
++    : railArc('M38 100 A62 62 0 0 1 100 38') + railArc('M62 100 A38 38 0 0 1 100 62');
++  return g.def + ballast + ties + rr;
++}
++
++function trackCross() {
++  const g = grad('x', BAL_A, BAL_B, BAL_C);
++  let ties = '';
++  for (const y of [8, 20, 80, 92]) ties += `<rect x="16" y="${y}" width="68" height="5" rx="1" fill="${TIE}"/>`;
++  for (const x of [8, 20, 80, 92]) ties += `<rect x="${x}" y="16" width="5" height="68" rx="1" fill="${TIE}"/>`;
++  return g.def + `<rect x="0" y="0" width="100" height="100" fill="url(#${g.id})"/>` + ties +
++    rails('v') + rails('h') +
++    `<rect x="43" y="43" width="14" height="14" transform="rotate(45 50 50)" fill="${RAILDK}"/>`; // crossing frog
++}
++
++function trackSwitch(name) {
++  const left = /left/.test(name);
++  const g = grad('x', BAL_A, BAL_B, BAL_C);
++  let ties = '';
++  for (let y = 5; y < 100; y += 11) ties += `<rect x="10" y="${y}" width="70" height="5" rx="1" fill="${TIE}"/>`;
++  const branchD = left ? 'M37 46 Q8 56 0 86' : 'M63 46 Q92 56 100 86';
++  return g.def + `<rect x="4" y="0" width="92" height="100" fill="url(#${g.id})"/>` + ties + rails('v') + railArc(branchD);
++}
++
++function track(name, wide) {
++  const n = (name || '').toLowerCase();
++  if (/curve|curved/.test(n)) return trackCurve(/left/.test(n));
++  if (/cross|crossover|diamond/.test(n)) return trackCross();
++  if (/switch|points/.test(n)) return trackSwitch(n);
++  return trackStraight(wide);
+ }
+ 
++// ---- buildings / parks / vehicles (unchanged flat schematics) ---------------
+ function building() {
+   return '<rect x="0" y="0" width="100" height="24" fill="rgba(0,0,0,.24)"/>' +
+     '<g fill="rgba(255,255,255,.8)"><rect x="13" y="40" width="13" height="13"/><rect x="43" y="40" width="13" height="13"/>' +
+diff --git a/js/summary.js b/js/summary.js
+index 6ede405..0eee985 100644
+--- a/js/summary.js
++++ b/js/summary.js
+@@ -3,6 +3,7 @@ import { fmtDims, fmtArea, studsToCm } from './units.js';
+ import { catColor } from './catalog.js';
+ import { esc } from './util.js';
+ import { cityCost, baseNum } from './pricing.js';
++import { isCitySet } from './objects.js';
+ 
+ // opts: { prices, owned, overrides, onToggleOwn, wishlist, onPromoteWishlist, onRemoveWishlist }
+ // — all app/localStorage state, never part of the placed[]/undo model. Omitting them keeps the
+@@ -14,22 +15,28 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
+   } = opts;
+   const ownedSet = owned instanceof Set ? owned : new Set(owned);
+ 
+-  const box = bbox(placed);
+-  const pieces = placed.reduce((n, t) => n + (byNum.get(t.set_num)?.pieces || 0), 0);
++  // Terrain fills, sticky notes and custom MOC blocks aren't catalog sets — they carry no price,
++  // piece count or category, so every purchasing/inventory figure below is computed over the real
++  // sets only. Footprint spans the physical objects (sets + custom blocks, but not paint/notes).
++  const sets = placed.filter(isCitySet);
++  const physical = placed.filter((t) => t.kind !== 'terrain' && t.kind !== 'note');
++
++  const box = bbox(physical);
++  const pieces = sets.reduce((n, t) => n + (byNum.get(t.set_num)?.pieces || 0), 0);
+   const over = anyOverlaps(placed);
+   const overlapCount = over.size ? Math.ceil(over.size / 2) : 0;
+-  const approxCount = placed.filter((t) => t.approx).length;
++  const approxCount = sets.filter((t) => t.approx).length;
+ 
+   // Per-set piece counts feed the cost estimate fallback for sets with no known price.
+   const pieceMap = {};
+-  for (const t of placed) pieceMap[baseNum(t.set_num)] = byNum.get(t.set_num)?.pieces || 0;
+-  const cost = cityCost(placed, { prices, owned: ownedSet, overrides, pieces: pieceMap });
++  for (const t of sets) pieceMap[baseNum(t.set_num)] = byNum.get(t.set_num)?.pieces || 0;
++  const cost = cityCost(sets, { prices, owned: ownedSet, overrides, pieces: pieceMap });
+   const money = (n) => '$' + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+ 
+   const counts = {};
+-  for (const t of placed) counts[t.category] = (counts[t.category] || 0) + 1;
++  for (const t of sets) counts[t.category] = (counts[t.category] || 0) + 1;
+   const cats = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+-  const total = placed.length || 1;
++  const total = sets.length || 1;
+ 
+   // Unique sets, richest info first, for the owned/buy list. A friendly name comes from the
+   // catalog when we have it (placed tiles carry only the raw name).
+@@ -63,10 +70,10 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
+         studsToCm(box.w)} × ${studsToCm(box.h)} cm · ${fmtArea(box.w, box.h, 'cm')}</span>
+     </div>
+     <div class="stat-row">
+-      <div class="stat"><div class="k">Sets placed</div><div class="v">${placed.length}</div></div>
++      <div class="stat"><div class="k">Sets placed</div><div class="v">${sets.length}</div></div>
+       <div class="stat"><div class="k">Total pieces</div><div class="v">${pieces.toLocaleString()}</div></div>
+     </div>
+-    ${placed.length ? `<div class="budget">
++    ${sets.length ? `<div class="budget">
+       <div class="bud-row buy"><span class="k">Still to buy</span><span class="v">${money(cost.buyCost)}</span></div>
+       <div class="bud-row own"><span class="k">Already own</span><span class="v">$0 <s>${money(cost.ownedCost)}</s></span></div>
+       <div class="bud-note">${cost.estimatedBuyCount
+@@ -80,7 +87,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
+           <span class="nm">${esc(c[0].toUpperCase() + c.slice(1))}</span><span class="ct">${n}</span></div>`).join('') ||
+         '<div class="note">No sets yet — add some from the catalog.</div>'}</div>
+       ${cats.length ? `<div class="bar">${cats.map(([c, n]) =>
+-        `<i style="width:${(n / total * 100).toFixed(1)}%;background:${catColor(c)}"></i>`).join('')}</div>` : ''}
++        `<i data-cat="${esc(c)}" title="${esc(c)}" style="width:${(n / total * 100).toFixed(1)}%;background:${catColor(c)}"></i>`).join('')}</div>` : ''}
+     </div>
+     ${cost.lines.length ? `<div>
+       <h2 class="sec" style="margin-bottom:8px">Sets &amp; ownership</h2>
+diff --git a/test/geometry.test.mjs b/test/geometry.test.mjs
+index 9096f3a..544e3b1 100644
+--- a/test/geometry.test.mjs
++++ b/test/geometry.test.mjs
+@@ -1,8 +1,8 @@
+ import { test } from 'node:test';
+ import assert from 'node:assert/strict';
+ import {
+-  extent, overlaps, bbox, snap, anyOverlaps, snapConnect, grownCanvas, clampedCanvas, BP,
+-  tileAABB, tilesInRect, alignTiles, distributeTiles, rotateGroup,
++  extent, overlaps, bbox, snap, anyOverlaps, overlapPairs, toRowCol, snapConnect, grownCanvas,
++  clampedCanvas, BP, tileAABB, tilesInRect, alignTiles, distributeTiles, rotateGroup,
+ } from '../js/geometry.js';
+ 
+ test('extent swaps on 90/270', () => {
+@@ -162,6 +162,31 @@ test('distributeTiles evenly spaces 3+ tiles by centre, extremes fixed', () => {
+   // fewer than 3 tiles is a no-op
+   assert.deepEqual(distributeTiles(tiles.slice(0, 2), 'h').map((r) => r.x), [0, 15]);
+ });
++// ---- ACC-4 support: overlapPairs + toRowCol -------------------------------------------------
++test('overlapPairs returns the actual tile objects, paired, for each real overlap', () => {
++  const a = { id: 'a', name: 'Police Station', x: 0, y: 0, w: 32, h: 32, rot: 0 };
++  const b = { id: 'b', name: 'Fire Station', x: 16, y: 16, w: 32, h: 32, rot: 0 };
++  const c = { id: 'c', name: 'Far Away', x: 200, y: 200, w: 8, h: 8, rot: 0 };
++  const pairs = overlapPairs([a, b, c]);
++  assert.equal(pairs.length, 1);
++  assert.deepEqual(new Set(pairs[0].map((t) => t.id)), new Set(['a', 'b']));
++  // anyOverlaps stays consistent with it (ids derived from the same pairs)
++  assert.deepEqual([...anyOverlaps([a, b, c])].sort(), ['a', 'b']);
++});
++test('overlapPairs respects the same layer/kind exclusions as anyOverlaps', () => {
++  const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };
++  const road = { id: 'road', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };
++  assert.deepEqual(overlapPairs([plate, road]), []); // different layers never pair
++  const terrain = { id: 't', kind: 'terrain', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 2 };
++  const house = { id: 'h', x: 4, y: 4, w: 16, h: 16, rot: 0, layer: 2 };
++  assert.deepEqual(overlapPairs([terrain, house]), []); // terrain never pairs
++});
++test('toRowCol converts stud coords to a friendly 1-indexed row/column pair', () => {
++  assert.deepEqual(toRowCol(0, 0), { row: 1, col: 1 });
++  assert.deepEqual(toRowCol(8, 16), { row: 3, col: 2 });
++  assert.deepEqual(toRowCol(23, 40, 8), { row: 6, col: 3 }); // floors within the cell, not rounds
++});
++
+ test('rotateGroup orbits tile centres about the group centre and advances rot', () => {
+   const tiles = [
+     { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+diff --git a/test/grid.test.mjs b/test/grid.test.mjs
+index ad012a2..b4a71b2 100644
+--- a/test/grid.test.mjs
++++ b/test/grid.test.mjs
+@@ -135,3 +135,50 @@ if (g.getPlaced().length) { g.select(g.getPlaced()[0].id); g.bringForward(); g.s
+ 
+ assert.ok(changes > 0 && hist > 0 && sels > 0, 'callbacks fired');
+ });
++
++// ---- ACC-4: onAnnounce fires real text on placement / rotate / delete / overlap-detected -----
++test('createGrid: onAnnounce announces placement, rotation, delete and newly-detected overlaps', async () => {
++const { createGrid } = await import('../js/grid.js');
++
++const board = new El('div');
++const stage = new El('div'); stage.clientWidth = 800; stage.clientHeight = 600; stage.scrollTo = () => {};
++stage.appendChild(board);
++board.parent = stage;
++Object.defineProperty(board, 'parentElement', { get() { return stage; } });
++
++const announced = [];
++const g = createGrid(board, { onAnnounce: (msg) => announced.push(msg) });
++const mkSet = (n, name, w, h) => ({ set_num: n, name, category: 'city', kind: 'generic', footprint: { w, h, source: 'curated' }, layer: 2, color: null });
++
++// placement announces the set name + a row/column pair, in real text (not colour-only)
++g.addSet(mkSet('a', 'Fire Station', 16, 16));
++assert.ok(announced.some((m) => m.startsWith('Fire Station placed at row') && m.includes('column')), 'placement announced');
++
++// a second set dropped ON TOP of the first (both default to 0,0) is a fresh overlap → announced,
++// naming both pieces
++announced.length = 0;
++g.addSet(mkSet('b', 'Police Station', 16, 16));
++assert.ok(announced.some((m) => /Overlap detected between .* and .*/.test(m)), 'new overlap announced');
++
++// rotate announces in plain text, not just a visual outline
++announced.length = 0;
++g.select(g.getPlaced()[0].id);
++g.rotateSelected();
++assert.ok(announced.some((m) => /rotated 90 degrees/.test(m)), 'rotation announced');
++
++// delete announces which piece went, by name
++announced.length = 0;
++const before = g.getPlaced().length;
++g.deleteSelected();
++assert.equal(g.getPlaced().length, before - 1);
++assert.ok(announced.some((m) => m.startsWith('Deleted ')), 'delete announced');
++
++// loading a city that ALREADY has an overlap must not immediately re-announce it (only NEW
++// overlaps introduced by a live edit should fire)
++announced.length = 0;
++g.setPlaced([
++  { id: 'p1', set_num: 'x', name: 'X', category: 'city', kind: 'generic', x: 0, y: 0, w: 16, h: 16, rot: 0, layer: 2 },
++  { id: 'p2', set_num: 'y', name: 'Y', category: 'city', kind: 'generic', x: 0, y: 0, w: 16, h: 16, rot: 0, layer: 2 },
++]);
++assert.ok(!announced.some((m) => /Overlap detected/.test(m)), 'pre-existing overlap on load is not announced');
++});

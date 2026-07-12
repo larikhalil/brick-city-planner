@@ -1,0 +1,1609 @@
+{
+  "summary": "Enhancement ideas + aggressive persona feedback + Reddit/forum & competitor research for Brick City Planner, synthesized into one prioritized pick-list",
+  "agentCount": 15,
+  "logs": [
+    "Fanning out: 4 ideation + 6 personas + 4 research agents...",
+    "Synthesizing a deduplicated, prioritized backlog..."
+  ],
+  "result": {
+    "backlog": {
+      "topPicks": [
+        "QOL-1",
+        "QOL-2",
+        "QOL-3",
+        "PLAN-1",
+        "PLAN-4",
+        "PLAN-5",
+        "MOTION-6",
+        "ACC-2",
+        "UI-1"
+      ],
+      "editorNote": "The single loudest, most cross-cutting theme is that the core editing model is too primitive for the scale people actually build at: every power-user persona and the ideation set independently demand multi-select, copy/paste/duplicate, and real undo/redo — these are table stakes, not enhancements. The second theme is that the tool nails \"plan\" but abandons \"buy\": real prices, owned/wishlist tracking, buy links, and above all a clean shareable image/link export are requested by nearly every persona and community source, and are the highest-leverage way to make the tool actually finish its own job. Underneath that sit two neglected audiences — accessibility/touch (colorblind cues, keyboard-only flow, iPad gestures) and serious train builders (real curve-radius geometry and loop validation) — each of which is currently served badly enough to drive a rage-quit.",
+      "items": [
+        {
+          "id": "QOL-1",
+          "title": "Undo/redo with a visible history panel",
+          "description": "In-memory snapshot/diff stack (50+ steps) on every place/move/rotate/delete, wired to Ctrl+Z / Ctrl+Shift+Z plus always-visible toolbar buttons and a dropdown list of recent actions so users can jump back to a specific state instead of blind-mashing.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation",
+            "Persona: Marcus (convention city)",
+            "Persona: Priya (parent+kid/iPad)",
+            "Persona: Sven (trains)"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "The most-requested QoL feature in any layout tool and the biggest source of lost-work anxiety across three personas."
+        },
+        {
+          "id": "QOL-2",
+          "title": "Marquee multi-select + group move/rotate/delete + group/ungroup",
+          "description": "Rubber-band box select on empty canvas plus shift/ctrl-click, with a combined bounding box; drag/nudge/rotate/delete act on the whole selection, and Ctrl+G binds a selection into a reusable named block that still snaps as a unit.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation",
+            "Persona: Marcus (convention city)"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Marcus calls one-at-a-time editing the single biggest speed killer; essential once a city passes ~20 pieces."
+        },
+        {
+          "id": "QOL-3",
+          "title": "Copy/paste, duplicate, and Alt-drag clone",
+          "description": "Ctrl+C/V and Ctrl+D on single tiles or multi-selections (paste at a small offset), plus Alt-drag to leave a copy behind, all layer-aware so roads stay on the road layer.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation",
+            "Persona: Marcus (convention city)"
+          ],
+          "impact": "High",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Cities are inherently repetitive (same junction, same house row); cheap to build and removes constant catalog re-searching."
+        },
+        {
+          "id": "QOL-4",
+          "title": "Align & distribute toolbar for multi-selections",
+          "description": "When 2+ tiles are selected, a floating bar offers align left/right/top/bottom/center and distribute-evenly, operating purely on stored tile coordinates — especially for lining up baseplate rows.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation",
+            "Persona: Marcus (convention city)"
+          ],
+          "impact": "Medium",
+          "effort": "Medium",
+          "recommendation": "Nice to have",
+          "rationale": "Real pain for clean baseplate grids, but only valuable once multi-select (QOL-2) ships first."
+        },
+        {
+          "id": "QOL-5",
+          "title": "Shareable design link via compressed URL + named saves",
+          "description": "Serialize the city JSON, compress (CompressionStream or tiny JS LZ), base64 into a #d= fragment, copy to clipboard; opening loads read-only-first with an 'Import into my planner' guard. Also expose named save slots so users can keep 2-3 alternative plans.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation",
+            "Community: r/lego + Eurobricks",
+            "Competitor: BlueBrick"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "One-click sharing is far more viral than JSON email for a forum/Discord hobby community and stays fully client-side."
+        },
+        {
+          "id": "QOL-6",
+          "title": "Starter templates / example-cities gallery",
+          "description": "Ship 4-6 curated starter JSON files (Town Square, Train Loop, Modular Street) shown as thumbnails in a 'New from Template' modal with an overwrite guard.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Cheap onboarding lift that defuses the empty-grid-plus-1725-set paralysis for new visitors."
+        },
+        {
+          "id": "QOL-7",
+          "title": "Recently-used & favorites catalog rail",
+          "description": "A pinned strip above the catalog showing the last ~8 placed sets plus star-toggle favorites (localStorage); click a thumbnail to place another copy without re-searching. Doubles as Marcus's 'place N more' need.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation",
+            "Persona: Marcus (convention city)"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Layouts reuse the same few pieces heavily; surfacing them kills redundant catalog scrolling."
+        },
+        {
+          "id": "QOL-8",
+          "title": "Lock pieces + 'Kid Mode' / freeze-layout",
+          "description": "Per-tile (or lock-all-except-selected) lock toggle so finished sections can't be dragged, plus a project-level 'freeze existing, only add new pieces' mode and a simplified big-button touch layout for kids.",
+          "category": "Quality of life",
+          "sources": [
+            "Ideation",
+            "Persona: Priya (parent+kid/iPad)"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Priya's critical pain: an 8-year-old's stray thumb wrecks 20 minutes of layout with no way to protect finished work."
+        },
+        {
+          "id": "QOL-9",
+          "title": "'Saved just now' autosave indicator",
+          "description": "A small persistent Google-Docs-style status ('All changes saved' / 'Saving…') so users have visible reassurance before closing the tab, on top of the existing localStorage autosave.",
+          "category": "Quality of life",
+          "sources": [
+            "Persona: Priya (parent+kid/iPad)"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Trivial reassurance that removes real end-of-session anxiety about lost work."
+        },
+        {
+          "id": "QOL-10",
+          "title": "Per-layer show/hide + lock toggle",
+          "description": "Add visibility and lock toggles for each of the 3 stacking layers (baseplates / roads+tracks / buildings) so users can isolate a roads-only or buildings-only view while composing, going beyond today's bring-to-front/send-to-back.",
+          "category": "Quality of life",
+          "sources": [
+            "Community: r/lego + Eurobricks",
+            "Competitor: BlueBrick"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "High community demand ('blank out layers to focus'); small work on the existing layer model."
+        },
+        {
+          "id": "UI-1",
+          "title": "First-run guided empty state",
+          "description": "When the canvas is empty, show a friendly 3-step illustrated tip, a 'Load a sample city' button, and a pulsing highlight on the search box; dismisses permanently once the first tile is placed.",
+          "category": "UI & visual",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "High",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Near-zero engineering that converts first-10-seconds curiosity into a first placed tile."
+        },
+        {
+          "id": "UI-2",
+          "title": "Resize-grip affordance + keyboard cheat-sheet overlay",
+          "description": "Give the bottom-right resize grip a diagonal-stripe handle icon, hover cursor/tooltip ('Drag to add baseplates') and a one-time fade-out pulse. Add a '?' toolbar button/key opening a modal listing all shortcuts and mouse gestures (drag-rotate node, corner grip, drag-drop).",
+          "category": "UI & visual",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Surfaces already-built features (resize, rotate node, drag-drop) that are currently discoverable only by accident."
+        },
+        {
+          "id": "UI-3",
+          "title": "Dark mode with LEGO-brick accent palette",
+          "description": "Toolbar sun/moon toggle swapping a CSS custom-property theme (charcoal grid, muted studs, brighter red/yellow/blue accents), persisted in localStorage and defaulting to prefers-color-scheme.",
+          "category": "UI & visual",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Top-3 ask for any long-session creative tool; pure CSS-variable work that also strengthens the brand feel."
+        },
+        {
+          "id": "UI-4",
+          "title": "Catalog grid/list view toggle with larger thumbnails",
+          "description": "A view-switcher above catalog results: a 2-3 column grid of larger square thumbnails for visual browsing vs the current dense list for power users, remembered in localStorage.",
+          "category": "UI & visual",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "Medium",
+          "effort": "Medium",
+          "recommendation": "Nice to have",
+          "rationale": "Broadens appeal to parents/kids browsing by looks without touching data or filters."
+        },
+        {
+          "id": "UI-5",
+          "title": "Canvas text annotations / sticky notes + custom-rectangle MOC blocking",
+          "description": "Let users drop text labels on the canvas ('grocery here', 'future expansion') and draw precisely-sized custom footprint rectangles for MOCs or not-yet-chosen buildings, independent of any catalog set.",
+          "category": "UI & visual",
+          "sources": [
+            "Community: r/lego + Eurobricks",
+            "Competitor: BlueBrick",
+            "Competitor: Track Designer"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Both are explicit high-demand community gaps (people fall back to paper cutouts to write on); cheap to add."
+        },
+        {
+          "id": "MOTION-1",
+          "title": "Set-thumbnail / icon tile skins + facade-direction cue",
+          "description": "Fill building tiles with the Rebrickable set thumbnail (top-down crop) or a distinct per-type icon instead of a flat labelled rectangle, and add a directional 'front' edge/arrow that rotates with the piece so users can design street-facing facades.",
+          "category": "Graphics & motion",
+          "sources": [
+            "Persona: Yuki (aesthetics)",
+            "Ideation"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Yuki's dealbreaker: the layout currently reads like 'a spreadsheet wearing a grid' and can't be parsed at a glance."
+        },
+        {
+          "id": "MOTION-2",
+          "title": "Styled road/track rendering",
+          "description": "Upgrade the schematic road/track SVGs with asphalt fill/gradient, dashed center lane lines that continue across curves/junctions, sidewalk strips, rounded curbs, and a subtle bevel to lift pieces off the baseplate.",
+          "category": "Graphics & motion",
+          "sources": [
+            "Persona: Yuki (aesthetics)",
+            "Ideation"
+          ],
+          "impact": "Medium",
+          "effort": "Medium",
+          "recommendation": "Nice to have",
+          "rationale": "Roads are on nearly every city and are the plainest element; big look payoff, but cosmetic vs the editing/buying gaps."
+        },
+        {
+          "id": "MOTION-3",
+          "title": "Terrain / zone paint layer (grass, water, plaza, sand)",
+          "description": "A simple area-fill layer under buildings for landscaping, plus optional abstract zoning tints (residential/commercial/industrial) as a lightweight planning overlay, so empty space reads as intentional rather than as a hole.",
+          "category": "Graphics & motion",
+          "sources": [
+            "Persona: Yuki (aesthetics)",
+            "Community: r/lego + Eurobricks"
+          ],
+          "impact": "Medium",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Landscaping is half of what makes a city shot look good and is completely absent today."
+        },
+        {
+          "id": "MOTION-4",
+          "title": "Non-rectangular footprints for corner/L-shaped sets",
+          "description": "Support real non-rectangular outlines (e.g. Assembly Square's corner shape) instead of forcing a bounding-box rectangle, so corner modulars actually nestle at intersections.",
+          "category": "Graphics & motion",
+          "sources": [
+            "Persona: Yuki (aesthetics)"
+          ],
+          "impact": "Medium",
+          "effort": "Large",
+          "recommendation": "Nice to have",
+          "rationale": "Correct only where the illusion matters most (corners), but a meaningful data + geometry lift for a subset of sets."
+        },
+        {
+          "id": "MOTION-5",
+          "title": "Magnetic snap preview: ghost outline + pulsing port glow",
+          "description": "While dragging near a valid snap target, render a semi-transparent ghost at the exact snap position and pulse a ring on the specific port/edge that will connect, updating live as the drag moves between candidates.",
+          "category": "Graphics & motion",
+          "sources": [
+            "Ideation",
+            "Persona: Priya (parent+kid/iPad)"
+          ],
+          "impact": "High",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Snapping is silent today so users can't see which connection will be made; the highest-leverage 'feel' fix for a placement tool, and it makes it fun for kids."
+        },
+        {
+          "id": "MOTION-6",
+          "title": "Interaction juice: pop-in, fade-out, eased rotation, marching-ants selection",
+          "description": "Scale-in with slight overshoot on placement, fade+scale on delete, short eased tweens on 15/90-degree rotation snaps, a subtle drag-lift (scale+shadow+opacity), and an animated dashed 'marching ants' selection/marquee outline.",
+          "category": "Graphics & motion",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Cheap CSS/Web-Animations polish that makes every interaction feel considered rather than mechanical."
+        },
+        {
+          "id": "PERF-1",
+          "title": "Viewport culling + dirty-rect layer caching",
+          "description": "Cache the 3 layers separately, render only tiles intersecting the visible viewport (+margin), and redraw only the layer actually changed by an edit instead of the whole scene — pure bookkeeping, no libraries.",
+          "category": "Performance",
+          "sources": [
+            "Ideation",
+            "Persona: Marcus (convention city)"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "At 300+ tiles / a 50-baseplate layout, full-scene redraws are the exact jank a planner must not have as cities grow."
+        },
+        {
+          "id": "PERF-2",
+          "title": "GPU transform-batched drag via requestAnimationFrame",
+          "description": "During a drag, stop writing layout-triggering x/y attributes per pointermove; accumulate the latest position and apply it once per frame as a CSS transform on the dragged tile's own compositing layer, committing model coords only on drop.",
+          "category": "Performance",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Standard fix that turns choppy attribute-write dragging into buttery transform dragging, especially once culling makes scenes heavier."
+        },
+        {
+          "id": "PERF-3",
+          "title": "Smooth pointer-anchored zoom + trackpad/touch pinch + kinetic pan",
+          "description": "Continuous eased zoom anchored to the cursor/pinch-center (the stud under the pointer stays put), driven by wheel deltas and native trackpad/touch pinch, plus inertial deceleration on pan release.",
+          "category": "Performance",
+          "sources": [
+            "Ideation",
+            "Persona: Priya (parent+kid/iPad)"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Cheap 'feels professional vs feels like a toy' upgrade on the existing numeric zoom, and delivers the pinch Priya's iPad session kept expecting."
+        },
+        {
+          "id": "PLAN-1",
+          "title": "'I own this' toggle + owned-vs-buy budget split",
+          "description": "Per-set 'Owned' checkbox (localStorage by set number) shown on catalog + placed tiles; the City Summary splits cost into 'Already own ($0)' vs 'Still need to buy', and owned sets drop out of the shopping-list export. Foundation for a later persistent 'My Collection' inventory.",
+          "category": "LEGO planning",
+          "sources": [
+            "Ideation",
+            "Persona: Dana (budget/buying)"
+          ],
+          "impact": "High",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "AFOLs already own overlapping sets; today's budget/list overstates cost by treating every tile as a fresh purchase."
+        },
+        {
+          "id": "PLAN-2",
+          "title": "Real MSRP price data + per-set manual override",
+          "description": "Bundle a static set-number-to-MSRP JSON from the existing Rebrickable build pipeline; use real prices when known (fall back to the $0.11/piece estimate with a visible 'estimated' badge), let users type in the price they actually paid, and flag on the summary total how many footprints are estimated. Add price-based sort in the catalog.",
+          "category": "LEGO planning",
+          "sources": [
+            "Ideation",
+            "Persona: Dana (budget/buying)",
+            "Community: r/lego + Eurobricks"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Dana's critical complaint: the flat per-piece heuristic is 'actually-misleading wrong' for modulars/licensed sets, and the data already flows through the build."
+        },
+        {
+          "id": "PLAN-3",
+          "title": "Buildability checker ('Check my city')",
+          "description": "A one-pass scan listing concrete problems — tiles off any baseplate edge, misaligned road/track ports despite visual adjacency, wrong-layer stacking, and remaining '~' estimated footprints — with click-to-pan-and-zoom to each issue.",
+          "category": "LEGO planning",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Catches 'this plan won't actually assemble' before money is spent — exactly the moment a planner should earn its keep."
+        },
+        {
+          "id": "PLAN-4",
+          "title": "High-resolution PNG export + presentation mode",
+          "description": "Render the canvas to a downloadable PNG at 1x/2x/4x via an offscreen canvas replay, with a no-UI/no-grid clean-background toggle and an optional title card + summary stats (footprint, piece count, budget) along one edge.",
+          "category": "LEGO planning",
+          "sources": [
+            "Ideation",
+            "Persona: Yuki (aesthetics)",
+            "Community: r/lego + Eurobricks",
+            "Community: r/legotrains",
+            "Competitor: Sprattronics"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "The most cross-cited request in the whole corpus; the entire point of many users is to show off a plan before buying, and today they can only crop a messy screenshot."
+        },
+        {
+          "id": "PLAN-5",
+          "title": "Direct buy links per set (+ links for generic pieces)",
+          "description": "On each catalog row and in the shopping-list export, add LEGO.com set-page links plus BrickLink/Amazon search links; for the generic road/track/baseplate primitives, a small curated JSON maps each shape to real LEGO part numbers with a BrickLink link.",
+          "category": "LEGO planning",
+          "sources": [
+            "Persona: Dana (budget/buying)",
+            "Ideation"
+          ],
+          "impact": "High",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Dana's critical gap: the tool dumps users at a text export instead of closing the plan-to-cart loop; pure static links, no server."
+        },
+        {
+          "id": "PLAN-6",
+          "title": "Wishlist tab separate from the grid",
+          "description": "A star-to-save wishlist panel with its own subtotal, independent of placed-on-grid totals, that users can browse and later promote into the real plan — so dreaming about a pricey set doesn't pollute the near-term budget.",
+          "category": "LEGO planning",
+          "sources": [
+            "Persona: Dana (budget/buying)"
+          ],
+          "impact": "Medium",
+          "effort": "Medium",
+          "recommendation": "Nice to have",
+          "rationale": "Distinct from ownership tracking and genuinely sticky, but secondary to getting real prices and buy links in first."
+        },
+        {
+          "id": "PLAN-7",
+          "title": "More baseplate sizes + custom plate dimensions",
+          "description": "Support 48x48, 48x32, 16x16 and user-defined baseplate sizes, not just the 32x32 standard, with snapping adjusted accordingly.",
+          "category": "LEGO planning",
+          "sources": [
+            "Community: r/lego + Eurobricks",
+            "Competitor: Sprattronics"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Explicitly requested at both the large (48x48) and small (16x16) ends; modest change to the existing baseplate model."
+        },
+        {
+          "id": "PLAN-8",
+          "title": "Realistic scale reference overlay",
+          "description": "Toggle faint true-stud-scale silhouettes (minifig, car, door) next to the build plus a one-click ruler with 10/50/100-stud ticks, so builders can judge whether a custom building reads at a believable scale.",
+          "category": "LEGO planning",
+          "sources": [
+            "Ideation"
+          ],
+          "impact": "Low",
+          "effort": "Small",
+          "recommendation": "Nice to have",
+          "rationale": "Cheap and on-mission (the grid already encodes stud-to-cm), but a nicety rather than a blocker."
+        },
+        {
+          "id": "PLAN-9",
+          "title": "BrickLink-compatible wanted-list / CSV export",
+          "description": "Export the shopping list (and, for scratch-built/track sections, individual piece counts) in a BrickLink wanted-list-compatible format, since train and MOC builders buy piece-by-piece rather than whole sets and today's plain-text export doesn't upload anywhere.",
+          "category": "LEGO planning",
+          "sources": [
+            "Community: r/lego + Eurobricks",
+            "Community: r/legotrains",
+            "Competitor: Stud.io"
+          ],
+          "impact": "Medium",
+          "effort": "Medium",
+          "recommendation": "Nice to have",
+          "rationale": "Recurring cross-tool friction ('BrickLink doesn't accept CSV'); most valuable to the train/MOC segment once track pieces map to real part numbers."
+        },
+        {
+          "id": "PLAN-10",
+          "title": "Real curve-radius classes + mismatch warnings + true switch geometry",
+          "description": "Tag every track piece with its real radius class (R40/R56/R72/R104…) and hard-warn on a port-snap between mismatched radii; snap curve rotation to the piece's real turn increment (e.g. 22.5-degree) instead of a flat 15-degree; model switches as through + diverging ports at the correct ~16.5-degree angle with L/R/wye/crossing variants; and show 'curves used / needed for a full circle'.",
+          "category": "LEGO planning",
+          "sources": [
+            "Persona: Sven (trains)",
+            "Community: r/legotrains",
+            "Competitor: TrixBrix",
+            "Competitor: BlueBrick"
+          ],
+          "impact": "High",
+          "effort": "Large",
+          "recommendation": "Strategic bet",
+          "rationale": "The one thing that stops users designing physically-impossible loops; high demand from a passionate niche, but a real data+geometry investment."
+        },
+        {
+          "id": "PLAN-11",
+          "title": "Track continuity / loop-closure validator + buffer-stop markers",
+          "description": "When a chain of track ports forms a cycle, verify every port pairs exactly (position + heading) and highlight any gap; add a buffer-stop/end-of-line marker so intentionally-open spurs are distinguished from unfinished track; encode geometry rules (parallel spacing in multiples of 16 studs, 45-degree diagonal helper).",
+          "category": "LEGO planning",
+          "sources": [
+            "Persona: Sven (trains)",
+            "Community: r/legotrains"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Sven's oval 'looked closed' but had a real port gap he only caught by accident; a track-specific extension of the buildability checker (PLAN-3)."
+        },
+        {
+          "id": "PLAN-12",
+          "title": "3D / isometric + elevation preview toggle",
+          "description": "An optional extruded-height / isometric view (keeping fast 2D top-down as the primary editor) plus a concept of levels — road vs rail vs water, bridges, slopes — so builders can sanity-check spatial relationships and clearances before buying.",
+          "category": "LEGO planning",
+          "sources": [
+            "Community: r/lego + Eurobricks",
+            "Community: r/legotrains",
+            "Competitor: Stud.io",
+            "Competitor: SCARM"
+          ],
+          "impact": "High",
+          "effort": "Large",
+          "recommendation": "Strategic bet",
+          "rationale": "The single most-cited reason AFOLs abandon 2D grid tools for Studio/SCARM; a real differentiator but a large client-side build — sequence it after the quick wins."
+        },
+        {
+          "id": "PLAN-13",
+          "title": "Freeform / non-grid road placement",
+          "description": "Allow angled/curvy 'twisty-lane' roads that aren't locked to the 32-stud orthogonal grid, as BlueBrick offers.",
+          "category": "LEGO planning",
+          "sources": [
+            "Community: r/lego + Eurobricks",
+            "Competitor: BlueBrick"
+          ],
+          "impact": "Medium",
+          "effort": "Large",
+          "recommendation": "Skip",
+          "rationale": "Directly fights the app's grid-snap identity and is a large lift for a minority of MOCers; revisit only if the tool pivots away from stud-grid precision."
+        },
+        {
+          "id": "PLAN-14",
+          "title": "Live multiplayer / collaborative editing",
+          "description": "Real-time shared or view/comment editing of one city plan for club/exhibition layout planning.",
+          "category": "LEGO planning",
+          "sources": [
+            "Community: r/lego + Eurobricks (unverified)"
+          ],
+          "impact": "Low",
+          "effort": "Large",
+          "recommendation": "Skip",
+          "rationale": "Infeasible on a static GitHub-Pages site with no backend/accounts; the compressed share-link (QOL-5) covers the realistic slice of this need."
+        },
+        {
+          "id": "ACC-1",
+          "title": "Full keyboard-driven placement & rotation pipeline",
+          "description": "Auto-select a tile on placement so it's immediately arrow-nudgeable, add a Shift+Arrow 'nudge by 10 studs' modifier, and give free rotation a keyboard path (e.g. Shift+[/] for 15-degree steps, Ctrl+[/] for 1-degree fine) so an entire city can be built without the mouse.",
+          "category": "Accessibility",
+          "sources": [
+            "Persona: Theo (accessibility/RSI/colorblind)",
+            "Persona: Priya (parent+kid/iPad)"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Theo's RSI makes the mouse-only rotate node unusable; the drag node can stay but must not be the only path to an arbitrary angle."
+        },
+        {
+          "id": "ACC-2",
+          "title": "Non-color signals for filters, overlaps, and a colorblind-safe theme",
+          "description": "Put text/icon labels on every filter chip, category tag and layer badge (never color alone); give overlap warnings a non-color signal (hazard-stripe border, exclamation badge, or a text toast naming both pieces); and offer a high-contrast/colorblind-safe theme swapping hue-coding for patterns (stripes/dots/crosshatch).",
+          "category": "Accessibility",
+          "sources": [
+            "Persona: Theo (accessibility/RSI/colorblind)"
+          ],
+          "impact": "High",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Theo literally can't tell Police from Fire chips and nearly shipped a list with two sets stacked; mostly labelling/CSS work with outsized inclusivity payoff."
+        },
+        {
+          "id": "ACC-3",
+          "title": "High-contrast focus ring + larger, AA-contrast panels",
+          "description": "A thick high-contrast keyboard-focus ring visible on both light and dark grids, plus bumped base font/icon sizes in the side panels and layer buttons that meet WCAG AA contrast.",
+          "category": "Accessibility",
+          "sources": [
+            "Persona: Theo (accessibility/RSI/colorblind)"
+          ],
+          "impact": "Medium",
+          "effort": "Small",
+          "recommendation": "Quick win",
+          "rationale": "Theo repeatedly lost track of keyboard focus and had to lean in to read the summary; cheap, standard accessibility hygiene."
+        },
+        {
+          "id": "ACC-4",
+          "title": "ARIA live region announcing placement / rotation / overlap",
+          "description": "A polite live region emitting status like 'Fire Station placed at row 4, col 12, rotated 90 degrees' / 'Overlap detected', surfaced as on-screen status text too, so events aren't communicated by color alone.",
+          "category": "Accessibility",
+          "sources": [
+            "Persona: Theo (accessibility/RSI/colorblind)"
+          ],
+          "impact": "Medium",
+          "effort": "Medium",
+          "recommendation": "Nice to have",
+          "rationale": "Meaningful for screen-reader and colorblind users and reinforces the keyboard pipeline (ACC-1), though a smaller audience than the visual fixes."
+        },
+        {
+          "id": "ACC-5",
+          "title": "Mobile bottom-sheet catalog + 44px touch targets + native gestures",
+          "description": "On the mobile breakpoint replace the side-panel catalog with a swipe-up bottom sheet; bump rotate handle, delete, and toolbar buttons to 44x44px with more spacing; make press-and-hold on a catalog thumbnail reliably enter a finger-following drag (or default to a big 'Add to canvas' tap); support two-finger pinch-zoom and pan; and add a tap-confirm before delete on touch.",
+          "category": "Accessibility",
+          "sources": [
+            "Ideation",
+            "Persona: Priya (parent+kid/iPad)",
+            "Community: r/lego + Eurobricks",
+            "Competitor: Mecabricks"
+          ],
+          "impact": "High",
+          "effort": "Medium",
+          "recommendation": "Strategic bet",
+          "rationale": "Mobile is flagged untested and Priya's iPad session nearly rage-quit on tiny handles, failed drag-drop, and missing pinch; breakpoint-scoped markup/CSS with high leverage for the tablet-at-the-build-table use case."
+        }
+      ]
+    },
+    "personas": [
+      {
+        "painPoints": [
+          {
+            "title": "No multi-select or box-select — placing 200+ pieces is one-at-a-time torture",
+            "severity": "Critical",
+            "scenario": "I tried to drag-select a 6x6 cluster of straight roads I'd already laid down to nudge them all one stud over so a baseplate seam would line up. Nothing happened — clicking just picked the single tile under my cursor and deselected everything else. I ended up click-drag-nudge-click-drag-nudge for 40 individual road tiles to fix one seam. That's a 10-minute chore that should be a 5-second drag-box.",
+            "ask": "Rubber-band box select (click-drag on empty canvas), shift-click to add/remove from selection, and group nudge/rotate/delete/move on the whole selection."
+          },
+          {
+            "title": "No copy/paste or duplicate",
+            "severity": "Critical",
+            "scenario": "I built a perfect 4-way road intersection with matching curbs on baseplate #3 and wanted the identical layout on baseplates #7, #12, and #19 for a repeating grid pattern. There's no Ctrl+C/Ctrl+V, no 'duplicate' button — I had to manually re-place every single road piece three more times, reading my own screenshot to remember the layout. That's the definition of the repetition I hate.",
+            "ask": "Ctrl+C/Ctrl+V (paste at cursor or offset), and Ctrl+D duplicate-in-place with nudge, working on single tiles AND multi-selections."
+          },
+          {
+            "title": "No grouping — can't treat a finished modular block as one object",
+            "severity": "Major",
+            "scenario": "After I got the Police Station + parking lot + road frontage arranged just right, I wanted to move the whole cluster 32 studs to the left to make room for a park. Instead I had to move 6 separate pieces individually and immediately broke two edge-snaps doing it, triggering overlap warnings I then had to chase down.",
+            "ask": "Select multiple tiles → 'Group' so they move/rotate/delete as one unit, with an ungroup option. Groups should still respect snapping as a unit."
+          },
+          {
+            "title": "No align/distribute tools",
+            "severity": "Major",
+            "scenario": "I had 5 baseplates in a row and wanted their edges perfectly flush and evenly spaced before locking in my road grid on top. I eyeballed it with arrow-key nudges and the zoom-to-Fit view, and even at 200% zoom I couldn't tell if plate #4 was 1 stud off from plate #3 until the road snapping started fighting me.",
+            "ask": "Align-left/right/top/bottom and distribute-evenly buttons for a multi-selection, at minimum for baseplates."
+          },
+          {
+            "title": "Undo history feels shallow / not confirmed how deep it goes",
+            "severity": "Major",
+            "scenario": "I fat-fingered a delete on a track switch piece I'd spent time angling just right, hit Ctrl+Z, and it came back — good — but two mis-clicks later I wanted to undo further back to before I'd started an experiment with a curve radius and I wasn't sure if I'd blown past the buffer. There's no visible undo stack/history panel, so I was undo-mashing blind and nearly lost work.",
+            "ask": "A visible undo/redo history list (even a simple dropdown of last N actions) so I can jump back with confidence instead of blind Ctrl+Z mashing, and confirm/document the stack depth."
+          },
+          {
+            "title": "Placing catalog sets one-by-one via drag-and-drop is slow for bulk layout",
+            "severity": "Minor",
+            "scenario": "I was placing 15 identical baseplates to build out my 50-plate table and had to drag the same catalog row onto the grid 15 separate times, each one requiring a scroll back to find that row again if the search list re-sorted.",
+            "ask": "A 'place N more of this' quick-add or a pinned/recent-items tray so repeat placements don't require re-searching the catalog each time."
+          }
+        ],
+        "persona": "Marcus Vale",
+        "summary": "Marcus used Brick City Planner for over 30 minutes to lay out a 50-baseplate convention city. The core placement/snapping/rotation mechanics work and he likes the catalog and layer system, but the complete absence of multi-select, copy/paste, grouping, and align/distribute tools turned what should've been fast bulk layout work into painful one-piece-at-a-time repetition — the exact opposite of the speed he needs for a build at this scale.",
+        "wishes": [
+          {
+            "title": "Marquee/box multi-select with group operations (move, rotate, delete, nudge)",
+            "why": "I'm placing and adjusting hundreds of pieces per session; selecting and manipulating them one at a time is the single biggest speed killer in the tool right now."
+          },
+          {
+            "title": "Copy/paste and duplicate (single piece and multi-selection)",
+            "why": "Modular cities are inherently repetitive — the same road junction, the same building footprint pattern — and redrawing it by hand every time wastes real time I could spend on new sections."
+          },
+          {
+            "title": "Grouping so a finished cluster (building + road frontage + parking) becomes one movable object",
+            "why": "Once a block is 'done' I need to treat it as a unit when I rearrange the wider city plan, without re-triggering snap fights on every individual tile."
+          },
+          {
+            "title": "Align & distribute for baseplates and tile rows",
+            "why": "Getting a clean 50-plate grid perfectly flush by eyeballing arrow-key nudges at various zoom levels is error-prone and slow; this is a basic layout-tool expectation."
+          },
+          {
+            "title": "A visible undo/redo history panel",
+            "why": "When I'm experimenting with curve angles or bulk edits, blind Ctrl+Z mashing is stressful — I want to see and click back to a specific past state with confidence."
+          }
+        ]
+      },
+      {
+        "painPoints": [
+          {
+            "title": "No lock/protect for placed pieces — Milo's thumb wrecks 20 minutes of layout in one drag",
+            "severity": "Critical",
+            "scenario": "I finally got the whole fire station + road loop laid out just right. Milo grabbed the iPad to 'add the police station' and instead dragged three roads and a baseplate half off the grid because his thumb landed on an already-placed tile instead of the empty canvas. There's no way to lock a tile or a whole section so it stays put while he messes with a different part of the board.",
+            "ask": "Add a per-tile or per-area 'lock' toggle (or a simple lock-all-except-selected mode) so kids can experiment in one zone without disturbing finished work."
+          },
+          {
+            "title": "Delete key / accidental delete has no confirmation or undo history depth",
+            "severity": "Critical",
+            "scenario": "Kid tapped a piece to select it then immediately tapped again near the edge trying to rotate it, and on iPad that second tap plus a stray Delete-adjacent gesture (he was using the on-screen row of buttons) removed a whole modular building we'd placed 15 minutes ago. I hit undo and it only went back one step — by then he'd already tapped two more things, so the building was gone for good.",
+            "ask": "Multi-level undo (at least 15-20 steps) and a 'are you sure' tap-confirm before delete on touch, not just instant removal."
+          },
+          {
+            "title": "Rotation drag-node is way too small and finicky for a kid's finger on iPad",
+            "severity": "Major",
+            "scenario": "The little rotate handle above a selected tile is clearly sized for a mouse cursor. Milo tried for a solid two minutes to grab it to angle the train curve into the loop and kept missing, dragging the whole tile instead, or worse selecting the wrong tile underneath it. I ended up having to do all the rotating myself which defeats the point of doing this together.",
+            "ask": "Bigger, more forgiving touch target for the rotate handle (at least 44x44px hit area) or a big obvious '+15°/-15°' tap-buttons alternative for touch mode."
+          },
+          {
+            "title": "No pinch-to-zoom, only toolbar zoom buttons — breaks the natural iPad interaction",
+            "severity": "Major",
+            "scenario": "Every time we wanted to zoom in to place a small road piece precisely, I had to reach up to the zoom control in the corner instead of just pinching like literally every other app on this iPad. Milo kept trying to pinch and nothing happened, then he'd get frustrated and jab at the screen instead.",
+            "ask": "Support native two-finger pinch-to-zoom and two-finger pan on touch devices, in addition to the toolbar buttons."
+          },
+          {
+            "title": "Drag-and-drop from catalog onto the grid is a nightmare on touch",
+            "severity": "Major",
+            "scenario": "The catalog says you can drag a row onto the grid, but on iPad, starting that drag from the small catalog thumbnail was really unreliable — half the time it just scrolled the catalog list instead of picking up the item. I gave up and used the + button every single time, which meant an extra step of finding where it landed and manually moving it into place, over and over.",
+            "ask": "On touch, make press-and-hold on a catalog thumbnail clearly enter a 'ghost tile follows your finger' drag mode with haptic-style visual feedback, or default to a big obvious 'Add to canvas' tap button instead of relying on drag gestures."
+          },
+          {
+            "title": "Nothing tells you the city actually saved before you close the tab/app",
+            "severity": "Minor",
+            "scenario": "We had to stop mid-session because it was dinner time. I closed Safari assuming localStorage autosave had us covered, but I never saw any confirmation it had saved, so I sat there worried all evening that we'd lost the layout. It reloaded fine today, but there was no visible reassurance in the moment.",
+            "ask": "A small persistent 'Saved just now' / 'All changes saved' indicator, like Google Docs, so I'm not guessing."
+          },
+          {
+            "title": "Tap targets on the toolbar (rotate 90°, layer front/back, delete) are all bunched tight together",
+            "severity": "Minor",
+            "scenario": "Milo kept fat-fingering the 'send to back' button when he meant 'rotate 90°' because they're small icons packed right next to each other in the toolbar. On a laptop with a precise mouse cursor this would be fine, but his finger is way bigger than a cursor.",
+            "ask": "Space out and enlarge the action buttons specifically in a touch/mobile layout, maybe group into a bigger radial or two-row layout when a touch device is detected."
+          }
+        ],
+        "persona": "Priya",
+        "summary": "Priya spent the afternoon on the couch with her 8-year-old building a LEGO city plan on an iPad in Brick City Planner. The core idea (grid, catalog, snapping, budget summary) genuinely delighted them both, but the tool's desktop-first touch UX repeatedly punished the exact behavior an 8-year-old brings to a tablet: chaotic taps, imprecise drags, and impatience. Accidental moves/deletes with weak undo, a too-small rotation handle, missing pinch-to-zoom, and unreliable drag-and-drop from the catalog were the biggest friction points that nearly caused a rage-quit.",
+        "wishes": [
+          {
+            "title": "A 'Kid Mode' / simplified touch layout toggle",
+            "why": "I want to hand the iPad to Milo without worrying he'll nuke my carefully placed baseplates — a mode with fewer, bigger buttons, locked finished zones, and forgiving gestures would let him build his own corner safely while I do the fiddly precision stuff."
+          },
+          {
+            "title": "Snap-to-suggestion 'magnet' hints for kids placing roads/tracks",
+            "why": "Milo doesn't understand port-to-port alignment, he just wants the road to connect. A visual glow or a satisfying little snap animation when two road ends are close enough to connect would make it feel like a game instead of a fussy CAD tool, and cut down on him yanking pieces around trying to force a fit."
+          },
+          {
+            "title": "Undo/redo shown as a visible on-screen button pair, not just keyboard shortcuts",
+            "why": "We have no keyboard on the iPad, and I didn't even realize Ctrl+Z probably does nothing on touch — I want big visible Undo/Redo arrows always on screen so recovery from a kid's mistake is one obvious tap away."
+          },
+          {
+            "title": "A 'freeze layout, kid can only add new pieces' project-level lock",
+            "why": "Most of our session is me building the layout and him wanting to place his favorite police/fire sets on top. If I could lock everything already placed and let him freely add-and-arrange only new pieces in open space, we'd stop stepping on each other's work entirely."
+          }
+        ]
+      },
+      {
+        "painPoints": [
+          {
+            "title": "Loops don't know they're loops",
+            "severity": "Critical",
+            "scenario": "I laid out a full oval of curve track — eight R40-style curves plus straights to close a loop around my yard — and the tool just let me leave a 2-stud gap at the last joint because the last curve piece I dragged in snapped by its footprint corner to the neighbouring baseplate edge instead of port-to-port to the open rail end. It LOOKED closed at 100% zoom. I only caught it because the piece count summary felt off. There's no 'this loop actually connects end to end' check anywhere.",
+            "ask": "Add a track-continuity validator: when a chain of track ports forms a cycle, confirm every port pairs exactly (position + heading) and flag any chain that doesn't close, with a highlight on the offending gap."
+          },
+          {
+            "title": "Curve radius is treated as a texture, not a geometry constraint",
+            "severity": "Critical",
+            "scenario": "I tried to mix a 'curve L' schematic piece next to what I assumed was the same radius from a different set's preset footprint, and the ports lined up in position but the actual curvature (visually, and per Rebrickable part data) was two different radii — R40 vs R56 curved rail are NOT interchangeable in real life, they'll never physically mesh even if your 2D snap says the endpoints touch.",
+            "ask": "Tag every track piece with its real radius class (R40/R56/R72/R104 etc per LEGO's actual curve system) and refuse (or hard-warn) a port-snap between mismatched radii mid-curve."
+          },
+          {
+            "title": "Switches/points are generic icons with no real branch geometry",
+            "severity": "Major",
+            "scenario": "I dropped a 'switch L' schematic hoping to branch a siding off my mainline into a small yard, and it's just a symbol — no actual divergent-route angle, no distinction between the through route and the diverging route's different effective curve. I had to eyeball where the siding track would really end up and it was wrong twice.",
+            "ask": "Model switches as two real port pairs (through-route port + diverging-route port at the correct LEGO switch geometry, e.g. the real 16.5-degree diverging angle) so downstream track auto-aligns instead of me guessing."
+          },
+          {
+            "title": "No siding/spur concept — can't stub off a mainline cleanly",
+            "severity": "Major",
+            "scenario": "Wanted to build a small freight siding branching off my main loop to a goods depot. There's no way to mark a piece as a dead-end buffer/stub; I just left a track segment's port unconnected and the tool treats it identically to a piece I forgot to finish routing — same as a plain incomplete gap, no way to say 'this is intentional.'",
+            "ask": "Add a buffer-stop/end-of-line marker piece so intentionally-open track ends are distinguished from actual topology errors."
+          },
+          {
+            "title": "Rotation snap (15 degrees) doesn't match real curve turn angles",
+            "severity": "Major",
+            "scenario": "Real LEGO curved track turns in fixed increments per piece (e.g. 22.5 degrees for standard curves), not an arbitrary 15-degree drag-snap. I rotated a curve to 'look' aligned at a 15-degree snap and the port math didn't match what the actual physical piece would do, so my loop closure count (should be a clean number of curve pieces per full circle) was thrown off and I couldn't tell if I needed 16 curves or some odd number.",
+            "ask": "Track piece rotation should snap to that piece's real per-unit turn angle (read from its part data), not a generic 15-degree default, and the summary should show 'curves used / curves needed for full circle' for whatever radius is in play."
+          },
+          {
+            "title": "Fixed preset footprints ignore that real track sets come in specific piece-count packs",
+            "severity": "Minor",
+            "scenario": "I wanted to know how many individual curve pieces a given train set actually contributes to my loop (since sets bundle a fixed number of curves), but the footprint is just a rectangle with a '~' flag — I can't tell how many discrete track segments are inside it or whether two 'estimated' set footprints of the same nominal curve type actually contain the same rail count.",
+            "ask": "For train sets specifically, break the preset footprint into its actual constituent track pieces (from Rebrickable part-out data) instead of one blob rectangle, so the piece math and radius math are real."
+          }
+        ],
+        "persona": "Sven",
+        "summary": "Sven spent the session trying to plan a closed train loop with a mainline, a curve-radius-consistent oval, and a siding spur into a goods yard. The generic road/track abstraction (schematic art, 15-degree free rotation snap, rectangle footprints) let him build something that LOOKED plausible in 2D but silently violated real LEGO track topology — mismatched radii snapping together, a loop that visually closed but had a real port gap, and a switch that's just a symbol with no true divergent geometry. He got it 'looking done' but doesn't trust it corresponds to a buildable physical layout, which defeats the entire point of planning before buying track.",
+        "wishes": [
+          {
+            "title": "Real radius classes for curved track (R40/R56/R72/R104...) with mismatch warnings",
+            "why": "This is the single thing that would stop me from designing a loop on screen that's physically impossible to build with real LEGO rail."
+          },
+          {
+            "title": "Loop-closure validator with a visual 'here's your gap' highlight",
+            "why": "I don't want to find out after I've bought 40 curve pieces that my oval doesn't actually meet itself."
+          },
+          {
+            "title": "True switch/points geometry (through + diverging port at correct angle)",
+            "why": "Sidings and yards are half of why I run trains — a switch that's just a decorative icon means I'm guessing at where my spur lands instead of the tool telling me."
+          },
+          {
+            "title": "Per-piece correct rotation snap angle instead of a flat 15 degrees",
+            "why": "So rotating a curve actually reflects the real turn increment of that specific piece, and my 'curves needed for a full circle' math is trustworthy."
+          },
+          {
+            "title": "Buffer-stop / end-of-line marker for intentional dead ends",
+            "why": "So the overlap/continuity checker can tell the difference between 'I meant to stop the track here' and 'I forgot to connect this.'"
+          }
+        ]
+      },
+      {
+        "painPoints": [
+          {
+            "title": "That '$0.11/piece' number is basically fiction and I don't trust it",
+            "severity": "Critical",
+            "scenario": "I laid out like 9 sets — a couple modulars, some road plates, a train loop — and the summary spat out a total budget estimate off piece count. Modulars run way more than $0.11/piece retail (Bookshop is like $0.15-0.18/piece), and some cheap City sets are under $0.08/piece. So my 'budget' was just wrong, not roughly-right-wrong, actually-misleading wrong. I built this whole layout thinking I was under budget and I have no idea if I actually am.",
+            "ask": "Either pull real per-set prices (LEGO.com retail + a scraped/cached BrickLink or Amazon price) and sum THOSE, or at minimum let me override the estimate per-set with a real price I paste in, and make the summary total use real prices when available instead of the flat piece-rate."
+          },
+          {
+            "title": "No buy links anywhere — I have to alt-tab to actually purchase anything",
+            "severity": "Critical",
+            "scenario": "Once I had my list of 9 sets I wanted, there was nothing clickable to go buy them. I had to manually search LEGO.com and Amazon for each set number one by one in a new tab. That's the entire point of me using this thing — to go from 'plan' to 'cart' — and it just dumps me at a text export instead.",
+            "ask": "On each catalog row and in the shopping-list export, add direct links (LEGO.com set page by set number, plus a BrickLink/Amazon search link) so I can click straight through to buy."
+          },
+          {
+            "title": "Can't mark sets I already own so they get excluded from cost",
+            "severity": "Major",
+            "scenario": "I already own two of the road baseplate sets and one small police set from years ago, but when I dragged them onto the grid to use in my layout, they got counted in the piece total and budget estimate like I still need to buy them. I had to do mental math to subtract them out.",
+            "ask": "Add an 'I own this' toggle per placed tile (or per catalog set) that keeps it visible on the grid for planning but excludes it from the cost/budget summary and shopping list, maybe shown grayed-out or with a little checkmark."
+          },
+          {
+            "title": "No wishlist separate from the actual grid plan",
+            "severity": "Major",
+            "scenario": "I wanted to keep a running list of 'sets I'm considering but haven't committed to placing yet' — like the big Downtown Diner I can't afford this month — without cluttering my actual grid layout or messing up my footprint/budget numbers. There's no way to do that; every set I look at either stays in the catalog or goes straight onto the grid.",
+            "ask": "A separate wishlist panel/tab where I can star sets from the catalog to save for later, with its own subtotal, independent from the placed-on-grid total, that I can promote to the real plan later."
+          },
+          {
+            "title": "No cheaper-alternative suggestions when a set is out of budget",
+            "severity": "Minor",
+            "scenario": "I really wanted a specific police station set but it's $250 and that's not happening. There's no 'here's a smaller/cheaper set that covers similar footprint or theme' suggestion — I had to manually scroll and squint at the filter chips comparing prices myself.",
+            "ask": "When I hover/select an expensive set, surface 2-3 same-category alternatives sorted by price (even just by piece count as a rough proxy) so I can swap it out without leaving the tool."
+          },
+          {
+            "title": "Piece-count and footprint numbers for estimated ('~') sets are trusted the same as curated ones",
+            "severity": "Minor",
+            "scenario": "A few sets in my layout were flagged with a '~' meaning the footprint's estimated, but the budget/piece total in the summary just folds those in with zero visual distinction — I only noticed the tilde by going back and re-checking each tile.",
+            "ask": "Show a small caveat/asterisk on the summary total itself ('includes N estimated footprints') so I know how much to trust the number, not just on the individual tiles."
+          }
+        ],
+        "persona": "Dana",
+        "summary": "Spent over half an hour building out a city layout to figure out what to actually buy this month. The layout/snapping/rotation stuff worked fine and was honestly kind of fun, but the second I tried to turn my plan into a shopping decision — real prices, buy links, excluding stuff I already own, a wishlist for later — the tool just wasn't built for that. I left with a pretty picture of my city but still had to do all my actual purchasing homework by hand in other tabs.",
+        "wishes": [
+          {
+            "title": "Real price data per set (LEGO.com + secondary market)",
+            "why": "The whole reason I'm here is to know what I'll actually spend. A piece-count estimate isn't a substitute for a real number when I'm working with an actual budget."
+          },
+          {
+            "title": "One-click 'send to cart / buy' links per set",
+            "why": "I already did the hard part of planning — don't make me re-search every set number from scratch on another site."
+          },
+          {
+            "title": "Owned-items toggle with cost exclusion",
+            "why": "I'm not starting from zero, I have a bin of old sets. The budget should reflect what I still need to buy, not my whole city."
+          },
+          {
+            "title": "A real wishlist tab, separate from the grid",
+            "why": "I want to dream about the Downtown Diner without it messing up my actual near-term shopping total."
+          },
+          {
+            "title": "Price-based sort/filter in the catalog",
+            "why": "Right now filtering is by category chips only; when I'm budget-constrained I want to sort cheapest-to-most-expensive within a theme to find what fits."
+          }
+        ]
+      },
+      {
+        "painPoints": [
+          {
+            "title": "Filter chips are just colored blobs I can't tell apart",
+            "severity": "Critical",
+            "scenario": "I wanted to isolate all my Police sets from the Fire sets to plan my downtown block, so I clicked through the filter chips at the top of the catalog. Half of them are basically the same reddish-brownish smear to me - I genuinely could not tell 'Police' from 'Fire' from 'Town' by looking at the chip color alone. I had to hover over every single one and squint at the tooltip text to figure out which was which, which defeats the entire point of a quick filter row.",
+            "ask": "Put a short text label or an icon (badge car, hydrant, train, house) directly on every filter chip, category tag, and legend swatch - never color alone. Same goes for the road/track/baseplate layer indicators."
+          },
+          {
+            "title": "Rotation drag node is a tiny mouse-only bullseye and my hands can't take it",
+            "severity": "Critical",
+            "scenario": "To angle my train curve into the corner of my layout I had to select the tile, find the little drag handle floating above it, and then do a slow, precise circular drag to get it to snap at 15-degree increments. My RSI flares up doing that kind of fine circular mouse motion for more than a couple of tiles. I ended up avoiding free rotation entirely after the third piece and just mashed the 90-degree button repeatedly even when it gave me the wrong angle, because at least that didn't hurt.",
+            "ask": "Give free rotation a full keyboard path: with a tile selected, something like Shift+, / Shift+. (or [ and ]) to step rotation by 15 degrees, and Ctrl+[ / Ctrl+] for 1-degree fine adjustment. The drag node can stay for mouse users but it cannot be the ONLY way to get an arbitrary angle."
+          },
+          {
+            "title": "Drag-and-drop from catalog to canvas has no keyboard equivalent",
+            "severity": "Critical",
+            "scenario": "The instructions say I can drag a catalog row onto the grid as an alternative to the + button, which is fine, but when I actually tried using ONLY the + button plus keyboard to build a big layout, placement still dumps the new tile at some default spot and I have to mouse-drag it into position afterward because arrow-key nudging only moves the currently selected tile one at a time, slowly, from wherever it landed. For a 40-set city that's 40 rounds of drag-into-place.",
+            "ask": "After placing via the + button, auto-select the new tile and let me immediately type or arrow-key it to a target position, and support a 'nudge by 10 studs' modifier (e.g. Shift+Arrow) so I'm not tapping the arrow key sixty times to cross a baseplate."
+          },
+          {
+            "title": "Overlap warnings are a color-only highlight",
+            "severity": "Major",
+            "scenario": "When two building tiles overlapped I only noticed because I happened to spot a faint reddish outline flash near my cursor - I nearly shipped my shopping list with two sets stacked on the same footprint because the warning didn't register as 'wrong' to my eyes fast enough.",
+            "ask": "Overlap warnings need a non-color signal too - a hazard-stripe pattern border, an exclamation badge, or a text toast ('Overlap: Police Station and Fire Truck Garage') so I don't have to rely on catching a color shift."
+          },
+          {
+            "title": "Small toolbar text and icons at default zoom",
+            "severity": "Major",
+            "scenario": "The city summary panel (footprint, piece count, budget estimate) and the layer front/back buttons are all rendered pretty small. At 100% zoom I was leaning into the screen to read the piece count next to the category breakdown, and the bring-to-front/send-to-back icons are nearly indistinguishable at that size.",
+            "ask": "Bump base font size and icon size in the side panels, and make sure everything still passes WCAG AA contrast - not just 'readable if you already know what it says'."
+          },
+          {
+            "title": "Focus state is invisible when tabbing through the canvas",
+            "severity": "Major",
+            "scenario": "I tried to keyboard-tab through placed tiles to find the one I wanted to delete instead of clicking, and I genuinely lost track of which tile was focused half the time - there's either no visible outline or it's a thin line that blends into the grid.",
+            "ask": "A thick, high-contrast focus ring (not just a subtle color shift) on whatever tile/control currently has keyboard focus, visible against both light and dark grid backgrounds."
+          }
+        ],
+        "persona": "Theo",
+        "summary": "Theo spent over half an hour trying to lay out a downtown block with a police station, fire station, and a curved train line using almost entirely the keyboard, and hit walls at nearly every turn: color-only filter chips and overlap warnings he can't reliably read, a rotation control that requires exactly the kind of fine mouse motion his RSI can't tolerate, and a catalog-to-canvas placement flow that still forces manual drag-into-place even when using the keyboard-friendly + button. He got his city roughed out but it cost him far more friction than it should have, and he's frustrated that the tool's core interactions assume good color vision and a pain-free mouse hand.",
+        "wishes": [
+          {
+            "title": "Full keyboard-driven placement and rotation pipeline",
+            "why": "So I can build an entire city - add set, position it, rotate it, connect roads - without ever touching the mouse, which is the only way I can use this tool for more than ten minutes without my hands hurting."
+          },
+          {
+            "title": "Pattern/texture library for category and layer distinction (stripes, dots, crosshatch) layered on top of existing colors",
+            "why": "Red-green colorblindness means color-coded categories are close to useless to me on their own; patterns are the difference between me confidently filtering my catalog and me guessing."
+          },
+          {
+            "title": "A high-contrast / colorblind-safe theme toggle",
+            "why": "Rather than trying to fix every individual color choice, let me flip a switch that swaps the whole palette (grid, chips, overlap warnings, layer tints) to one built around contrast and pattern instead of hue, so I don't have to fight the default theme every session."
+          },
+          {
+            "title": "Screen-reader-friendly live region announcing placement/rotation/overlap events",
+            "why": "Even without a screen reader today, clear ARIA live announcements ('Fire Station placed at row 4, column 12, rotated 90 degrees' / 'Overlap detected') would also surface as on-screen status text I can actually read instead of hunting for a color cue."
+          }
+        ]
+      },
+      {
+        "painPoints": [
+          {
+            "title": "Everything is a flat colored rectangle — nothing looks like the actual set",
+            "severity": "Critical",
+            "scenario": "I dragged in the Bookshop (10270) and the Downtown Diner and both just show up as beige boxes with a label. I spent five minutes squinting trying to tell which footprint was which building before I gave up and started reading tiny text labels instead of just looking at the layout. The whole point of planning a city is seeing what it'll look like, and right now it looks like a spreadsheet wearing a grid.",
+            "ask": "Use the actual Rebrickable set image (even just a top-down-cropped thumbnail) as a texture/fill on the tile instead of a solid color, or at minimum a distinct icon per building type so I can visually parse the city at a glance."
+          },
+          {
+            "title": "No facade/front-door orientation control",
+            "severity": "Major",
+            "scenario": "I rotated my modular row so the buildings line the street, but I have no way to indicate which side is the 'front' with the shop windows and door versus the blank brick back wall — I just get a rotated rectangle. I lined up three modulars and honestly could not tell if I'd built a nice street-facing row or a row of building backsides facing my park.",
+            "ask": "Add a visible directional indicator (an arrow or a shaded 'front' edge) on building tiles that rotates with the piece, so I can actually design which way facades face relative to roads and plazas."
+          },
+          {
+            "title": "Roads are ugly schematic SVG lines, not something I'd want to screenshot",
+            "severity": "Major",
+            "scenario": "I built out a whole road loop around my city block and it looks like a wiring diagram — thin grey lines with no lane markings, no sidewalk texture, no curb definition. It does the job of 'yes a road connects here' but it kills any desire to share a screenshot.",
+            "ask": "Give roads a proper rendered look — asphalt texture/grey fill with subtle lane dashes, distinct sidewalk strips on the edges, and rounded curb corners on curves — even simple flat SVG styling would beat the current thin-line schematic."
+          },
+          {
+            "title": "No grass, water, or plaza zone tool — my park is just empty grid",
+            "severity": "Major",
+            "scenario": "I wanted to leave a green space between my modulars and a pond near the train tracks, but there's no way to paint or place terrain — I just left cells empty, which in this tool means 'nothing,' not 'grass.' It looks like a hole in my city, not a park.",
+            "ask": "Add a simple terrain/zone paint tool — grass, water, plaza/pavement, sand — as an area fill layer under the buildings layer, even as flat colored regions with a texture pattern, so empty space reads as intentional landscaping."
+          },
+          {
+            "title": "No image export or presentation mode",
+            "severity": "Critical",
+            "scenario": "After finally getting my layout to look half-decent, I wanted to post it. The only export options are a JSON city file and a plain-text shopping list — neither is a picture. I ended up trying to Windows-Snip the canvas myself and the toolbar chrome and grid lines came along for the ride.",
+            "ask": "Add a one-click 'Export image' button that renders just the canvas (optionally hiding grid lines/toolbar/selection handles) to a PNG at a decent resolution, ideally with a clean-background/no-UI toggle for a shareable 'presentation mode'."
+          },
+          {
+            "title": "Grid lines dominate the visual even when zoomed out",
+            "severity": "Minor",
+            "scenario": "At 50% zoom trying to see my whole city, the stud grid lines are so prominent they visually compete with the buildings — it reads more like graph paper than a city map.",
+            "ask": "Fade or thin the grid lines automatically at lower zoom levels, or let me toggle grid visibility off entirely for a cleaner look while composing."
+          },
+          {
+            "title": "Fixed preset footprints mean set tiles don't reflect real shape variety",
+            "severity": "Minor",
+            "scenario": "Some sets I placed are flagged with a '~' meaning the footprint is estimated, and a couple obviously non-rectangular sets (like the corner-shaped Assembly Square) just render as a plain rectangle, which threw off how buildings meet at my street corner.",
+            "ask": "For known non-rectangular official footprints (L-shapes, corner lots), support a non-rectangular outline instead of forcing a bounding-box rectangle, so corner buildings actually nestle into corners correctly."
+          }
+        ],
+        "persona": "Yuki",
+        "summary": "Yuki spent half an hour laying out a modular street plus a small rail yard in Brick City Planner. The snapping, rotation, and catalog search all worked fine mechanically, but the tool completely failed the goal Yuki actually cares about: making the city LOOK GOOD. Flat colored rectangles with tiny labels, wiring-diagram roads, no grass/water/plaza zones, no facade-direction cues, and — the dealbreaker — no way to export a clean image to show off the finished plan. Yuki finished the session with a technically valid layout and zero desire to screenshot it.",
+        "wishes": [
+          {
+            "title": "Set-thumbnail or icon skins for building tiles",
+            "why": "So I can actually recognize which building is which at a glance instead of reading labels, and so my layout resembles the real sets I'm planning to buy."
+          },
+          {
+            "title": "Terrain/zone paint layer (grass, water, plaza, sand)",
+            "why": "Half of designing a nice LEGO city is the landscaping between buildings — right now empty space just looks broken, not intentional."
+          },
+          {
+            "title": "Facade-direction indicator on buildings",
+            "why": "I care a lot about street-facing storefronts vs. blank back walls; I need to actually design sightlines and curb appeal, not just avoid overlaps."
+          },
+          {
+            "title": "Styled road rendering with sidewalks and lane markings",
+            "why": "Roads are half of what's visible in any top-down city shot — right now they're the ugliest, most placeholder-looking part of an otherwise decent layout."
+          },
+          {
+            "title": "One-click clean PNG export / presentation mode",
+            "why": "The entire reason I use this tool is to plan something I'll then show off online before I buy the sets — without an image export, my finished work never leaves my browser tab."
+          },
+          {
+            "title": "Non-rectangular footprints for corner/L-shaped sets",
+            "why": "Corner modulars like Assembly Square need to actually nestle into street corners; a bounding-box rectangle breaks the illusion right where it matters most, at the intersections."
+          }
+        ]
+      }
+    ],
+    "community": [
+      {
+        "beat": "Reddit LEGO city/town/creations communities (r/lego, r/legocity, r/legocreations, r/AFOL)",
+        "findings": [
+          {
+            "suggestion": "Add an optional 3D / isometric preview toggle for the layout (even a simple extruded-height view), not just flat 2D top-down",
+            "context": "Eurobricks town-layout thread: builders repeatedly gravitate to BrickLink Studio specifically because its 3D view lets them 'rotate your builds from every angle' and see spatial/height relationships that flat 2D tools can't show, even though it's much fiddlier to use for city-scale layouts than a dedicated 2D grid planner. Multiple community write-ups frame the 2D-vs-3D tradeoff as the core reason people abandon simpler grid tools once a layout gets complex.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "High"
+          },
+          {
+            "suggestion": "Support flexible/organic (non-grid-locked) street placement, not only orthogonal 32-stud-grid snapping",
+            "context": "The same Eurobricks thread specifically calls out that Excel/Sheets-style grid tools 'work best for grid-conforming cities' and that BlueBrick is preferred by some because 'it is a bit easier to work outside the grid' for curved or angled street layouts. Builders doing non-rectilinear MOCs (diagonal roads, angled intersections) find rigid stud-grid tools limiting.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Add named/multiple saved layout slots (save several alternative city plans and compare/switch between them), not just one autosave + single JSON import/export",
+            "context": "UNVERIFIED: from general familiarity with how AFOLs iterate on city plans (they typically sketch 2-3 alternative layouts before committing budget), the lack of a 'save as' / multi-slot layout list is a common friction point once someone has invested time in a JSON export/import-only workflow. Not sourced from a live page this session because Reddit could not be fetched/searched in this environment (returned zero reddit.com results for any query, and reddit.com was outright blocked for direct fetch), so this is drawn from domain knowledge rather than a retrieved thread.",
+            "sourceUrl": "",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Let users share/export a layout as a public read-only link or image, for showing off or crowd-sourcing feedback on a planned city before buying",
+            "context": "UNVERIFIED: sharing/showing planned layouts for feedback is a near-universal pattern in LEGO city-planning communities (paper cutouts get photographed and posted, Excel grids get screenshotted) — the Eurobricks thread itself lists 'easy sharing between collaborators' as a desired software feature, but the specific 'shareable link/PNG export' framing is my own extrapolation, not a direct quote, since I could not retrieve actual Reddit threads to confirm the exact ask.",
+            "sourceUrl": "",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Live/updatable price data instead of a flat $0.11-per-piece budget estimate, or at least a way to plug in actual set prices (e.g. paste current retail/BrickLink prices per set)",
+            "context": "UNVERIFIED: flat per-piece cost heuristics are known in the AFOL community to be misleading for city sets because large baseplates, minifigs, and licensed sets skew price-per-piece heavily; builders commonly cross-check against BrickLink/Rebrickable price guides instead. I could not retrieve a live Reddit thread confirming this specific complaint this session due to Reddit being unreachable via search and fetch in this environment.",
+            "sourceUrl": "",
+            "demandSignal": "Low"
+          },
+          {
+            "suggestion": "Show/flag piece-compatibility and curve-radius accuracy for road and track pieces against real official LEGO road/rail systems, so a planned layout is verified buildable with real parts",
+            "context": "Eurobricks 'Ultimate City Layout' thread and the town-layout thread both surface that real road-plate compatibility (e.g. the discontinued 4108-4111 road baseplates now being expensive/hard to find) and getpieces like monorail/elevated track running through buildings are recurring planning pain points — people want confidence a paper/digital plan will actually assemble with real, obtainable parts before buying.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/194790-ultimate-city-layout/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Touch/mobile-first editing polish (drag-drop, pinch-zoom, rotate) so the planner can be used on a tablet or phone while at the LEGO store or standing at the actual build table",
+            "context": "UNVERIFIED: this is a very common pattern with LEGO fans wanting to reference or tweak a plan on a phone while shopping in-store; the app's own feature list already flags touch UX as 'largely untested,' and mobile-friendliness is a frequent ask for any browser planning tool aimed at hobbyists. Not confirmed via a live Reddit thread this session because Reddit access failed for both search and direct fetch.",
+            "sourceUrl": "",
+            "demandSignal": "Medium"
+          }
+        ],
+        "competitorNotes": [
+          "BrickLink Studio (bricklink.com/v3/studio): full 3D CAD with realistic brick snapping and collision detection ('tells you when something doesn't quite work'), lets builders rotate a layout from any angle and simulate unlimited virtual bricks regardless of what they physically own — the single most-cited reason AFOLs prefer it over flat 2D grid tools for anything beyond simple street plans, despite being far fiddlier/slower to use at city scale.",
+          "BlueBrick (mattzobricks.com/lego-track-planning/bluebrick): purpose-built free/open-source 2D LEGO layout planner with assignable drawing layers per element type, auto part-list generation, text annotations, and explicitly easier 'outside the grid' placement for non-orthogonal street/track geometry — closest direct competitor to this app's core concept.",
+          "Excel/Google Sheets grid method: zero-cost, near-zero-learning-curve approach where each cell = 8x8 studs, colored/bordered via conditional formatting; praised specifically for simplicity and easy sharing (just send the spreadsheet) — a reminder that some users value low-friction plain grids over feature-rich tools, and that 'easy sharing' and 'grid overlay for precision' are named as core desired features in the Eurobricks town-layout thread.",
+          "Track Designer (North Georgia LEGO Train Club): includes ready templates specifically for road plates and baseplates alongside train/monorail track, aimed squarely at train-layout planners who need accurate curve-radius geometry — a niche this app's generic road/track schematic pieces partially cover but without a template library."
+        ]
+      },
+      {
+        "beat": "Reddit LEGO train communities (r/legotrains, r/bricktrains)",
+        "findings": [
+          {
+            "suggestion": "Offer multiple track curve-radius options (not just the stock LEGO 9V/RC R40 geometry) — e.g. wide-radius presets modeled on TrixBrix R24–R184 or ME Models 56/72/88/104-stud curves — so users can plan realistic-looking layouts where long passenger cars/coaches don't overhang or collide on corners.",
+            "context": "Train builders explicitly cite standard R40 curves as looking unrealistic for longer trains ('passenger cars overhanging and coaches colliding on every bend'), which is why third-party wide-radius track compatible with LEGO exists and is a major draw. BlueBrick's popularity is partly built on its libraries covering R40/R104/R148 and other radii so builders can plan with the exact geometry they intend to buy.",
+            "sourceUrl": "https://transponderings.blog/2024/05/03/the-straight-the-curved-and-the-pointy-of-lego-compatible-train-track/",
+            "demandSignal": "High"
+          },
+          {
+            "suggestion": "Add proper switch/turnout variety beyond a generic 'switch' schematic — left switch, right switch, wye/three-way switch, and double-slip/crossing pieces — since third-party makers (TrixBrix, BrickTracks, 4DBrix) sell these and builders plan around them explicitly.",
+            "context": "L-Gauge's CAD Tools wiki and BlueBrick's parts libraries list left/right switches, wye switches, and crossings as first-class pieces distinct from curves and straights; MattzoBricks notes users 'actively request feature additions' like new switch/track components in planning tools.",
+            "sourceUrl": "http://l-gauge.org/wiki/index.php/CAD_Tools",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Add elevation/grade planning (inclines, tunnels, bridges) with a simple side-profile or 3D preview, even if the main view stays 2D top-down.",
+            "context": "3D Train Studio is called out as the go-to alternative to BlueBrick specifically because it offers 2D AND 3D planning with layout simulation — serious train layout builders want to check that grades and clearances work before buying incline track.",
+            "sourceUrl": "https://mattzobricks.com/lego-track-planning",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Enforce/validate real LEGO track geometry rules when placing track — e.g. flag when parallel tracks aren't spaced in multiples of 16 studs, or offer a '12-straights + 2 curves' diagonal / 45° diagonal helper — so users can trust a layout will actually snap together in real bricks, not just visually overlap-free.",
+            "context": "Brickpile's track-layout-geometry reference lays out exactly these constraints (parallel track spacing at multiples of 16 studs, the 5-12-13 Pythagorean-triple diagonal trick, ~17-straight 45° diagonals) as things serious LEGO train planners have to manually work out today — a planner tool that encodes these rules would remove real, well-documented pain.",
+            "sourceUrl": "https://www.brickpile.com/articles/track-layout-geometry/",
+            "demandSignal": "High"
+          },
+          {
+            "suggestion": "Electrical-isolation / short-circuit warnings for powered (9V/RC) wye and reverse-loop configurations, since those require inserted paper or gaps to avoid shorting the track.",
+            "context": "The same geometry reference notes that wyes on powered layouts require electrical isolation via inserted paper (not needed on battery/plastic track) — a planner that flags 'this loop/wye will short on powered track' would be a concrete, LEGO-train-specific safety/planning feature no generic tile planner offers.",
+            "sourceUrl": "https://www.brickpile.com/articles/track-layout-geometry/",
+            "demandSignal": "Low"
+          },
+          {
+            "suggestion": "UNVERIFIED: Reddit train-community members frequently complain BlueBrick is Windows-only, unmaintained-feeling, and has a dated/clunky UI — a modern, free, browser-based (cross-platform, no-install) track planner is something this audience would likely gravitate to for that reason alone.",
+            "context": "This is drawn from general knowledge of the LEGO train hobbyist community's long-running BlueBrick fatigue rather than a page I was able to retrieve — Reddit itself (reddit.com) was not fetchable by my tools in this session (WebFetch and domain-restricted WebSearch both failed against reddit.com), so I could not pull direct r/legotrains or r/bricktrains threads to quote or link.",
+            "sourceUrl": "",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "UNVERIFIED: Support importing/exporting BOMs in a format compatible with BrickLink or Rebrickable wanted-lists specifically for track pieces (so a train layout's straight/curve/switch counts map to purchasable third-party or LEGO part numbers), not just a generic shopping list.",
+            "context": "Train layout builders typically buy piece-by-piece from BrickLink/third-party sellers (TrixBrix, BrickTracks) rather than whole sets, so a plain 'set list' export is less useful to them than to City builders; this is inferred from how those communities shop rather than confirmed via a retrieved discussion thread.",
+            "sourceUrl": "",
+            "demandSignal": "Low"
+          }
+        ],
+        "competitorNotes": [
+          "BlueBrick (free, Windows-only, open source): layered drawing (baseplates/track/scenery as separate layers you can toggle), auto-generated parts lists, text annotations on the canvas, and a large ecosystem of downloadable third-party part libraries (RC plastic, 9V metal, ME Models wide-radius, TrixBrix, BrickTracks) that keep it relevant years after last major update — worth stealing: pluggable/community part libraries and per-layer visibility toggles.",
+          "3D Train Studio: differentiates from BlueBrick by offering true 2D+3D planning and layout *simulation* (not just static layout) — worth stealing: a lightweight 3D or elevation preview mode for grade/clearance checking.",
+          "nControl (4DBrix, free): pairs track planning with automation — switch motor control planning, with detection/signaling on their roadmap — a niche but loyal audience for planning tools that go beyond static layout into 'how the trains will actually run.'",
+          "TrixBrix: sells 3D-printed track compatible with stock LEGO in radii from R24 to R184 specifically to fix the 'stock R40 looks toy-like for real trains' complaint — worth stealing: multiple curve-radius presets per curve type, not one-size-fits-all.",
+          "LDraw-based tools (MLCad/Bricksmith/LPub with community train part libraries): offer true 3D brick-level modeling of track, which is overkill for city-scale layout planning but shows the ceiling of fidelity some AFOLs expect — not worth chasing given our client-only static-site constraint, but validates that '3D preview' is a recurring want across the whole tool landscape."
+        ]
+      },
+      {
+        "beat": "AFOL forums (Eurobricks, Brickset) + competitor tools (BrickLink Studio/stud.io, LEGO Digital Designer, Mecabricks, Rebrickable, BlueBrick, SCARM)",
+        "findings": [
+          {
+            "suggestion": "Add elevation/height support — bridges, slopes, raised sections, and marking water level vs road level vs rail level as distinct planes (not just the current bottom/mid/top layer stack).",
+            "context": "Lions Gate Models' city-planning guide tells builders to explicitly decide road, rail and water LEVELS and mark bridges/slopes, and notes elevated highway plates (set 6600) exist for this; the Brickset/Eurobricks 'best town layout software' thread flags that grid tools 'don't work well' once elevation enters the picture. Our current 3-layer stack (baseplate/road+track/building) has no concept of height at all, so any bridge, raised highway, or hill can't be represented.",
+            "sourceUrl": "https://lionsgatemodels.com/planning-and-building-a-lego-city/designing-your-lego-city-layout/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Live running parts/piece list while you build, similar to Stud.io's 'keeps a running list of every part in the build' — not just the shopping-list export at the end, but a persistent panel updating as pieces are added/removed.",
+            "context": "Brickset review of Stud.io: 'One of the most useful things found in Studio is that it keeps a running list of every part in the build.' We already have an export-to-text shopping list, but it's not a live, always-visible panel.",
+            "sourceUrl": "https://brickset.com/article/24920/building-with-stud-io",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Zone/area colour-coding for city planning — mark regions as residential, commercial, industrial, institutional before placing any set footprints, as a lightweight planning layer independent of actual pieces.",
+            "context": "Lions Gate Models guide explicitly recommends zoning: 'separating industrial, commercial, residential, and institutional areas to create logical city layouts' as an early planning step, before final placement.",
+            "sourceUrl": "https://lionsgatemodels.com/planning-and-building-a-lego-city/designing-your-lego-city-layout/",
+            "demandSignal": "Low"
+          },
+          {
+            "suggestion": "Non-grid / freeform road drawing for irregular (non-rectilinear) street layouts, e.g. curvy British-style lanes, not just fixed road-piece footprints snapped to right angles.",
+            "context": "Eurobricks 'Best town layout software' thread: users note that 'Grid-based solutions don't work for non-uniform street layouts (like British twisty lanes)' and praise BlueBrick for working 'easier... outside the grid.'",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Layer-based visibility/lock controls beyond our fixed 3-layer model — BlueBrick's layer system is repeatedly called out as 'powerful for managing complex layouts,' implying users want more layers (e.g. separate planning/annotation layer, per-zone layers) with independent show/hide and lock, not just a fixed baseplate/infrastructure/building stack.",
+            "context": "Eurobricks town-layout thread: BlueBrick's 'layer feature' is highlighted as powerful for complex layouts; separately, BlueBrick thread shows users value planning 'without space or budget constraints.'",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "A quick precise-footprint / custom-rectangle drawing tool for buildings that aren't in the LEGO set catalog (custom MOCs or planned-but-undesigned buildings), so users can block out 'a building goes here, 24x32 studs' without picking a real set.",
+            "context": "Eurobricks town layout thread: users specifically want 'top-down (bird's eye) layout' with 'grid overlay' and the ability to 'create precisely sized footprint outlines' of buildings for scale purposes — independent of a specific catalog set.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "High"
+          },
+          {
+            "suggestion": "Direct BrickLink 'wanted list' / CSV export compatible with BrickLink's upload format for the shopping list, since Stud.io users hit friction because 'BrickLink doesn't support the upload of CSV files' from other tools and are seeking better export/import compatibility.",
+            "context": "Eurobricks 'Digital LEGO: Tools' forum threads ('Stud.io Export parts list with pictures', 'Exporting Stud.io Part Spreadsheet with Images') show recurring frustration with getting a design's parts list into a BrickLink-purchasable format. Our current export is plain-text only.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/191613-studio-export-parts-list-with-pictures/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "3D/isometric preview toggle for the 2D top-down plan, so users can sanity-check how a layout will actually look while still doing quick top-down placement — SCARM (for train layouts) is praised specifically for combining 2D planning with an instant one-click 3D preview.",
+            "context": "SCARM feature summary: 'instantly see your design in 3D preview with a single click,' repeatedly highlighted as a strength alongside precise 2D track planning and elevation tools.",
+            "sourceUrl": "https://www.scarm.info/",
+            "demandSignal": "Low"
+          },
+          {
+            "suggestion": "Track elevation tool for train layouts specifically — select a track run and set elevation at one end so connected pieces auto-adjust (ramps/inclines), matching what train-focused users expect from dedicated layout software.",
+            "context": "SCARM: 'you can select a range of track, enable the elevation tool and set the elevation on one end of the range, which adjusts the elevation at each track connection along the range' plus 'precise transition curves.' Eurobricks train-tech thread also flags '10,000 brick track LDD file' users wanting proper layout tools for exactly this kind of large trackplan management.",
+            "sourceUrl": "https://www.scarm.info/",
+            "demandSignal": "Low"
+          },
+          {
+            "suggestion": "UNVERIFIED: Basic multiplayer/shareable-link collaborative editing (two people editing or at least viewing the same city plan live) would fill a gap none of the surveyed competitor tools solve well — most are single-user desktop apps (Stud.io, LDD) or single-user web apps (Mecabricks); LEGO club/exhibition layout planning is inherently a group activity (BlueBrick markets itself for exhibition space planning), so a 'send this link to your building-club friend' read/comment mode could be a differentiator worth prototyping even without full realtime co-editing.",
+            "context": "UNVERIFIED: inferred from repeated forum mentions that BlueBrick's core use case is planning shared exhibition/club layouts (multiple builders contributing modules to one show), which is inherently collaborative but the tools discussed are all single-user file-based programs passed around, not live-shared.",
+            "sourceUrl": "",
+            "demandSignal": "Low"
+          }
+        ],
+        "competitorNotes": [
+          "BrickLink Studio (Stud.io): live running parts count/list while building; deep BrickLink catalog integration showing part price/availability by color; direct path from finished model to a purchasable 'wanted list'.",
+          "BrickLink Studio: has a dedicated top-down view usable for town planning (per Eurobricks user), though called time-consuming — validates the top-down-first approach we already take, but shows users expect it to be fast.",
+          "Mecabricks: runs entirely in-browser including on phones/tablets with no install, and is praised as 'the superior renderer' with photorealistic output (shadows, backgrounds, wear/scratch textures) — accessibility + visual payoff combo users love; also adds new parts almost daily, keeping catalog fresher than rivals.",
+          "LEGO Digital Designer (LDD): praised for being intuitive/easy for simple builds vs Stud.io feeling 'too grown up and daunting' for casual/beginner users — a simplicity bar worth keeping in mind as we add features.",
+          "BlueBrick: purpose-built for exhibition/club layout planning with predefined road-plate/track/modular modules, a powerful multi-layer system, and works outside a strict grid for irregular layouts — closest spiritual competitor to Brick City Planner's mission.",
+          "SCARM (train-focused, non-LEGO-specific but used by LEGO train fans): one-click 2D-to-3D preview toggle, per-track-run elevation tool with auto-adjusting connections, precise transition curves, and a printable parts/shopping list — all praised together as a tight planning-to-shopping workflow.",
+          "Rebrickable: acts as the catalog/data backbone competitors and we both rely on (Rebrickable bulk CSV already powers our own catalog); no distinct city-layout planning UI of its own, so no direct feature overlap found."
+        ]
+      },
+      {
+        "beat": "General web + app stores for existing LEGO layout planners",
+        "findings": [
+          {
+            "suggestion": "Add text annotation / sticky-note labels directly on the canvas (e.g. \"grocery store goes here\", \"future expansion\")",
+            "context": "Multiple long-running community threads name this as a specific gap in existing tools. On the Eurobricks 'Best town layout software' thread, users fall back to paper cutouts specifically because 'you can write on them to say which building goes where.' A Lions Gate Models review of Track Designer independently flags 'a limitation is the difficulty adding text annotations directly' as its weak point.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "High"
+          },
+          {
+            "suggestion": "Per-layer visibility toggle (show/hide a whole layer, not just reorder it) so builders can isolate roads-only or buildings-only views",
+            "context": "BlueBrick is repeatedly praised for letting users 'blank out layers to focus on particular items' — a workflow feature, not just z-ordering. Brick City Planner currently has bring-to-front/send-to-back but no hide/show-per-layer toggle.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "High"
+          },
+          {
+            "suggestion": "Support baseplate sizes beyond the 32x32 stud standard (e.g. 48x48, 48x32, and smaller 16x16 plates), and let users define a custom plate size",
+            "context": "On the Eurobricks 'Base Plate Organizer Tool' thread, a user explicitly asks for compatibility with '48×48, 32×32, 48×32' plates. Separately, Sprattronics' baseplate builder centers its whole product on a 16x16 grid for smaller creations/challenge cards, showing demand at the small end too.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/137157-base-plate-organizer-tool-does-one-exist/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Printable/PNG export of the full city layout (not just a JSON file or text shopping list) for offline reference, sharing, or classroom/family use",
+            "context": "Sprattronics' baseplate builder's headline feature is 'Instant Export: Download your creation as a high-quality PNG to print' — explicitly for physical/printed use. The Eurobricks baseplate-organizer thread also asks for 'printable blank templates ... so I can draw on it and plan.' Brick City Planner currently exports JSON and a plain-text list but not a shareable image.",
+            "sourceUrl": "https://sprattronics.com/lego-baseplate-builder",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Freeform/curved road and path placement that isn't locked to a rigid grid ('twisty-turny lanes'), as an alternative to strict grid-snapped roads",
+            "context": "On the Eurobricks town-layout thread, one builder specifically wants 'flexibility beyond grids... capability to work with twisty-turny lanes rather than rigid grid structures' — a request for organic, non-orthogonal road layouts distinct from the standard straight/curve/T/crossroad road pieces most tools (including ours) offer.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/182677-best-town-layout-software/",
+            "demandSignal": "Low"
+          },
+          {
+            "suggestion": "Auto-generated parts/piece list output alongside the visual layout, similar to BlueBrick's bill-of-materials generation from a placed layout",
+            "context": "BlueBrick reviews highlight that it 'counts the parts that you need for your layout' and can 'generate parts lists' directly from the placed track/baseplate diagram — a feature builders value for going from plan to purchase. Brick City Planner already has a category breakdown/budget estimate and shopping-list export, so this mainly validates that direction is right, not a wholly new ask; consider a downloadable parts-count summary per individual piece type (not just per set) for scratch-built sections.",
+            "sourceUrl": "https://mattzobricks.com/lego-track-planning/bluebrick",
+            "demandSignal": "Low"
+          },
+          {
+            "suggestion": "Position the tool explicitly as a modern web replacement for decades-old desktop planners, since the community is still using ~1998-era software or Excel/paper because nothing modern fills the gap",
+            "context": "Multiple threads (Eurobricks train-layout, MattzoBricks) show enthusiasts still relying on 'Track Designer' (released 1998, no longer supported) or manually building grids in Excel/Google Sheets because no satisfying modern browser tool exists. This validates Brick City Planner's core premise rather than suggesting a new feature — worth highlighting in marketing/README that it's a modern, free, no-install alternative to these legacy tools.",
+            "sourceUrl": "https://www.eurobricks.com/forum/forums/topic/196819-best-layout-design-software/",
+            "demandSignal": "Medium"
+          },
+          {
+            "suggestion": "Improve color accuracy / color-specific filtering when a tool shows parts, since users are frustrated by wrong-color renders in official LEGO apps",
+            "context": "Google Play reviews of the official LEGO Builder app complain 'color accuracy is garbage' and it's 'constantly showing the wrong color parts.' Brickit reviewers separately wish for a way 'to filter it to only use the color bricks that are shown.' Less directly applicable to Brick City Planner (which uses set thumbnails/schematics rather than per-brick color rendering), but worth noting as a broader LEGO-app pain point if per-piece color ever gets added.",
+            "sourceUrl": "https://play.google.com/store/apps/details?id=com.lego.legobuildinginstructions&hl=en_US",
+            "demandSignal": "Low"
+          }
+        ],
+        "competitorNotes": [
+          "BlueBrick (open source desktop, bluebrick.lswproject.com): predefined road/baseplate/train-track modules, per-layer show/hide to declutter the view while planning, auto-generated parts lists and piece counts from the placed layout, text annotations, and works 'outside the grid' for irregular arrangements — the most-cited 'gold standard' among train/town layout planners.",
+          "Sprattronics LEGO Baseplate Builder (web, single-layer 16x16 grid): dead-simple brick-size picker (1x1 studs / 2x4 bricks / 4x2 plates), 12-color palette, choice of 4 baseplate background colors, one-click high-quality PNG export for printing — praised for being frictionless and export-first even though it's far less capable than Brick City Planner overall.",
+          "Track Designer (legacy Windows desktop, still used despite being ~30 years old): baseplate/road/train-track templates but weak on text annotation — shows there's long-standing unmet demand for a maintained, modern equivalent.",
+          "BrickLink Studio: used successfully by at least one community member for accurate top-down town planning at real scale, suggesting users compare our footprint accuracy against Studio's precision.",
+          "LDraw / LEGO Digital Designer: full CAD-grade tools some builders fall back to for baseplate rearrangement, but they lack native train-track support and are seen as heavier/less approachable than a purpose-built 2D planner.",
+          "Official LEGO Builder app: praised for AR/instructions but review-bombed for poor part color accuracy — a reminder to keep any future per-brick color features accurate if ever added."
+        ]
+      }
+    ],
+    "counts": {
+      "ideas": 34,
+      "personas": 6,
+      "community": 4
+    }
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Ideate"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Personas"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 3,
+      "title": "Research"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 4,
+      "title": "Synthesize"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "idea:qol",
+      "phaseIndex": 1,
+      "phaseTitle": "Ideate",
+      "agentId": "aa128420873f0ecff",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475176,
+      "queuedAt": 1783807473622,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are a senior product designer improving Brick City Planner.\n\nSITE BRIEF (what already exists — do NOT re-propose these):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — do not re-propose):\n- Catalog of ~…",
+      "lastProgressAt": 1783807505182,
+      "tokens": 28604,
+      "toolCalls": 1,
+      "durationMs": 30006,
+      "resultPreview": "{\"ideas\":[{\"title\":\"Undo/redo with 50-step history\",\"category\":\"Core editing\",\"description\":\"Maintain an in-memory stack of city-state snapshots (or diffs) captured on every placement/move/rotate/delete/resize. Ctrl+Z / Ctrl+Shift+Z plus two toolbar buttons (disabled/greyed when stack is empty). Persist the last state to localStorage autosave as today; history itself can be session-only (cleared o…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "idea:ui",
+      "phaseIndex": 1,
+      "phaseTitle": "Ideate",
+      "agentId": "a54f028cc8c6afcf7",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475032,
+      "queuedAt": 1783807473622,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are a senior product designer improving Brick City Planner.\n\nSITE BRIEF (what already exists — do NOT re-propose these):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — do not re-propose):\n- Catalog of ~…",
+      "lastProgressAt": 1783807529536,
+      "tokens": 32601,
+      "toolCalls": 2,
+      "durationMs": 54504,
+      "resultPreview": "{\"ideas\":[{\"title\":\"First-run guided empty state\",\"category\":\"Onboarding\",\"description\":\"When the canvas has zero tiles, replace the blank grid with a friendly empty-state panel: a short 3-step illustrated tip ('1. Search a set 2. Drag it onto the grid 3. Rotate/snap to fit'), a 'Load a sample city' button that populates a tiny 2x2-baseplate demo layout, and a pulsing highlight pointing at the cat…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "idea:motion",
+      "phaseIndex": 1,
+      "phaseTitle": "Ideate",
+      "agentId": "acae74437d8406265",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475041,
+      "queuedAt": 1783807473622,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are a senior product designer improving Brick City Planner.\n\nSITE BRIEF (what already exists — do NOT re-propose these):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — do not re-propose):\n- Catalog of ~…",
+      "lastProgressAt": 1783807518225,
+      "tokens": 28614,
+      "toolCalls": 1,
+      "durationMs": 43184,
+      "resultPreview": "{\"ideas\":[{\"title\":\"Viewport culling + dirty-rect layer caching for hundreds of tiles\",\"category\":\"Render performance\",\"description\":\"Split rendering into cached layers (baseplates / roads+tracks / buildings) and only re-render tiles whose bounding box intersects the visible viewport plus a small margin. Off-screen tiles are skipped entirely during pan/zoom; only the layer(s) actually changed by a…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "idea:domain",
+      "phaseIndex": 1,
+      "phaseTitle": "Ideate",
+      "agentId": "aad43a2dcbf17f1c8",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475138,
+      "queuedAt": 1783807473622,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "You are a senior product designer improving Brick City Planner.\n\nSITE BRIEF (what already exists — do NOT re-propose these):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — do not re-propose):\n- Catalog of ~…",
+      "lastProgressAt": 1783807536454,
+      "tokens": 30961,
+      "toolCalls": 2,
+      "durationMs": 61316,
+      "resultPreview": "{\"ideas\":[{\"title\":\"\\\"I Own This\\\" toggle + owned-vs-buy budget split\",\"category\":\"Buying & budgeting\",\"description\":\"Add a per-set 'Owned' checkbox in the catalog and on placed tiles, persisted in localStorage by set number. The City Summary splits the cost total into 'Already own ($0)' vs 'Still need to buy ($X)'. The exported shopping-list text file drops owned sets and shows a purchase-only su…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "persona:moc-poweruser",
+      "phaseIndex": 2,
+      "phaseTitle": "Personas",
+      "agentId": "a7e73cb3f9bea2e37",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475505,
+      "queuedAt": 1783807473630,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Marcus Vale",
+      "promptPreview": "Roleplay: you ARE this person, and you have just spent 30+ minutes aggressively using Brick City Planner to accomplish YOUR real goal.\n\nWHO YOU ARE:\nMarcus Vale, 34, hardcore MOC builder prepping a 50-baseplate modular city for a convention. Fast, keyboard-driven, places 200+ pieces per session and hates repetition. Expects multi-select, box-select, copy/paste, duplicate, grouping, align & distrib…",
+      "lastProgressAt": 1783807502008,
+      "tokens": 28746,
+      "toolCalls": 1,
+      "durationMs": 26503,
+      "resultPreview": "{\"painPoints\":[{\"title\":\"No multi-select or box-select — placing 200+ pieces is one-at-a-time torture\",\"severity\":\"Critical\",\"scenario\":\"I tried to drag-select a 6x6 cluster of straight roads I'd already laid down to nudge them all one stud over so a baseplate seam would line up. Nothing happened — clicking just picked the single tile under my cursor and deselected everything else. I ended up clic…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "persona:ipad-parent",
+      "phaseIndex": 2,
+      "phaseTitle": "Personas",
+      "agentId": "a7a881f46506c668c",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807476315,
+      "queuedAt": 1783807473630,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Priya",
+      "promptPreview": "Roleplay: you ARE this person, and you have just spent 30+ minutes aggressively using Brick City Planner to accomplish YOUR real goal.\n\nWHO YOU ARE:\nPriya, 38, designing a LEGO city with her 8-year-old on an iPad on the couch. Touch only, no mouse or keyboard. The kid taps and drags chaotically and rage-quits if something is fiddly. Needs big tap targets, forgiving undo, protection against acciden…",
+      "lastProgressAt": 1783807509077,
+      "tokens": 28701,
+      "toolCalls": 1,
+      "durationMs": 32762,
+      "resultPreview": "{\"painPoints\":[{\"title\":\"No lock/protect for placed pieces — Milo's thumb wrecks 20 minutes of layout in one drag\",\"severity\":\"Critical\",\"scenario\":\"I finally got the whole fire station + road loop laid out just right. Milo grabbed the iPad to 'add the police station' and instead dragged three roads and a baseplate half off the grid because his thumb landed on an already-placed tile instead of the…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "persona:train-perfectionist",
+      "phaseIndex": 2,
+      "phaseTitle": "Personas",
+      "agentId": "ae39a3b3452862041",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475143,
+      "queuedAt": 1783807473630,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Sven",
+      "promptPreview": "Roleplay: you ARE this person, and you have just spent 30+ minutes aggressively using Brick City Planner to accomplish YOUR real goal.\n\nWHO YOU ARE:\nSven, 52, AFOL train-layout obsessive and Eurobricks regular. Cares intensely about real LEGO track geometry: curve radius, switch/points geometry, correct spacing, sidings, and loops that actually CLOSE. Wants the planner to respect real track topolo…",
+      "lastProgressAt": 1783807505804,
+      "tokens": 28711,
+      "toolCalls": 1,
+      "durationMs": 30661,
+      "resultPreview": "{\"painPoints\":[{\"title\":\"Loops don't know they're loops\",\"severity\":\"Critical\",\"scenario\":\"I laid out a full oval of curve track — eight R40-style curves plus straights to close a loop around my yard — and the tool just let me leave a 2-stud gap at the last joint because the last curve piece I dragged in snapped by its footprint corner to the neighbouring baseplate edge instead of port-to-port to …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 8,
+      "label": "persona:budget-shopper",
+      "phaseIndex": 2,
+      "phaseTitle": "Personas",
+      "agentId": "a5a443bc431b8e1e0",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475009,
+      "queuedAt": 1783807473631,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Dana",
+      "promptPreview": "Roleplay: you ARE this person, and you have just spent 30+ minutes aggressively using Brick City Planner to accomplish YOUR real goal.\n\nWHO YOU ARE:\nDana, 27, on a tight budget, using the planner mainly to decide what to actually BUY. Wants accurate current prices, links to buy (LEGO.com / BrickLink / Amazon), a running total, cheaper alternative sets, a wishlist, and a way to mark what she alread…",
+      "lastProgressAt": 1783807502235,
+      "tokens": 28704,
+      "toolCalls": 1,
+      "durationMs": 27225,
+      "resultPreview": "{\"painPoints\":[{\"title\":\"That '$0.11/piece' number is basically fiction and I don't trust it\",\"severity\":\"Critical\",\"scenario\":\"I laid out like 9 sets — a couple modulars, some road plates, a train loop — and the summary spat out a total budget estimate off piece count. Modulars run way more than $0.11/piece retail (Bookshop is like $0.15-0.18/piece), and some cheap City sets are under $0.08/piece…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 9,
+      "label": "persona:a11y",
+      "phaseIndex": 2,
+      "phaseTitle": "Personas",
+      "agentId": "a42a6e6f0e1a65f83",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475123,
+      "queuedAt": 1783807473631,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Theo",
+      "promptPreview": "Roleplay: you ARE this person, and you have just spent 30+ minutes aggressively using Brick City Planner to accomplish YOUR real goal.\n\nWHO YOU ARE:\nTheo, 45, red-green colorblind and also relies on the keyboard due to RSI (mouse use is painful). Struggles with color-coded categories/layers, low-contrast small text, tiny mouse-only controls, and drag-only interactions. Needs labels/patterns not ju…",
+      "lastProgressAt": 1783807505739,
+      "tokens": 28703,
+      "toolCalls": 1,
+      "durationMs": 30616,
+      "resultPreview": "{\"painPoints\":[{\"title\":\"Filter chips are just colored blobs I can't tell apart\",\"severity\":\"Critical\",\"scenario\":\"I wanted to isolate all my Police sets from the Fire sets to plan my downtown block, so I clicked through the filter chips at the top of the catalog. Half of them are basically the same reddish-brownish smear to me - I genuinely could not tell 'Police' from 'Fire' from 'Town' by looki…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 10,
+      "label": "persona:aesthetic-modularist",
+      "phaseIndex": 2,
+      "phaseTitle": "Personas",
+      "agentId": "a02f3737ad4552f36",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807475276,
+      "queuedAt": 1783807473631,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Yuki",
+      "promptPreview": "Roleplay: you ARE this person, and you have just spent 30+ minutes aggressively using Brick City Planner to accomplish YOUR real goal.\n\nWHO YOU ARE:\nYuki, 29, modular-building collector and interior-design fan who judges the tool on how GOOD the finished city looks. Wants tiles that resemble the real sets, prettier road/sidewalk rendering, grass/water/plaza zones, control over which way façades fa…",
+      "lastProgressAt": 1783807505643,
+      "tokens": 28703,
+      "toolCalls": 1,
+      "durationMs": 30367,
+      "resultPreview": "{\"painPoints\":[{\"title\":\"Everything is a flat colored rectangle — nothing looks like the actual set\",\"severity\":\"Critical\",\"scenario\":\"I dragged in the Bookshop (10270) and the Downtown Diner and both just show up as beige boxes with a label. I spent five minutes squinting trying to tell which footprint was which building before I gave up and started reading tiny text labels instead of just lookin…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 11,
+      "label": "research:reddit-city",
+      "phaseIndex": 3,
+      "phaseTitle": "Research",
+      "agentId": "ac1abe8dbab2d0bb5",
+      "agentType": "general-purpose",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807503447,
+      "queuedAt": 1783807473641,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Reddit LEGO city/town/creations communities (r/lego, r/lego…",
+      "promptPreview": "You are a UX researcher finding what LEGO builders actually want in a digital LEGO city / layout planner.\n\nWHAT WE ALREADY HAVE (do NOT report these as new):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — d…",
+      "lastProgressAt": 1783807713501,
+      "tokens": 52007,
+      "toolCalls": 33,
+      "durationMs": 210053,
+      "resultPreview": "{\"beat\":\"Reddit LEGO city/town/creations communities (r/lego, r/legocity, r/legocreations, r/AFOL)\",\"findings\":[{\"suggestion\":\"Add an optional 3D / isometric preview toggle for the layout (even a simple extruded-height view), not just flat 2D top-down\",\"context\":\"Eurobricks town-layout thread: builders repeatedly gravitate to BrickLink Studio specifically because its 3D view lets them 'rotate your…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 12,
+      "label": "research:reddit-trains",
+      "phaseIndex": 3,
+      "phaseTitle": "Research",
+      "agentId": "adda599d6815a2a11",
+      "agentType": "general-purpose",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807511949,
+      "queuedAt": 1783807473641,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Reddit LEGO train communities (r/legotrains, r/bricktrains)",
+      "promptPreview": "You are a UX researcher finding what LEGO builders actually want in a digital LEGO city / layout planner.\n\nWHAT WE ALREADY HAVE (do NOT report these as new):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — d…",
+      "lastProgressAt": 1783807661611,
+      "tokens": 43887,
+      "toolCalls": 22,
+      "durationMs": 149661,
+      "resultPreview": "{\"beat\":\"Reddit LEGO train communities (r/legotrains, r/bricktrains)\",\"findings\":[{\"suggestion\":\"Offer multiple track curve-radius options (not just the stock LEGO 9V/RC R40 geometry) — e.g. wide-radius presets modeled on TrixBrix R24–R184 or ME Models 56/72/88/104-stud curves — so users can plan realistic-looking layouts where long passenger cars/coaches don't overhang or collide on corners.\",\"co…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 13,
+      "label": "research:forums-tools",
+      "phaseIndex": 3,
+      "phaseTitle": "Research",
+      "agentId": "a2a8f920840c7dd94",
+      "agentType": "general-purpose",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807506842,
+      "queuedAt": 1783807473641,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "AFOL forums (Eurobricks, Brickset) + competitor tools (Bric…",
+      "promptPreview": "You are a UX researcher finding what LEGO builders actually want in a digital LEGO city / layout planner.\n\nWHAT WE ALREADY HAVE (do NOT report these as new):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — d…",
+      "lastProgressAt": 1783807663556,
+      "tokens": 45823,
+      "toolCalls": 20,
+      "durationMs": 156714,
+      "resultPreview": "{\"beat\":\"AFOL forums (Eurobricks, Brickset) + competitor tools (BrickLink Studio/stud.io, LEGO Digital Designer, Mecabricks, Rebrickable, BlueBrick, SCARM)\",\"findings\":[{\"suggestion\":\"Add elevation/height support — bridges, slopes, raised sections, and marking water level vs road level vs rail level as distinct planes (not just the current bottom/mid/top layer stack).\",\"context\":\"Lions Gate Models…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 14,
+      "label": "research:web-planners",
+      "phaseIndex": 3,
+      "phaseTitle": "Research",
+      "agentId": "a936f283d2ad4bebf",
+      "agentType": "general-purpose",
+      "model": "claude-sonnet-5",
+      "state": "done",
+      "startedAt": 1783807512456,
+      "queuedAt": 1783807473641,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "General web + app stores for existing LEGO layout planners",
+      "promptPreview": "You are a UX researcher finding what LEGO builders actually want in a digital LEGO city / layout planner.\n\nWHAT WE ALREADY HAVE (do NOT report these as new):\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — d…",
+      "lastProgressAt": 1783807606416,
+      "tokens": 41157,
+      "toolCalls": 15,
+      "durationMs": 93960,
+      "resultPreview": "{\"beat\":\"General web + app stores for existing LEGO layout planners\",\"findings\":[{\"suggestion\":\"Add text annotation / sticky-note labels directly on the canvas (e.g. \\\"grocery store goes here\\\", \\\"future expansion\\\")\",\"context\":\"Multiple long-running community threads name this as a specific gap in existing tools. On the Eurobricks 'Best town layout software' thread, users fall back to paper cutou…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 15,
+      "label": "synthesize",
+      "phaseIndex": 4,
+      "phaseTitle": "Synthesize",
+      "agentId": "ab2b55e50d7b43185",
+      "model": "claude-opus-4-8[1m]",
+      "state": "done",
+      "startedAt": 1783807718534,
+      "queuedAt": 1783807715014,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "The single loudest, most cross-cutting theme is that the co…",
+      "promptPreview": "You are Head of Product for Brick City Planner. Turn the raw input below into ONE deduplicated, prioritized backlog the founder can pick from.\n\nSITE BRIEF:\nBrick City Planner — a FREE, browser-based 2D top-down digital LEGO(R) city planner. You lay out a LEGO city on a stud grid before buying the physical sets. Live at larikhalil.github.io/brick-city-planner.\n\nCURRENT FEATURES (already exist — do …",
+      "lastProgressAt": 1783808111422,
+      "tokens": 56483,
+      "toolCalls": 1,
+      "durationMs": 392887,
+      "resultPreview": "{\"topPicks\":[\"QOL-1\",\"QOL-2\",\"QOL-3\",\"PLAN-1\",\"PLAN-4\",\"PLAN-5\",\"MOTION-6\",\"ACC-2\",\"UI-1\"],\"editorNote\":\"The single loudest, most cross-cutting theme is that the core editing model is too primitive for the scale people actually build at: every power-user persona and the ideation set independently demand multi-select, copy/paste/duplicate, and real undo/redo — these are table stakes, not enhancemen…"
+    }
+  ],
+  "totalTokens": 532405,
+  "totalToolCalls": 103
+}

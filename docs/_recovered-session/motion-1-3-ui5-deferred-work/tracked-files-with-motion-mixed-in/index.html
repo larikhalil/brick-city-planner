@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brick City Planner</title>
+  <!-- UI-3: stamp any EXPLICIT saved theme/colorblind-safe choice before first paint, so there's
+       no flash-of-wrong-theme. Absent a stored choice, no attribute is set here at all — the
+       :root[data-theme] rules in css/styles.css stay silent and the plain `@media
+       (prefers-color-scheme: dark)` block keeps following the OS live (including if the OS theme
+       changes later in the same tab), exactly as the "defaults to prefers-color-scheme" spec wants. -->
+  <script>(function(){try{
+    var t=localStorage.getItem('bcp.theme');
+    if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);
+    if(localStorage.getItem('bcp.cbSafe')==='1')document.documentElement.setAttribute('data-cbsafe','true');
+  }catch(e){}})();</script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="4" y="14" width="32" height="20" rx="3" fill="var(--t-police)"/>
+          <rect x="4" y="14" width="32" height="20" rx="3" fill="none" stroke="rgba(0,0,0,.25)"/>
+          <circle cx="12" cy="12" r="4" fill="var(--accent)"/><rect x="8" y="10" width="8" height="6" rx="2" fill="var(--accent)"/>
+          <circle cx="24" cy="12" r="4" fill="var(--t-fire)"/><rect x="20" y="10" width="8" height="6" rx="2" fill="var(--t-fire)"/>
+          <circle cx="12" cy="24" r="2.3" fill="rgba(255,255,255,.7)"/>
+          <circle cx="20" cy="24" r="2.3" fill="rgba(255,255,255,.7)"/>
+          <circle cx="28" cy="24" r="2.3" fill="rgba(255,255,255,.7)"/>
+        </svg>
+        <div><div class="wordmark">Brick<b>City</b> Planner</div></div>
+      </div>
+      <div class="toolbar">
+        <button class="city-label" id="btn-city-name" title="Current city — click to manage saved cities"
+          aria-haspopup="dialog" aria-expanded="false">
+          🏙 <span id="city-name-text">Untitled city</span></button>
+        <span class="save-status" id="save-status" role="status" aria-live="polite">
+          <i class="dot" aria-hidden="true"></i><span class="lbl">All changes saved</span>
+        </span>
+        <div class="seg" id="unit-toggle" role="group" aria-label="Units">
+          <button class="on" data-unit="studs">studs</button><button data-unit="cm">cm</button>
+        </div>
+        <button class="btn icon" id="btn-theme" type="button" title="Switch to dark mode"
+          aria-label="Switch to dark mode" aria-pressed="false">🌙</button>
+        <button class="btn icon" id="btn-cbsafe" type="button" title="Turn on colorblind-safe patterns"
+          aria-label="Turn on colorblind-safe patterns" aria-pressed="false">◐</button>
+        <button class="btn" id="btn-new">＋ New city</button>
+        <button class="btn" id="btn-templates" aria-haspopup="dialog" aria-expanded="false">▤ Templates</button>
+        <button class="btn" id="btn-save-as">💾 Save as</button>
+        <button class="btn" id="btn-cities" aria-haspopup="dialog" aria-expanded="false">📁 My cities</button>
+        <button class="btn" id="btn-import">⭳ Import</button>
+        <input type="file" id="file-import" accept="application/json" hidden>
+        <button class="btn" id="btn-share">🔗 Share</button>
+        <button class="btn primary" id="btn-export">⭱ Export</button>
+      </div>
+    </div>
+
+    <div class="shared-banner" id="shared-banner" role="status" aria-live="polite" hidden>
+      <span>👀 Viewing a shared city — <b id="shared-banner-name"></b></span>
+      <span class="sb-actions">
+        <button class="btn primary sm" id="shared-import">Import into my planner</button>
+        <button class="btn icon sm" id="shared-dismiss" aria-label="Dismiss">✕</button>
+      </span>
+    </div>
+
+    <div class="grid3">
+      <section class="card" aria-label="Set catalog">
+        <div class="card-h"><h2>Catalog</h2><span class="count-pill" id="catalog-count"></span></div>
+        <div class="search"><span>🔍</span>
+          <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
+        <div class="chips" id="catalog-chips"></div>
+        <div class="cat-controls">
+          <div class="seg view-toggle" id="catalog-view" role="group" aria-label="Catalog view">
+            <button type="button" class="on" data-view="list" aria-pressed="true" title="List view" aria-label="List view">☰</button>
+            <button type="button" data-view="grid" aria-pressed="false" title="Grid view" aria-label="Grid view">▦</button>
+          </div>
+          <label class="sort" for="catalog-sort">Sort
+            <select id="catalog-sort" aria-label="Sort catalog">
+              <option value="default">Featured</option>
+              <option value="name">Name A–Z</option>
+              <option value="price-asc">Price: low → high</option>
+              <option value="price-desc">Price: high → low</option>
+              <option value="pieces-desc">Most pieces</option>
+              <option value="year-desc">Newest</option>
+            </select>
+          </label>
+        </div>
+        <div class="rail" id="catalog-rail" hidden></div>
+        <div class="catalog" id="catalog-list"></div>
+      </section>
+
+      <section class="card canvas-wrap" aria-label="City grid">
+        <div class="card-h"><h2>City grid</h2>
+          <span class="muted" id="grid-dims" style="margin-left:auto"></span></div>
+        <div class="canvas-tools">
+          <div class="hist-group">
+            <button class="btn icon" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
+            <button class="btn icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷</button>
+            <button class="btn icon" id="btn-history" title="History" aria-label="Edit history" aria-haspopup="true" aria-expanded="false" disabled>🕘</button>
+            <div class="hist-menu" id="history-menu" role="menu" aria-label="Edit history" hidden></div>
+          </div>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <button class="btn icon" id="btn-rotate" title="Rotate selected (R)">⟳</button>
+          <button class="btn icon" id="btn-forward" title="Bring to front">⬆</button>
+          <button class="btn icon" id="btn-back" title="Send to back (above baseplates)">⬇</button>
+          <button class="btn icon" id="btn-delete" title="Delete selected">🗑</button>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <div class="seg tools" id="tool-mode" role="group" aria-label="Canvas tool">
+            <button type="button" class="on" data-mode="select" aria-pressed="true" title="Select &amp; move" aria-label="Select and move tool">⬚</button>
+            <button type="button" data-mode="terrain" aria-pressed="false" title="Paint terrain / zoning" aria-label="Paint terrain tool">🖌</button>
+            <button type="button" data-mode="note" aria-pressed="false" title="Add a sticky note" aria-label="Add note tool">🗒</button>
+            <button type="button" data-mode="rect" aria-pressed="false" title="Draw a custom block (MOC)" aria-label="Draw custom block tool">▭</button>
+          </div>
+          <div class="gsize" id="grid-size" title="Table size in baseplates — or drag the corner grip">
+            <span class="lab">Table</span>
+            <button class="gstep" data-gs="wdec" aria-label="Fewer baseplates wide">−</button>
+            <span class="v" id="gs-w">4</span>
+            <button class="gstep" data-gs="winc" aria-label="More baseplates wide">＋</button>
+            <span class="x">×</span>
+            <button class="gstep" data-gs="hdec" aria-label="Fewer baseplates tall">−</button>
+            <span class="v" id="gs-h">3</span>
+            <button class="gstep" data-gs="hinc" aria-label="More baseplates tall">＋</button>
+          </div>
+          <span class="muted" id="canvas-size"></span>
+          <div class="seg" id="zoom-ctrl" style="margin-left:auto">
+            <button data-zoom="out">−</button><button class="on" data-zoom="reset">100%</button>
+            <button data-zoom="in">＋</button><button data-zoom="fit">Fit</button></div>
+          <button class="btn icon" id="btn-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">?</button>
+        </div>
+        <div class="stage" id="grid-stage">
+          <div class="board" id="grid-board"></div>
+          <div class="first-run" id="first-run" hidden>
+            <button class="fr-close" id="fr-close" aria-label="Dismiss tips">✕</button>
+            <div class="fr-steps">
+              <div class="fr-step"><span class="fr-num">1</span>Search a set</div>
+              <div class="fr-step"><span class="fr-num">2</span>Drag it onto the grid</div>
+              <div class="fr-step"><span class="fr-num">3</span>Snap roads together</div>
+            </div>
+            <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
+          </div>
+        </div>
+        <div class="terrain-bar" id="terrain-bar" role="toolbar" aria-label="Terrain type" hidden></div>
+        <div class="align-bar" id="align-bar" role="toolbar" aria-label="Align, distribute and group selection" hidden>
+          <span class="ab-count" id="ab-count"></span>
+          <span class="ab-sep" aria-hidden="true"></span>
+          <button class="ab-btn" data-align="left" title="Align left" aria-label="Align left">⇤</button>
+          <button class="ab-btn" data-align="centerH" title="Align centres horizontally" aria-label="Align horizontal centres">⇔</button>
+          <button class="ab-btn" data-align="right" title="Align right" aria-label="Align right">⇥</button>
+          <button class="ab-btn" data-align="top" title="Align top" aria-label="Align top">⤒</button>
+          <button class="ab-btn" data-align="centerV" title="Align centres vertically" aria-label="Align vertical centres">⇕</button>
+          <button class="ab-btn" data-align="bottom" title="Align bottom" aria-label="Align bottom">⤓</button>
+          <span class="ab-sep" aria-hidden="true"></span>
+          <button class="ab-btn" data-dist="h" title="Distribute horizontally" aria-label="Distribute horizontally">⇹</button>
+          <button class="ab-btn" data-dist="v" title="Distribute vertically" aria-label="Distribute vertically">⤄</button>
+          <span class="ab-sep" aria-hidden="true"></span>
+          <button class="ab-btn" data-grp="group" title="Group (Ctrl+G)" aria-label="Group selection">⛓</button>
+          <button class="ab-btn" data-grp="ungroup" title="Ungroup (Ctrl+Shift+G)" aria-label="Ungroup selection">⛓⃠</button>
+        </div>
+      </section>
+
+      <aside class="card" aria-label="City summary">
+        <div class="card-h"><h2>City summary</h2></div>
+        <div class="sum" id="summary"></div>
+      </aside>
+    </div>
+
+    <div class="legal">
+      <b>LEGO®</b> is a trademark of the LEGO Group of companies which does not sponsor, authorize or endorse this site.<br>
+      Set data &amp; imagery sourced from <b>Rebrickable</b>. A free, non-commercial fan project — not affiliated with the LEGO Group.
+    </div>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <!-- ACC-4: a visually-subtle live region for granular editing events (placed/rotated/deleted/
+       overlap-detected) — kept separate from the highly-visible #toast pill above so these don't
+       spam a visible bubble for every commit; a screen reader still hears each one. -->
+  <div id="sr-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="modal-backdrop" id="shortcuts-backdrop" hidden>
+    <div class="modal" id="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+      <div class="modal-h">
+        <h2 id="shortcuts-title">Shortcuts &amp; gestures</h2>
+        <button class="modal-close" id="shortcuts-close" aria-label="Close shortcuts">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="sc-group">
+          <h3>Mouse &amp; touch</h3>
+          <div class="sc-row"><span>Drag a set from the catalog onto the grid</span><kbd>drag &amp; drop</kbd></div>
+          <div class="sc-row"><span>Drag a tile</span><kbd>move</kbd></div>
+          <div class="sc-row"><span>Alt-drag a tile</span><kbd>Alt + drag</kbd></div>
+          <div class="sc-row"><span>Drag the node above a selected tile</span><kbd>free rotate</kbd></div>
+          <div class="sc-row"><span>Drag the bottom-right corner grip</span><kbd>resize table</kbd></div>
+          <div class="sc-row"><span>Drag on empty canvas</span><kbd>box-select</kbd></div>
+          <div class="sc-row"><span>Shift/Ctrl-click a tile</span><kbd>add/remove selection</kbd></div>
+          <div class="sc-row"><span>Ctrl + scroll over the canvas</span><kbd>zoom</kbd></div>
+          <div class="sc-row"><span>🖌 tool — drag to paint terrain, ⌫ to erase</span><kbd>terrain</kbd></div>
+          <div class="sc-row"><span>🗒 tool — click to drop a note · ▭ tool — drag a block</span><kbd>annotate</kbd></div>
+          <div class="sc-row"><span>Double-click a note or block to edit it</span><kbd>edit</kbd></div>
+        </div>
+        <div class="sc-group">
+          <h3>Keyboard</h3>
+          <div class="sc-row"><span>Nudge selection 1 stud</span><kbd>↑ ↓ ← →</kbd></div>
+          <div class="sc-row"><span>Rotate selection 90°</span><kbd>R</kbd></div>
+          <div class="sc-row"><span>Delete selection</span><kbd>Delete</kbd></div>
+          <div class="sc-row"><span>Clear selection</span><kbd>Esc</kbd></div>
+          <div class="sc-row"><span>Select all</span><kbd>Ctrl+A</kbd></div>
+          <div class="sc-row"><span>Undo / Redo</span><kbd>Ctrl+Z / Ctrl+Shift+Z</kbd></div>
+          <div class="sc-row"><span>Redo (alt)</span><kbd>Ctrl+Y</kbd></div>
+          <div class="sc-row"><span>Copy / Paste</span><kbd>Ctrl+C / Ctrl+V</kbd></div>
+          <div class="sc-row"><span>Duplicate</span><kbd>Ctrl+D</kbd></div>
+          <div class="sc-row"><span>Group / Ungroup</span><kbd>Ctrl+G / Ctrl+Shift+G</kbd></div>
+          <div class="sc-row"><span>This help</span><kbd>?</kbd></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="templates-backdrop" hidden>
+    <div class="modal" id="templates-modal" role="dialog" aria-modal="true" aria-labelledby="templates-title">
+      <div class="modal-h">
+        <h2 id="templates-title">New from template</h2>
+        <button class="modal-close" id="templates-close" aria-label="Close templates">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="note">Starts a fresh city from a curated layout — your current city is autosaved first, so nothing is lost.</p>
+        <div class="tpl-grid" id="templates-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="cities-backdrop" hidden>
+    <div class="modal" id="cities-modal" role="dialog" aria-modal="true" aria-labelledby="cities-title">
+      <div class="modal-h">
+        <h2 id="cities-title">My cities</h2>
+        <button class="modal-close" id="cities-close" aria-label="Close my cities">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="note">Loading a saved city autosaves your current work under its own name first.</p>
+        <div class="city-list" id="cities-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  extent, overlaps, bbox, snap, anyOverlaps, overlapPairs, toRowCol, snapConnect, grownCanvas,
+  clampedCanvas, BP, tileAABB, tilesInRect, alignTiles, distributeTiles, rotateGroup,
+} from '../js/geometry.js';
+
+test('extent swaps on 90/270', () => {
+  assert.deepEqual(extent({ w: 48, h: 32, rot: 0 }), { w: 48, h: 32 });
+  assert.deepEqual(extent({ w: 48, h: 32, rot: 90 }), { w: 32, h: 48 });
+});
+test('overlap true when intersecting, false when edge-touching', () => {
+  const a = { x: 0, y: 0, w: 32, h: 32, rot: 0 };
+  assert.equal(overlaps(a, { x: 16, y: 16, w: 32, h: 32, rot: 0 }), true);
+  assert.equal(overlaps(a, { x: 32, y: 0, w: 32, h: 32, rot: 0 }), false); // touching
+});
+test('bbox spans all tiles; empty is zero', () => {
+  assert.deepEqual(bbox([]), { x: 0, y: 0, w: 0, h: 0 });
+  assert.deepEqual(
+    bbox([{ x: 0, y: 0, w: 32, h: 32, rot: 0 }, { x: 40, y: 10, w: 16, h: 16, rot: 0 }]),
+    { x: 0, y: 0, w: 56, h: 32 });
+});
+test('snap rounds to step', () => {
+  assert.equal(snap(17, 1), 17);
+  assert.equal(snap(17, 16), 16);
+  assert.equal(snap(25, 16), 32);
+});
+test('anyOverlaps returns ids of overlapping tiles', () => {
+  const ids = anyOverlaps([
+    { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'b', x: 16, y: 16, w: 32, h: 32, rot: 0 },
+    { id: 'c', x: 100, y: 100, w: 8, h: 8, rot: 0 },
+  ]);
+  assert.deepEqual([...ids].sort(), ['a', 'b']);
+});
+test('overlaps handles rotated rectangles (SAT)', () => {
+  const a = { x: 0, y: 0, w: 30, h: 30, rot: 45 };
+  const b = { x: 10, y: 10, w: 30, h: 30, rot: 0 };
+  assert.equal(overlaps(a, b), true); // overlapping, one rotated 45°
+  const far = { x: 200, y: 0, w: 30, h: 30, rot: 45 };
+  assert.equal(overlaps(a, far), false); // clearly apart
+  // edge-adjacent rotated pieces (share an edge) must NOT warn
+  const c = { x: 0, y: 0, w: 20, h: 20, rot: 0 };
+  const d = { x: 20, y: 0, w: 20, h: 20, rot: 0 };
+  assert.equal(overlaps(c, d), false);
+});
+test('snapConnect snaps a piece flush + aligned to a neighbour, ignores far ones', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };
+  // dragged near b's right edge with a 3-stud gap and 1-stud vertical offset
+  const a = { id: 'a', x: 35, y: 1, w: 32, h: 32, rot: 0, layer: 1 };
+  const s = snapConnect(a, [b], 6);
+  assert.equal(s.x, 32); // A.left snaps flush to B.right (x=32)
+  assert.equal(s.y, 0); // A.top aligns to B.top
+  // far piece → no snap
+  const far = { id: 'a', x: 100, y: 100, w: 32, h: 32, rot: 0, layer: 1 };
+  assert.deepEqual(snapConnect(far, [b], 6), { x: 100, y: 100 });
+});
+test('snapConnect joins facing ports of a rotated piece', () => {
+  const straight = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
+  // a curve rotated 180° so its right-opening faces left, dropped near the straight's right port
+  const curve = { id: 'a', x: 35, y: 2, w: 32, h: 32, rot: 180, kind: 'road', name: 'Road — Curve (Right)', layer: 1 };
+  const s = snapConnect(curve, [straight], 8);
+  assert.equal(s.x, 32); // rotated port meets the straight's right opening at x=32
+  assert.equal(s.y, 0);
+});
+test('snapConnect snaps a baseplate to the 32-stud grid', () => {
+  const bp = { id: 'bp', x: 35, y: 30, w: 32, h: 32, rot: 0, kind: 'baseplate', layer: 0 };
+  assert.deepEqual(snapConnect(bp, [], 6), { x: 32, y: 32 });
+});
+test('snapConnect edge-snaps a building to a same-layer neighbour', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'building', layer: 2 };
+  const a = { id: 'a', x: 34, y: 1, w: 16, h: 16, rot: 0, kind: 'building', layer: 2 };
+  const s = snapConnect(a, [b], 6);
+  assert.equal(s.x, 32); // A.left snaps flush to B.right
+  assert.equal(s.y, 0); // A.top aligns to B.top
+});
+test('snapConnect falls back to edge-align when no ports face each other', () => {
+  const b = { id: 'b', x: 0, y: 0, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
+  // straight road placed just below b: their L/R openings don't face up/down → AABB fallback
+  const a = { id: 'a', x: 1, y: 35, w: 32, h: 32, rot: 0, kind: 'road', name: 'Road — Straight', layer: 1 };
+  const s = snapConnect(a, [b], 6);
+  assert.equal(s.y, 32); // top edge snaps flush to b's bottom
+  assert.equal(s.x, 0);
+});
+test('grownCanvas expands to content + margin in whole baseplates, never shrinks', () => {
+  // content reaches x=200; +16 margin = 216 → rounds up to 224 (7 plates)
+  assert.deepEqual(grownCanvas(200, 50, 128, 96), { w: 224, h: 96 });
+  // content well inside the current canvas → stays put (expand-only)
+  assert.deepEqual(grownCanvas(40, 30, 128, 96), { w: 128, h: 96 });
+  // empty content keeps the current size
+  assert.deepEqual(grownCanvas(0, 0, 128, 96), { w: 128, h: 96 });
+});
+test('clampedCanvas snaps to plates, floors at content, caps at max', () => {
+  // request 5×3 plates on empty content → exact
+  assert.deepEqual(clampedCanvas(5 * BP, 3 * BP, 0, 0), { w: 160, h: 96 });
+  // try to shrink below placed content (right edge at 100) → clamped up to 4 plates (128)
+  assert.deepEqual(clampedCanvas(BP, BP, 100, 20), { w: 128, h: 32 });
+  // absurd request is capped at 1024 studs (32 plates)
+  assert.equal(clampedCanvas(9999, BP, 0, 0).w, 1024);
+});
+test('anyOverlaps only flags same-layer overlaps (baseplate/road/building layering)', () => {
+  const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };
+  const road = { id: 'road', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };
+  const house = { id: 'house', x: 4, y: 4, w: 16, h: 16, rot: 0, layer: 2 };
+  // different layers never clash (building on road on baseplate)
+  assert.deepEqual([...anyOverlaps([plate, road, house])], []);
+  // same layer clashes: two roads
+  const road2 = { id: 'road2', x: 8, y: 8, w: 32, h: 32, rot: 0, layer: 1 };
+  assert.deepEqual([...anyOverlaps([road, road2])].sort(), ['road', 'road2']);
+  // same layer clashes: two buildings
+  const house2 = { id: 'house2', x: 8, y: 8, w: 16, h: 16, rot: 0, layer: 2 };
+  assert.deepEqual([...anyOverlaps([house, house2])].sort(), ['house', 'house2']);
+  // tiles with no layer default to buildings (layer 2)
+  const plain = { id: 'plain', x: 8, y: 8, w: 16, h: 16, rot: 0 };
+  assert.deepEqual([...anyOverlaps([house, plain])].sort(), ['house', 'plain']);
+});
+
+test('tileAABB accounts for rotation (90° swaps the extent)', () => {
+  assert.deepEqual(tileAABB({ x: 0, y: 0, w: 48, h: 32, rot: 0 }),
+    { minX: 0, maxX: 48, minY: 0, maxY: 32 });
+  // 48×32 rotated 90° about its centre (24,16) → 32×48 AABB centred the same
+  assert.deepEqual(tileAABB({ x: 0, y: 0, w: 48, h: 32, rot: 90 }),
+    { minX: 8, maxX: 40, minY: -8, maxY: 40 });
+});
+test('tilesInRect returns ids whose AABB intersects the marquee', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'b', x: 100, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'c', x: 20, y: 20, w: 32, h: 32, rot: 0 },
+  ];
+  // box over the top-left corner catches a and c, not the far b
+  assert.deepEqual(tilesInRect(tiles, { x: -5, y: -5, w: 40, h: 40 }).sort(), ['a', 'c']);
+  // a box out in empty space catches nothing
+  assert.deepEqual(tilesInRect(tiles, { x: 200, y: 200, w: 10, h: 10 }), []);
+});
+test('alignTiles lines tiles up by their rotated AABB', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'b', x: 10, y: 50, w: 16, h: 16, rot: 0 },
+  ];
+  const left = alignTiles(tiles, 'left');
+  assert.equal(left.find((r) => r.id === 'a').x, 0);
+  assert.equal(left.find((r) => r.id === 'b').x, 0); // b.left snaps to the shared min (0)
+  const right = alignTiles(tiles, 'right');
+  assert.equal(right.find((r) => r.id === 'b').x, 16); // b.right (x16+16=32) meets a.right (32)
+  const cH = alignTiles(tiles, 'centerH'); // group centre x = 16
+  assert.equal(cH.find((r) => r.id === 'a').x, 0); // a centre already 16
+  assert.equal(cH.find((r) => r.id === 'b').x, 8); // b centre → 16 ⇒ x = 8
+  // aligning left leaves the other axis untouched
+  assert.equal(left.find((r) => r.id === 'b').y, 50);
+});
+test('distributeTiles evenly spaces 3+ tiles by centre, extremes fixed', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 10, h: 10, rot: 0 },   // centre 5
+    { id: 'b', x: 15, y: 0, w: 10, h: 10, rot: 0 },  // centre 20
+    { id: 'c', x: 40, y: 0, w: 10, h: 10, rot: 0 },  // centre 45
+  ];
+  const d = distributeTiles(tiles, 'h'); // targets 5,25,45
+  assert.equal(d.find((r) => r.id === 'a').x, 0);   // first fixed
+  assert.equal(d.find((r) => r.id === 'c').x, 40);  // last fixed
+  assert.equal(d.find((r) => r.id === 'b').x, 20);  // centre 25 ⇒ x 20
+  // fewer than 3 tiles is a no-op
+  assert.deepEqual(distributeTiles(tiles.slice(0, 2), 'h').map((r) => r.x), [0, 15]);
+});
+// ---- ACC-4 support: overlapPairs + toRowCol -------------------------------------------------
+test('overlapPairs returns the actual tile objects, paired, for each real overlap', () => {
+  const a = { id: 'a', name: 'Police Station', x: 0, y: 0, w: 32, h: 32, rot: 0 };
+  const b = { id: 'b', name: 'Fire Station', x: 16, y: 16, w: 32, h: 32, rot: 0 };
+  const c = { id: 'c', name: 'Far Away', x: 200, y: 200, w: 8, h: 8, rot: 0 };
+  const pairs = overlapPairs([a, b, c]);
+  assert.equal(pairs.length, 1);
+  assert.deepEqual(new Set(pairs[0].map((t) => t.id)), new Set(['a', 'b']));
+  // anyOverlaps stays consistent with it (ids derived from the same pairs)
+  assert.deepEqual([...anyOverlaps([a, b, c])].sort(), ['a', 'b']);
+});
+test('overlapPairs respects the same layer/kind exclusions as anyOverlaps', () => {
+  const plate = { id: 'plate', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 0 };
+  const road = { id: 'road', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 1 };
+  assert.deepEqual(overlapPairs([plate, road]), []); // different layers never pair
+  const terrain = { id: 't', kind: 'terrain', x: 0, y: 0, w: 32, h: 32, rot: 0, layer: 2 };
+  const house = { id: 'h', x: 4, y: 4, w: 16, h: 16, rot: 0, layer: 2 };
+  assert.deepEqual(overlapPairs([terrain, house]), []); // terrain never pairs
+});
+test('toRowCol converts stud coords to a friendly 1-indexed row/column pair', () => {
+  assert.deepEqual(toRowCol(0, 0), { row: 1, col: 1 });
+  assert.deepEqual(toRowCol(8, 16), { row: 3, col: 2 });
+  assert.deepEqual(toRowCol(23, 40, 8), { row: 6, col: 3 }); // floors within the cell, not rounds
+});
+
+test('rotateGroup orbits tile centres about the group centre and advances rot', () => {
+  const tiles = [
+    { id: 'a', x: 0, y: 0, w: 32, h: 32, rot: 0 },
+    { id: 'b', x: 32, y: 0, w: 32, h: 32, rot: 0 },
+  ];
+  const r = rotateGroup(tiles, 90);
+  const a = r.find((t) => t.id === 'a'), b = r.find((t) => t.id === 'b');
+  assert.equal(a.rot, 90); assert.equal(b.rot, 90);
+  // a horizontal pair rotated 90° becomes a vertical pair (same x, 32 apart in y)
+  assert.equal(a.x, b.x);
+  assert.equal(Math.abs(b.y - a.y), 32);
+});
