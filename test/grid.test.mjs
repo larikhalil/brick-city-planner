@@ -322,3 +322,35 @@ test('createGrid: Kid Mode freezes existing tiles, keeps newly-added ones editab
   g.deleteSelected();
   assert.equal(g.getPlaced().length, 0, 'with Kid Mode off, the layout is editable again');
 });
+
+// ---- MOTION-4: a shaped (corner/L) set clips an INNER wrapper, so the rotate handle + rings survive
+test('createGrid: a shaped modular clips an inner .tile-shape wrapper, not the tile itself', async () => {
+  const { createGrid } = await import('../js/grid.js');
+  const board = makeBoard();
+  const g = createGrid(board);
+  const tileEl = (id) => board.querySelector(`.tile[data-id="${id}"]`);
+
+  // 10255 (Assembly Square) is in footprint-shapes.js OUTLINE_OVERRIDES, so it renders shaped.
+  g.addSet({ set_num: '10255-1', name: 'Assembly Square', category: 'modular', kind: 'building',
+    footprint: { w: 48, h: 48, source: 'curated' }, layer: 2, color: null, img: null });
+  const id = g.getPlaced()[0].id;
+  g.select(id);
+  const el = tileEl(id);
+
+  assert.ok(el.classList.contains('shaped'), 'the tile is flagged shaped');
+  const shape = el.querySelector('.tile-shape');
+  assert.ok(shape, 'an inner .tile-shape fill wrapper is created');
+  assert.ok(shape.style.clipPath && shape.style.clipPath.startsWith('polygon('),
+    'the clip-path lives on the wrapper');
+  assert.ok(!el.style.clipPath, 'the tile itself is NOT clipped (handle + rings stay visible)');
+  // The whole point of the fix: the rotate handle is a child of the UNCLIPPED tile, so it survives.
+  assert.ok(el.querySelector('.rotate-handle'), 'the rotate handle is present on the unclipped tile');
+
+  // A plain rectangular set gets no wrapper and no clip at all — the common path is untouched.
+  g.addSet({ set_num: '60321-1', name: 'Fire Brigade', category: 'city', kind: 'building',
+    footprint: { w: 16, h: 16, source: 'curated' }, layer: 2, color: null, img: null });
+  const plainId = g.getPlaced()[1].id;
+  const plain = tileEl(plainId);
+  assert.ok(!plain.classList.contains('shaped'), 'a rectangular set is not shaped');
+  assert.ok(!plain.querySelector('.tile-shape'), 'a rectangular set has no fill wrapper');
+});

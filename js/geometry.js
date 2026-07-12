@@ -173,6 +173,10 @@ export function overlapPairs(tiles) {
   for (let i = 0; i < tiles.length; i++) {
     for (let j = i + 1; j < tiles.length; j++) {
       const a = tiles[i], b = tiles[j];
+      // Terrain fills and sticky notes are landscaping/annotation, not physical footprints —
+      // they never warn (against each other or anything else). Custom MOC rectangles DO warn,
+      // like the buildings they stand in for (they sit on the same layer 2).
+      if (a.kind === 'terrain' || a.kind === 'note' || b.kind === 'terrain' || b.kind === 'note') continue;
       // Overlap warnings only fire within the same stacking layer (0 baseplate,
       // 1 road/track, 2 building). A building on a baseplate, or a car on a road,
       // is intended; two roads or two buildings overlapping still flag.

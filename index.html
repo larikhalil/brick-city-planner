@@ -114,6 +114,13 @@
             <button class="btn icon" id="btn-layers" title="Layers — show / hide &amp; lock" aria-label="Layers" aria-haspopup="true" aria-expanded="false">▧</button>
             <div class="layers-menu" id="layers-menu" role="menu" aria-label="Layers — show, hide and lock" hidden></div>
           </div>
+          <span class="tool-sep" aria-hidden="true"></span>
+          <div class="seg tools" id="tool-mode" role="group" aria-label="Canvas tool">
+            <button type="button" class="on" data-mode="select" aria-pressed="true" title="Select &amp; move" aria-label="Select and move tool">⬚</button>
+            <button type="button" data-mode="terrain" aria-pressed="false" title="Paint terrain / zoning" aria-label="Paint terrain tool">🖌</button>
+            <button type="button" data-mode="note" aria-pressed="false" title="Add a sticky note" aria-label="Add note tool">🗒</button>
+            <button type="button" data-mode="rect" aria-pressed="false" title="Draw a custom block (MOC)" aria-label="Draw custom block tool">▭</button>
+          </div>
           <div class="gsize" id="grid-size" title="Table size in baseplates — or drag the corner grip">
             <span class="lab">Table</span>
             <button class="gstep" data-gs="wdec" aria-label="Fewer baseplates wide">−</button>
@@ -128,6 +135,8 @@
           <div class="seg" id="zoom-ctrl" style="margin-left:auto">
             <button data-zoom="out">−</button><button class="on" data-zoom="reset">100%</button>
             <button data-zoom="in">＋</button><button data-zoom="fit">Fit</button></div>
+          <button class="btn icon" id="btn-png" type="button" title="Export as image (PNG)"
+            aria-label="Export as image" aria-haspopup="dialog" aria-expanded="false">🖼</button>
           <button class="btn icon" id="btn-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">?</button>
         </div>
         <div class="stage" id="grid-stage">
@@ -142,6 +151,7 @@
             <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
           </div>
         </div>
+        <div class="terrain-bar" id="terrain-bar" role="toolbar" aria-label="Terrain type" hidden></div>
         <div class="align-bar" id="align-bar" role="toolbar" aria-label="Align, distribute and group selection" hidden>
           <span class="ab-count" id="ab-count"></span>
           <span class="ab-sep" aria-hidden="true"></span>
@@ -194,6 +204,9 @@
           <div class="sc-row"><span>Drag on empty canvas</span><kbd>box-select</kbd></div>
           <div class="sc-row"><span>Shift/Ctrl-click a tile</span><kbd>add/remove selection</kbd></div>
           <div class="sc-row"><span>Ctrl + scroll over the canvas</span><kbd>zoom</kbd></div>
+          <div class="sc-row"><span>🖌 tool — drag to paint terrain, ⌫ to erase</span><kbd>terrain</kbd></div>
+          <div class="sc-row"><span>🗒 tool — click to drop a note · ▭ tool — drag a block</span><kbd>annotate</kbd></div>
+          <div class="sc-row"><span>Double-click a note or block to edit it</span><kbd>edit</kbd></div>
         </div>
         <div class="sc-group">
           <h3>Keyboard</h3>
@@ -223,6 +236,43 @@
       <div class="modal-body">
         <p class="note">Starts a fresh city from a curated layout — your current city is autosaved first, so nothing is lost.</p>
         <div class="tpl-grid" id="templates-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="png-backdrop" hidden>
+    <div class="modal" id="png-modal" role="dialog" aria-modal="true" aria-labelledby="png-title">
+      <div class="modal-h">
+        <h2 id="png-title">Export image (PNG)</h2>
+        <button class="modal-close" id="png-close" aria-label="Close export image">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="note">Renders your city to a crisp PNG straight from the plan — great for slides,
+          prints or sharing a picture.</p>
+        <div class="png-opt">
+          <span class="png-lbl">Resolution</span>
+          <div class="seg" id="png-scale" role="group" aria-label="Export resolution">
+            <button type="button" data-scale="1" aria-pressed="false">1×</button>
+            <button type="button" class="on" data-scale="2" aria-pressed="true">2×</button>
+            <button type="button" data-scale="4" aria-pressed="false">4×</button>
+          </div>
+        </div>
+        <label class="png-check"><input type="checkbox" id="png-clean">
+          <span>Clean background <small>— hides the drafting grid for a presentation look</small></span></label>
+        <label class="png-check"><input type="checkbox" id="png-card" checked>
+          <span>Title card with stats <small>— city name, sets, pieces, footprint</small></span></label>
+        <div class="png-opt" id="png-edge-row">
+          <span class="png-lbl">Card edge</span>
+          <div class="seg" id="png-edge" role="group" aria-label="Title card edge">
+            <button type="button" class="on" data-edge="bottom" aria-pressed="true">Bottom</button>
+            <button type="button" data-edge="right" aria-pressed="false">Right</button>
+          </div>
+        </div>
+        <p class="note" id="png-note"></p>
+        <div class="png-actions">
+          <button class="btn" id="png-cancel" type="button">Cancel</button>
+          <button class="btn primary" id="png-go" type="button">⬇ Download PNG</button>
+        </div>
       </div>
     </div>
   </div>

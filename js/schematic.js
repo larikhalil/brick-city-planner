@@ -4,67 +4,185 @@
 // Returns '' for kinds with no schematic (baseplate uses its flat colour; generic
 // sets fall back to the tinted box photo).
 
-const W = 'stroke="rgba(255,255,255,.5)" stroke-width="2" fill="none"'; // road edge line
-const Y = 'stroke="#f4c430" stroke-width="2.6" stroke-dasharray="9 7" fill="none"'; // lane dashes
-const RAIL = 'fill="none" stroke="#2b2b30" stroke-width="3"';
+// Road/track surface palette (theme-independent — these are painted-on materials, not UI chrome).
+const ROAD_A = '#565b62', ROAD_B = '#494d54', ROAD_C = '#3d4147'; // asphalt light→dark
+const WALK = '#c3c7cd';                                            // sidewalk light grey
+const CURB = 'stroke="rgba(255,255,255,.4)" stroke-width="1.5" fill="none"';                     // kerb highlight
+const LANE = 'stroke="#f4c430" stroke-width="3" stroke-dasharray="10 8" stroke-linecap="round" fill="none"'; // centre dashes
+const BAL_A = '#9ba0a6', BAL_B = '#878c92', BAL_C = '#73787e';     // track ballast light→dark
+const TIE = '#6d5a45', TIE_SH = 'rgba(0,0,0,.28)';                 // sleeper wood + its cast shadow
+const RAILDK = '#33333a', RAILHI = '#7c7c86';                      // steel rail + top highlight
+
+// A subtle light→dark grey gradient for asphalt / ballast fills, shading ACROSS the direction of
+// travel for a faint rounded-surface feel. Each call mints a fresh gradient id: schematic SVGs are
+// re-generated wholesale on every full render() and never mutated in place, so the id is unique in
+// the live DOM and two tiles never share (or fight over) one definition.
+let _uid = 0;
+function grad(axis, a, b, c) {
+  const id = 'g' + (_uid++);
+  const coords = axis === 'x' ? 'x1="0" y1="0" x2="100" y2="0"' : 'x1="0" y1="0" x2="0" y2="100"';
+  const def = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" ${coords}>` +
+    `<stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs>`;
+  return { id, def };
+}
+
+// ---- roads ------------------------------------------------------------------
+// Ports are unchanged from the old flat art: the roadway spans studs 8..92 across its width and
+// reaches both travel edges, with the centre lane always on the 50-line so dashes line up tile-to-tile.
+function roadStraight(wide) {
+  const g = grad(wide ? 'y' : 'x', ROAD_A, ROAD_B, ROAD_C);
+  if (wide) {
+    return g.def +
+      `<rect x="0" y="8" width="100" height="84" fill="url(#${g.id})"/>` +
+      `<rect x="0" y="0" width="100" height="8" fill="${WALK}"/><rect x="0" y="92" width="100" height="8" fill="${WALK}"/>` +
+      `<line x1="0" y1="8" x2="100" y2="8" ${CURB}/><line x1="0" y1="92" x2="100" y2="92" ${CURB}/>` +
+      `<line x1="0" y1="50" x2="100" y2="50" ${LANE}/>`;
+  }
+  return g.def +
+    `<rect x="8" y="0" width="84" height="100" fill="url(#${g.id})"/>` +
+    `<rect x="0" y="0" width="8" height="100" fill="${WALK}"/><rect x="92" y="0" width="8" height="100" fill="${WALK}"/>` +
+    `<line x1="8" y1="0" x2="8" y2="100" ${CURB}/><line x1="92" y1="0" x2="92" y2="100" ${CURB}/>` +
+    `<line x1="50" y1="0" x2="50" y2="100" ${LANE}/>`;
+}
+
+function roadCross() {
+  const g = grad('x', ROAD_A, ROAD_B, ROAD_C);
+  const corner = (x, y) => `<rect x="${x}" y="${y}" width="8" height="8" rx="2" fill="${WALK}"/>`;
+  return g.def +
+    `<rect x="0" y="0" width="100" height="100" fill="url(#${g.id})"/>` +
+    corner(0, 0) + corner(92, 0) + corner(0, 92) + corner(92, 92) +
+    `<path d="M8 0 L8 8 L0 8" ${CURB}/><path d="M92 0 L92 8 L100 8" ${CURB}/>` +
+    `<path d="M0 92 L8 92 L8 100" ${CURB}/><path d="M100 92 L92 92 L92 100" ${CURB}/>` +
+    `<line x1="0" y1="50" x2="100" y2="50" ${LANE}/><line x1="50" y1="0" x2="50" y2="100" ${LANE}/>`;
+}
+
+// T-junction: a full through road plus a same-width spur meeting the far edge at centre, so a road
+// tile butted against that edge connects cleanly (spur asphalt fills the same 8..92 band).
+function roadTee(wide) {
+  const g = grad(wide ? 'y' : 'x', ROAD_A, ROAD_B, ROAD_C);
+  if (wide) {
+    return g.def +
+      `<rect x="0" y="8" width="100" height="84" fill="url(#${g.id})"/>` +   // through (L↔R)
+      `<rect x="8" y="50" width="84" height="50" fill="url(#${g.id})"/>` +    // spur (↓)
+      `<rect x="0" y="0" width="100" height="8" fill="${WALK}"/>` +           // far sidewalk (full)
+      `<rect x="0" y="92" width="8" height="8" rx="2" fill="${WALK}"/><rect x="92" y="92" width="8" height="8" rx="2" fill="${WALK}"/>` +
+      `<line x1="0" y1="8" x2="100" y2="8" ${CURB}/>` +
+      `<line x1="0" y1="92" x2="8" y2="92" ${CURB}/><line x1="92" y1="92" x2="100" y2="92" ${CURB}/>` +
+      `<line x1="8" y1="92" x2="8" y2="100" ${CURB}/><line x1="92" y1="92" x2="92" y2="100" ${CURB}/>` +
+      `<line x1="0" y1="50" x2="100" y2="50" ${LANE}/><line x1="50" y1="50" x2="50" y2="100" ${LANE}/>`;
+  }
+  return g.def +
+    `<rect x="8" y="0" width="84" height="100" fill="url(#${g.id})"/>` +      // through (↕)
+    `<rect x="50" y="8" width="50" height="84" fill="url(#${g.id})"/>` +      // spur (→)
+    `<rect x="0" y="0" width="8" height="100" fill="${WALK}"/>` +
+    `<rect x="92" y="0" width="8" height="8" rx="2" fill="${WALK}"/><rect x="92" y="92" width="8" height="8" rx="2" fill="${WALK}"/>` +
+    `<line x1="8" y1="0" x2="8" y2="100" ${CURB}/>` +
+    `<line x1="92" y1="0" x2="92" y2="8" ${CURB}/><line x1="92" y1="92" x2="92" y2="100" ${CURB}/>` +
+    `<line x1="92" y1="8" x2="100" y2="8" ${CURB}/><line x1="92" y1="92" x2="100" y2="92" ${CURB}/>` +
+    `<line x1="50" y1="0" x2="50" y2="100" ${LANE}/><line x1="50" y1="50" x2="100" y2="50" ${LANE}/>`;
+}
+
+// Quarter-turn: an asphalt annulus (radii 8..92, centre lane on r=50) from the bottom edge to the
+// right edge — or mirrored to the left. Arc kerbs give the rounded corners for free.
+function roadCurve(left) {
+  const g = grad('x', ROAD_A, ROAD_B, ROAD_C);
+  if (left) {
+    return g.def +
+      `<path d="M100 100 A100 100 0 0 0 0 0 L0 8 A92 92 0 0 1 92 100 Z" fill="${WALK}"/>` +   // outer sidewalk
+      `<path d="M8 100 A8 8 0 0 0 0 92 L0 100 Z" fill="${WALK}"/>` +                           // inner sidewalk (corner)
+      `<path d="M92 100 A92 92 0 0 0 0 8 L0 92 A8 8 0 0 1 8 100 Z" fill="url(#${g.id})"/>` +    // asphalt
+      `<path d="M92 100 A92 92 0 0 0 0 8" ${CURB}/><path d="M8 100 A8 8 0 0 0 0 92" ${CURB}/>` +
+      `<path d="M50 100 A50 50 0 0 0 0 50" ${LANE}/>`;
+  }
+  return g.def +
+    `<path d="M0 100 A100 100 0 0 1 100 0 L100 8 A92 92 0 0 0 8 100 Z" fill="${WALK}"/>` +
+    `<path d="M92 100 A8 8 0 0 1 100 92 L100 100 Z" fill="${WALK}"/>` +
+    `<path d="M8 100 A92 92 0 0 1 100 8 L100 92 A8 8 0 0 0 92 100 Z" fill="url(#${g.id})"/>` +
+    `<path d="M8 100 A92 92 0 0 1 100 8" ${CURB}/><path d="M92 100 A8 8 0 0 1 100 92" ${CURB}/>` +
+    `<path d="M50 100 A50 50 0 0 1 100 50" ${LANE}/>`;
+}
 
 function road(name, wide) {
   const n = (name || '').toLowerCase();
-  if (/curve|curved/.test(n)) {
-    // quarter-turn road from the bottom edge to the right (or mirrored left) edge
-    return /left/.test(n)
-      ? `<path d="M68 100 A68 68 0 0 0 0 32" ${W}/><path d="M32 100 A32 32 0 0 0 0 68" ${W}/><path d="M50 100 A50 50 0 0 0 0 50" ${Y}/>`
-      : `<path d="M32 100 A68 68 0 0 1 100 32" ${W}/><path d="M68 100 A32 32 0 0 1 100 68" ${W}/><path d="M50 100 A50 50 0 0 1 100 50" ${Y}/>`;
+  if (/curve|curved/.test(n)) return roadCurve(/left/.test(n));
+  if (/cross/.test(n)) return roadCross();
+  if (/junction|t-|t &|and t/.test(n)) return roadTee(wide); // T = full one way + a spur
+  return roadStraight(wide);
+}
+
+// ---- tracks -----------------------------------------------------------------
+// Two steel rails on the original 33/63 lines (ports unchanged), each with a thin top highlight
+// for a bit of depth, over wood sleepers on a grey ballast bed.
+function rails(dir) {
+  if (dir === 'v') {
+    return `<rect x="33" y="0" width="4" height="100" fill="${RAILDK}"/><rect x="33" y="0" width="1.4" height="100" fill="${RAILHI}"/>` +
+      `<rect x="63" y="0" width="4" height="100" fill="${RAILDK}"/><rect x="63" y="0" width="1.4" height="100" fill="${RAILHI}"/>`;
   }
-  const cross = /cross/.test(n);
-  const tee = !cross && /junction|t-|t &|and t/.test(n); // T = full one way + a half spur
+  return `<rect x="0" y="33" width="100" height="4" fill="${RAILDK}"/><rect x="0" y="33" width="100" height="1.4" fill="${RAILHI}"/>` +
+    `<rect x="0" y="63" width="100" height="4" fill="${RAILDK}"/><rect x="0" y="63" width="100" height="1.4" fill="${RAILHI}"/>`;
+}
+function railArc(d) {
+  return `<path d="${d}" fill="none" stroke="${RAILDK}" stroke-width="4"/><path d="${d}" fill="none" stroke="${RAILHI}" stroke-width="1.4"/>`;
+}
+
+function trackStraight(wide) {
+  const g = grad(wide ? 'y' : 'x', BAL_A, BAL_B, BAL_C);
+  let ties = '';
   if (wide) {
-    let s = `<line x1="0" y1="9" x2="100" y2="9" ${W}/><line x1="0" y1="91" x2="100" y2="91" ${W}/><line x1="0" y1="50" x2="100" y2="50" ${Y}/>`;
-    if (cross) s += `<line x1="50" y1="0" x2="50" y2="100" ${Y}/>`;
-    else if (tee) s += `<line x1="50" y1="50" x2="50" y2="100" ${Y}/>`;
-    return s;
+    for (let x = 4; x < 100; x += 11) ties += `<rect x="${x}" y="12" width="6" height="76" rx="1" fill="${TIE}"/><rect x="${(x + 6).toFixed(0)}" y="12" width="1.5" height="76" fill="${TIE_SH}"/>`;
+    return g.def + `<rect x="0" y="6" width="100" height="88" fill="url(#${g.id})"/>` + ties + rails('h');
   }
-  let s = `<line x1="9" y1="0" x2="9" y2="100" ${W}/><line x1="91" y1="0" x2="91" y2="100" ${W}/><line x1="50" y1="0" x2="50" y2="100" ${Y}/>`;
-  if (cross) s += `<line x1="0" y1="50" x2="100" y2="50" ${Y}/>`;
-  else if (tee) s += `<line x1="50" y1="50" x2="100" y2="50" ${Y}/>`;
-  return s;
+  for (let y = 4; y < 100; y += 11) ties += `<rect x="12" y="${y}" width="76" height="6" rx="1" fill="${TIE}"/><rect x="12" y="${(y + 6).toFixed(0)}" width="76" height="1.5" fill="${TIE_SH}"/>`;
+  return g.def + `<rect x="6" y="0" width="88" height="100" fill="url(#${g.id})"/>` + ties + rails('v');
+}
+
+function trackCurve(left) {
+  const g = grad('x', BAL_A, BAL_B, BAL_C);
+  let ties = '';
+  for (const a of [188, 206, 224, 242, 260]) { // radial sleepers spanning the arc (centre at 100,100)
+    const r = (a * Math.PI) / 180;
+    let x1 = 100 + 30 * Math.cos(r), y1 = 100 + 30 * Math.sin(r);
+    let x2 = 100 + 70 * Math.cos(r), y2 = 100 + 70 * Math.sin(r);
+    if (left) { x1 = 100 - x1; x2 = 100 - x2; }
+    ties += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${TIE}" stroke-width="5"/>`;
+  }
+  const ballast = left
+    ? `<path d="M72 100 A72 72 0 0 0 0 28 L0 72 A28 28 0 0 1 28 100 Z" fill="url(#${g.id})"/>`
+    : `<path d="M28 100 A72 72 0 0 1 100 28 L100 72 A28 28 0 0 0 72 100 Z" fill="url(#${g.id})"/>`;
+  const rr = left
+    ? railArc('M62 100 A62 62 0 0 0 0 38') + railArc('M38 100 A38 38 0 0 0 0 62')
+    : railArc('M38 100 A62 62 0 0 1 100 38') + railArc('M62 100 A38 38 0 0 1 100 62');
+  return g.def + ballast + ties + rr;
+}
+
+function trackCross() {
+  const g = grad('x', BAL_A, BAL_B, BAL_C);
+  let ties = '';
+  for (const y of [8, 20, 80, 92]) ties += `<rect x="16" y="${y}" width="68" height="5" rx="1" fill="${TIE}"/>`;
+  for (const x of [8, 20, 80, 92]) ties += `<rect x="${x}" y="16" width="5" height="68" rx="1" fill="${TIE}"/>`;
+  return g.def + `<rect x="0" y="0" width="100" height="100" fill="url(#${g.id})"/>` + ties +
+    rails('v') + rails('h') +
+    `<rect x="43" y="43" width="14" height="14" transform="rotate(45 50 50)" fill="${RAILDK}"/>`; // crossing frog
+}
+
+function trackSwitch(name) {
+  const left = /left/.test(name);
+  const g = grad('x', BAL_A, BAL_B, BAL_C);
+  let ties = '';
+  for (let y = 5; y < 100; y += 11) ties += `<rect x="10" y="${y}" width="70" height="5" rx="1" fill="${TIE}"/>`;
+  const branchD = left ? 'M37 46 Q8 56 0 86' : 'M63 46 Q92 56 100 86';
+  return g.def + `<rect x="4" y="0" width="92" height="100" fill="url(#${g.id})"/>` + ties + rails('v') + railArc(branchD);
 }
 
 function track(name, wide) {
   const n = (name || '').toLowerCase();
-  if (/curve|curved/.test(n)) {
-    const left = /left/.test(n);
-    let ties = '';
-    for (const a of [195, 225, 255]) {
-      const r = (a * Math.PI) / 180;
-      let x1 = 100 + 38 * Math.cos(r), y1 = 100 + 38 * Math.sin(r);
-      let x2 = 100 + 62 * Math.cos(r), y2 = 100 + 62 * Math.sin(r);
-      if (left) { x1 = 100 - x1; x2 = 100 - x2; }
-      ties += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#4b4038" stroke-width="4"/>`;
-    }
-    return ties + (left
-      ? `<path d="M62 100 A62 62 0 0 0 0 38" ${RAIL}/><path d="M38 100 A38 38 0 0 0 0 62" ${RAIL}/>`
-      : `<path d="M38 100 A62 62 0 0 1 100 38" ${RAIL}/><path d="M62 100 A38 38 0 0 1 100 62" ${RAIL}/>`);
-  }
-  if (/cross|crossover|diamond/.test(n)) { // two tracks crossing
-    return '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' +
-      '<rect x="0" y="33" width="100" height="4" fill="#2b2b30"/><rect x="0" y="63" width="100" height="4" fill="#2b2b30"/>';
-  }
-  if (/switch|points/.test(n)) { // straight track with a diverging branch (left or right)
-    let ties = '';
-    for (let y = 6; y < 100; y += 12) ties += `<rect x="10" y="${y}" width="62" height="4" fill="#4b4038"/>`;
-    const branch = /left/.test(n) ? `<path d="M37 44 Q10 52 0 84" ${RAIL}/>` : `<path d="M63 44 Q90 52 100 84" ${RAIL}/>`;
-    return ties + '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>' + branch;
-  }
-  let s = '';
-  if (wide) {
-    for (let x = 5; x < 100; x += 11) s += `<rect x="${x}" y="12" width="4" height="76" fill="#4b4038"/>`;
-    return s + '<rect x="0" y="33" width="100" height="4" fill="#2b2b30"/><rect x="0" y="63" width="100" height="4" fill="#2b2b30"/>';
-  }
-  for (let y = 5; y < 100; y += 11) s += `<rect x="12" y="${y}" width="76" height="4" fill="#4b4038"/>`;
-  return s + '<rect x="33" y="0" width="4" height="100" fill="#2b2b30"/><rect x="63" y="0" width="4" height="100" fill="#2b2b30"/>';
+  if (/curve|curved/.test(n)) return trackCurve(/left/.test(n));
+  if (/cross|crossover|diamond/.test(n)) return trackCross();
+  if (/switch|points/.test(n)) return trackSwitch(n);
+  return trackStraight(wide);
 }
 
+// ---- buildings / parks / vehicles (unchanged flat schematics) ---------------
 function building() {
   return '<rect x="0" y="0" width="100" height="24" fill="rgba(0,0,0,.24)"/>' +
     '<g fill="rgba(255,255,255,.8)"><rect x="13" y="40" width="13" height="13"/><rect x="43" y="40" width="13" height="13"/>' +

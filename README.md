@@ -21,9 +21,11 @@ Built out across a research-driven 5-wave programme (see the roadmap above):
 - **Commerce & data** — real per-set prices with manual override, "I own this" owned-vs-buy budget split, direct buy links (LEGO / BrickLink / Amazon), BrickLink-compatible + CSV export, wishlist.
 - **Catalog & sharing** — search + category filters, grid/list view, favorites rail, starter-template gallery, named saves, one-click compressed share-link.
 - **Accessibility & UX** — full keyboard placement/rotation, colorblind-safe patterns, high-contrast focus, ARIA live announcements, mobile/touch gestures, dark mode, lock pieces + Kid Mode, per-layer show/hide + lock.
+- **Graphics & export** — photo-fill building tiles with facade cues, styled roads/tracks, terrain & zoning paint layer, sticky notes + custom MOC blocks, non-rectangular corner-modular footprints, and high-resolution PNG export with presentation mode.
 
 ## Changelog
 
+- **Wave 4/5 — Graphics & motion**: photo-fill tiles + facade cues, styled road/track art, terrain/zoning paint layer, sticky notes + custom MOC blocks, shaped corner-modular footprints, and hi-res PNG export + presentation mode.
 - **Wave 3/5 — Accessibility & UX**: keyboard pipeline, colorblind-safe patterns, focus/ARIA, mobile touch safety, dark mode, lock + Kid Mode, per-layer visibility/lock.
 - **Wave 2/5 — Commerce & data**: ownership, real prices, buy links, CSV, catalog browse UX, sharing, templates.
 - **Wave 1/5 — Core editing**: undo/redo, multi-select + groups, copy/paste, align/distribute, interaction polish.

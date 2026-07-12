@@ -12,6 +12,8 @@ import { bbox } from './geometry.js';
 import { resolvePrice, baseNum, bricklinkXml, setListCsv, buyLinks } from './pricing.js';
 import { pushRecent } from './lists.js';
 import { esc } from './util.js';
+import { TERRAIN_TYPES, isCitySet, isPhysical } from './objects.js';
+import { computeLayout, fitScale, drawScene } from './export-image.js';
 
 const $ = (id) => document.getElementById(id);
 let unitState = 'studs';
@@ -436,7 +438,9 @@ function drawSummary() {
   wireSummaryButtons();
 }
 function drawDims() {
-  const b = bbox(grid.getPlaced());
+  // Measure the same physical set the summary's 'Total footprint' does (sets + custom blocks, but
+  // NOT terrain paint or sticky notes) so the topbar readout and the summary can never diverge.
+  const b = bbox(grid.getPlaced().filter(isPhysical));
   $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'empty';
 }
 function refresh() { drawSummary(); drawDims(); drawGridSize(); updateFirstRun(); drawCityLabel(); }
@@ -493,6 +497,65 @@ function drawSelection(ids = []) {
   }
 }
 
+// ---- MOTION-3 / UI-5: canvas tools (terrain paint / notes / custom blocks) -------------------
+// Build the floating terrain-type palette once, straight from TERRAIN_TYPES (single source of
+// truth with the tile fills) plus an eraser. Clicking a swatch sets the active terrain paint.
+function buildTerrainBar() {
+  const bar = $('terrain-bar');
+  if (!bar) return;
+  const swatch = (key, label, color) =>
+    `<button class="tb-swatch" type="button" data-terrain="${esc(key)}" aria-pressed="false" title="${esc(label)}">` +
+    `<i style="background:${color}"></i>${esc(label)}</button>`;
+  bar.innerHTML = '<span class="tb-lbl">Terrain</span>' +
+    TERRAIN_TYPES.map((t) => swatch(t.key, t.label, t.color)).join('') +
+    '<span class="ab-sep" aria-hidden="true"></span>' +
+    '<button class="tb-swatch erase" type="button" data-terrain="erase" aria-pressed="false" title="Erase terrain">⌫ Erase</button>';
+  bar.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-terrain]'); if (!b) return;
+    grid.setTerrainType(b.dataset.terrain);
+  });
+}
+// Reflect the live tool mode + terrain paint on the toolbar: highlight the active tool button,
+// show the terrain palette only in terrain mode, and mark the chosen swatch.
+function drawToolMode(mode, terrainType) {
+  $('tool-mode')?.querySelectorAll('button').forEach((b) => {
+    const on = b.dataset.mode === mode;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
+  const bar = $('terrain-bar');
+  if (bar) {
+    bar.hidden = mode !== 'terrain';
+    bar.querySelectorAll('button[data-terrain]').forEach((b) => {
+      const on = b.dataset.terrain === terrainType;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+  }
+}
+// Prompt-based editor for a note's text or a custom block's label + dimensions (UI-5). Grid.js
+// calls this on creation and on double-click; we patch the tile back through grid.updateTile so
+// the change is a normal undoable/serializable step.
+function editObject(tile) {
+  if (tile.kind === 'note') {
+    const txt = prompt('Note text:', tile.text || '');
+    if (txt !== null) grid.updateTile(tile.id, { text: txt });
+    return;
+  }
+  if (tile.kind === 'custom') {
+    const label = prompt('Label for this block:', tile.name || 'MOC');
+    if (label === null) return;
+    const dims = prompt('Size in studs (width × height):', `${tile.w} × ${tile.h}`);
+    const patch = { name: label.trim() || 'MOC' };
+    if (dims !== null) {
+      const m = dims.match(/(\d+(?:\.\d+)?)\s*[×x*,\s]\s*(\d+(?:\.\d+)?)/);
+      if (m) { patch.w = Math.round(+m[1]); patch.h = Math.round(+m[2]); }
+      else if (dims.trim() !== '') { toast('Couldn’t read those dimensions — kept the old size.'); }
+    }
+    grid.updateTile(tile.id, patch);
+  }
+}
+
 function wireSummaryButtons() {
   const q = (id) => $('summary').querySelector(id);
   q('#btn-save')?.addEventListener('click', doSave);
@@ -507,6 +570,7 @@ function wireSummaryButtons() {
 function buildBuyRows() {
   const counts = new Map();
   for (const t of grid.getPlaced()) {
+    if (!isCitySet(t)) continue; // terrain / notes / custom blocks aren't purchasable sets
     const num = baseNum(t.set_num);
     if (owned.has(num)) continue; // already own it → not on the shopping list
     const e = counts.get(num) || { num, set_num: t.set_num, name: t.name, qty: 0 };
@@ -580,6 +644,120 @@ function doExport() {
   a.remove();
   URL.revokeObjectURL(a.href);
   toast('Exported city file.');
+}
+
+// ---- PLAN-4: high-resolution PNG export + presentation mode ------------------------------------
+// The scene is drawn from the placed[] model straight onto an offscreen <canvas> (never a DOM
+// screenshot) so it stays crisp at 1×/2×/4×. The layout maths AND the ctx-only drawing live in
+// export-image.js; this file just owns the <canvas>, image preloading, the dialog and the download.
+// The pngScale/pngClean/pngCard/pngEdge below are the dialog's state.
+let pngScale = 2, pngClean = false, pngCard = true, pngEdge = 'bottom';
+
+// Load every distinct thumbnail URL into a decoded <img> so the canvas can drawImage() the building
+// photos synchronously. A failed/aborted load is dropped (the tile falls back to a tinted box), so
+// one broken image never blocks the whole export.
+function preloadImages(urls) {
+  const uniq = [...new Set(urls.filter(Boolean))];
+  return Promise.all(uniq.map((u) => new Promise((res) => {
+    const im = new Image();
+    im.onload = () => res([u, im]);
+    im.onerror = () => res(null);
+    im.decoding = 'async'; im.src = u;
+  }))).then((pairs) => new Map(pairs.filter(Boolean)));
+}
+
+// Sets / pieces / footprint for the title card — same rules the summary uses (terrain + notes carry
+// no pieces and don't count toward the footprint).
+function exportStats(tiles) {
+  const sets = tiles.filter(isCitySet);
+  const pieces = sets.reduce((n, t) => n + (catalog.byNum.get(t.set_num)?.pieces || 0), 0);
+  const physical = tiles.filter(isPhysical);
+  const b = bbox(physical);
+  return { setCount: sets.length, pieces, w: Math.round(b.w), h: Math.round(b.h) };
+}
+
+// Render the whole city to a fresh canvas and return it. Only currently-visible layers are drawn
+// (a hidden layer is invisible on the board, so it's absent from the export too).
+async function renderCityCanvas({ scale, presentation, titleCard, cardEdge }) {
+  const drawn = grid.getPlaced().filter((t) => layerVis[t.layer ?? 2] !== false);
+  const tiles = drawn.length ? drawn : grid.getPlaced();
+  const box = bbox(tiles);
+  const opts = { titleCard, cardEdge };
+  const safeScale = fitScale(box, scale, opts);
+  const layout = computeLayout(box, { ...opts, scale: safeScale });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(layout.width));
+  canvas.height = Math.max(1, Math.round(layout.height));
+  const ctx = canvas.getContext('2d');
+
+  const imgs = await preloadImages(tiles.filter((t) => t.kind === 'building').map((t) => t.img));
+  drawScene(ctx, {
+    tiles, layout, box, imgs, presentation, titleCard,
+    stats: exportStats(tiles), name: cityName,
+  });
+  return { canvas, scale: safeScale, requested: scale };
+}
+
+async function doExportPng() {
+  if (!grid.getPlaced().length) { toast('Add some sets before exporting an image.'); return; }
+  toast('Rendering image…');
+  let out;
+  try { out = await renderCityCanvas({ scale: pngScale, presentation: pngClean, titleCard: pngCard, cardEdge: pngEdge }); }
+  catch (e) { console.warn('PNG export failed:', e.message); toast('Could not render the image.'); return; }
+  out.canvas.toBlob((blob) => {
+    if (!blob) { toast('Could not render the image.'); return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safeName()}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    toast(out.scale < out.requested
+      ? `Image exported at ${out.scale}× (clamped from ${out.requested}× to fit).`
+      : `Image exported at ${out.scale}×.`);
+  }, 'image/png');
+}
+
+// ---- PLAN-4: export-image dialog -----------------------------------------------------------
+// A small modal to pick resolution + the presentation / title-card options, with a live estimate of
+// the output pixel size (via the same fitScale/computeLayout the render uses).
+function syncPngDialog() {
+  $('png-scale')?.querySelectorAll('button').forEach((b) => {
+    const on = +b.dataset.scale === pngScale;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  });
+  $('png-edge')?.querySelectorAll('button').forEach((b) => {
+    const on = b.dataset.edge === pngEdge;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  });
+  const clean = $('png-clean'), card = $('png-card'), edgeRow = $('png-edge-row');
+  if (clean) clean.checked = pngClean;
+  if (card) card.checked = pngCard;
+  if (edgeRow) edgeRow.hidden = !pngCard;
+  const note = $('png-note');
+  if (note) {
+    // Mirror renderCityCanvas's fallback: when every visible layer is hidden the render measures
+    // ALL placed tiles, so the size estimate must too (else it shows a tiny box for a full export).
+    const vis = grid.getPlaced().filter((t) => layerVis[t.layer ?? 2] !== false);
+    const box = bbox(vis.length ? vis : grid.getPlaced());
+    const opts = { titleCard: pngCard, cardEdge: pngEdge };
+    const s = fitScale(box, pngScale, opts);
+    const l = computeLayout(box, { ...opts, scale: s });
+    note.textContent = grid.getPlaced().length
+      ? `Output ≈ ${Math.round(l.width)} × ${Math.round(l.height)} px${s < pngScale ? ` (clamped to ${s}× to stay printable)` : ''}.`
+      : 'Add some sets first — there is nothing to export yet.';
+  }
+}
+function openPngDialog() {
+  syncPngDialog();
+  $('png-backdrop').hidden = false;
+  $('btn-png')?.setAttribute('aria-expanded', 'true');
+  $('png-close')?.focus();
+}
+function closePngDialog() {
+  $('png-backdrop').hidden = true;
+  $('btn-png')?.setAttribute('aria-expanded', 'false');
+  $('btn-png')?.focus();
 }
 
 // ---- QOL-5/6: tiny keyboard focus trap shared by the templates + cities modals ---------------
@@ -825,10 +1003,13 @@ async function boot() {
     onHistory: drawHistory,
     onSelect: drawSelection,
     onAnnounce: announce,
+    onMode: drawToolMode,
+    onRequestEdit: editObject,
     // QOL-8/10 view + interaction prefs, restored from local/session storage.
     layerVis, layerLocks, kidMode,
   });
   applyKidMode(kidMode); // stamp the DOM attribute + button state (grid already has the flag)
+  buildTerrainBar();
 
   catalogUI = renderCatalog(
     { list: $('catalog-list'), search: $('catalog-search'), chips: $('catalog-chips'),
@@ -859,6 +1040,12 @@ async function boot() {
   $('btn-rotate').addEventListener('click', () => grid.rotateSelected());
   $('btn-forward').addEventListener('click', () => grid.bringForward());
   $('btn-back').addEventListener('click', () => grid.sendBackward());
+
+  // Canvas tool switcher: pointer / paint-terrain / add-note / draw-block (MOTION-3 / UI-5)
+  $('tool-mode').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-mode]'); if (!b) return;
+    grid.setMode(b.dataset.mode);
+  });
 
   // Undo / redo + history dropdown
   $('btn-undo').addEventListener('click', () => grid.undo());
@@ -917,9 +1104,11 @@ async function boot() {
     if (e.key === '?' || (e.shiftKey && e.key === '/')) { e.preventDefault(); toggleShortcuts(); }
     else if (e.key === 'Escape') {
       if (!$('shortcuts-backdrop').hidden) closeShortcuts();
+      else if (!$('png-backdrop').hidden) closePngDialog();
       else if (!$('templates-backdrop').hidden) closeTemplatesMenu();
       else if (!$('cities-backdrop').hidden) closeCitiesMenu();
       else if (!$('layers-menu').hidden) { closeLayersMenu(); $('btn-layers').focus(); }
+      else if (grid?.getMode?.() && grid.getMode() !== 'select') grid.setMode('select'); // leave a tool
     }
   });
 
@@ -941,6 +1130,24 @@ async function boot() {
   $('btn-share').addEventListener('click', doShare);
   $('shared-import').addEventListener('click', importSharedCity);
   $('shared-dismiss').addEventListener('click', dismissSharedBanner);
+
+  // PLAN-4: PNG export dialog
+  $('btn-png')?.addEventListener('click', openPngDialog);
+  $('png-close')?.addEventListener('click', closePngDialog);
+  $('png-cancel')?.addEventListener('click', closePngDialog);
+  $('png-backdrop')?.addEventListener('click', (e) => { if (e.target === $('png-backdrop')) closePngDialog(); });
+  $('png-modal')?.addEventListener('keydown', (e) => trapTabKey(e, $('png-modal')));
+  $('png-scale')?.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-scale]'); if (!b) return;
+    pngScale = +b.dataset.scale; syncPngDialog();
+  });
+  $('png-edge')?.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-edge]'); if (!b) return;
+    pngEdge = b.dataset.edge; syncPngDialog();
+  });
+  $('png-clean')?.addEventListener('change', (e) => { pngClean = e.target.checked; });
+  $('png-card')?.addEventListener('change', (e) => { pngCard = e.target.checked; syncPngDialog(); });
+  $('png-go')?.addEventListener('click', () => { closePngDialog(); doExportPng(); });
 
   // Drag a catalog item onto the grid to drop it there.
   const gstage = $('grid-stage');

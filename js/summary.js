@@ -3,6 +3,7 @@ import { fmtDims, fmtArea, studsToCm } from './units.js';
 import { catColor } from './catalog.js';
 import { esc } from './util.js';
 import { cityCost, baseNum } from './pricing.js';
+import { isCitySet, isPhysical } from './objects.js';
 
 // opts: { prices, owned, overrides, onToggleOwn, wishlist, onPromoteWishlist, onRemoveWishlist }
 // — all app/localStorage state, never part of the placed[]/undo model. Omitting them keeps the
@@ -14,22 +15,28 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
   } = opts;
   const ownedSet = owned instanceof Set ? owned : new Set(owned);
 
-  const box = bbox(placed);
-  const pieces = placed.reduce((n, t) => n + (byNum.get(t.set_num)?.pieces || 0), 0);
+  // Terrain fills, sticky notes and custom MOC blocks aren't catalog sets — they carry no price,
+  // piece count or category, so every purchasing/inventory figure below is computed over the real
+  // sets only. Footprint spans the physical objects (sets + custom blocks, but not paint/notes).
+  const sets = placed.filter(isCitySet);
+  const physical = placed.filter(isPhysical);
+
+  const box = bbox(physical);
+  const pieces = sets.reduce((n, t) => n + (byNum.get(t.set_num)?.pieces || 0), 0);
   const over = anyOverlaps(placed);
   const overlapCount = over.size ? Math.ceil(over.size / 2) : 0;
-  const approxCount = placed.filter((t) => t.approx).length;
+  const approxCount = sets.filter((t) => t.approx).length;
 
   // Per-set piece counts feed the cost estimate fallback for sets with no known price.
   const pieceMap = {};
-  for (const t of placed) pieceMap[baseNum(t.set_num)] = byNum.get(t.set_num)?.pieces || 0;
-  const cost = cityCost(placed, { prices, owned: ownedSet, overrides, pieces: pieceMap });
+  for (const t of sets) pieceMap[baseNum(t.set_num)] = byNum.get(t.set_num)?.pieces || 0;
+  const cost = cityCost(sets, { prices, owned: ownedSet, overrides, pieces: pieceMap });
   const money = (n) => '$' + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
   const counts = {};
-  for (const t of placed) counts[t.category] = (counts[t.category] || 0) + 1;
+  for (const t of sets) counts[t.category] = (counts[t.category] || 0) + 1;
   const cats = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  const total = placed.length || 1;
+  const total = sets.length || 1;
 
   // Unique sets, richest info first, for the owned/buy list. A friendly name comes from the
   // catalog when we have it (placed tiles carry only the raw name).
@@ -63,10 +70,10 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
         studsToCm(box.w)} × ${studsToCm(box.h)} cm · ${fmtArea(box.w, box.h, 'cm')}</span>
     </div>
     <div class="stat-row">
-      <div class="stat"><div class="k">Sets placed</div><div class="v">${placed.length}</div></div>
+      <div class="stat"><div class="k">Sets placed</div><div class="v">${sets.length}</div></div>
       <div class="stat"><div class="k">Total pieces</div><div class="v">${pieces.toLocaleString()}</div></div>
     </div>
-    ${placed.length ? `<div class="budget">
+    ${sets.length ? `<div class="budget">
       <div class="bud-row buy"><span class="k">Still to buy</span><span class="v">${money(cost.buyCost)}</span></div>
       <div class="bud-row own"><span class="k">Already own</span><span class="v">$0 <s>${money(cost.ownedCost)}</s></span></div>
       <div class="bud-note">${cost.estimatedBuyCount

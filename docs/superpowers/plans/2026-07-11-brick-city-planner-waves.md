@@ -57,6 +57,17 @@ Head-start: partial code in `docs/_recovered-session/motion-1-3-ui5-deferred-wor
   *(Large)*.
 - **PLAN-11** — track continuity / loop-closure validator + buffer stops.
 - **PLAN-12** — 3D / isometric + elevation preview toggle *(Large; keep 2D primary)*.
+- **PERF-1** — viewport culling + dirty-rect / per-layer caching (render only visible tiles, redraw
+  only the changed layer) for 300+-tile / large-baseplate cities.
+
+> **Reconciliation note (2026-07-12 audit).** The original intended grouping (recorded mid-build)
+> put MOTION-1/2/3 + UI-5 in Wave 3 and PERF-1/2/3 + PLAN-3/7/8 in Wave 4. Execution diverged: Wave 3
+> shipped **accessibility-only** (motion split into the deferred bundle), so the remaining work was
+> re-bucketed into Wave 4 = *all graphics/motion + export* and Wave 5 = *all planning depth + PERF-1*.
+> **PERF-2** (in-place pointermove updates) shipped pre-waves; **PERF-3** (pointer-anchored zoom +
+> pinch/pan) is effectively covered by the base pan/zoom + ACC-5 touch work — only optional kinetic/
+> inertial pan remains as a nicety. A full-tree audit confirms Waves 4+5 above cover every
+> not-yet-built idea except the two Skip items.
 
 ### Explicitly out of scope (research verdict: Skip)
 - **PLAN-13** — freeform/non-grid road placement (fights the grid-snap identity).

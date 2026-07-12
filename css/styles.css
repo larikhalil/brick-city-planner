@@ -314,6 +314,42 @@ button{font-family:inherit;cursor:pointer}
   display:flex;justify-content:space-between;align-items:flex-end;gap:6px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
 .tile.dark-txt{color:#1c1405}
 .tile.dark-txt .tn{text-shadow:none}.tile.dark-txt .tsub{text-shadow:none}
+/* MOTION-1: photo-fill building tiles. A dark scrim top & bottom (where the label sits) keeps the
+   text legible over any thumbnail, in both themes — so photo tiles always use light text, winning
+   over .dark-txt above by source order (equal specificity). */
+.tile.photo{color:#fff}
+.tile.photo .tn,.tile.photo .tsub{text-shadow:0 1px 3px rgba(0,0,0,.75)}
+.tile.photo .tlabel{background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 34%,transparent 64%,rgba(0,0,0,.55))}
+/* MOTION-1: front-edge "facade" cue — a bright bar on the building's FRONT edge (default = the
+   tile's bottom/"south" edge) with an outward chevron. It's tile content, never counter-rotated, so
+   rotating the whole tile turns the facade to face any street. */
+.facade{position:absolute;left:14%;right:14%;bottom:3px;height:5px;border-radius:3px;z-index:1;
+  background:var(--accent);box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.4);pointer-events:none}
+.facade::after{content:"";position:absolute;left:50%;top:-6px;margin-left:-5px;width:0;height:0;
+  border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--accent);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+/* MOTION-4: corner/L-shaped modulars clip to their real outline. The inline clip-path (from
+   footprint-shapes.js) lives on an inner .tile-shape wrapper — NEVER on .tile itself — because a
+   clip-path clips the element's whole painted subtree, which on .tile would cut away the rotate
+   handle (a child above the tile), the ACC-3 focus ring and the selection/overlap outlines (all
+   painted OUTSIDE the box). The wrapper carries the tile's fill (background, schematic, photo,
+   facade) plus the stud-dot/gloss texture, all clipped to the real footprint; the handle, rings and
+   label stay on the unclipped tile. Drop the rounded corners + border so the polygon edge reads
+   clean; the clip turns with the tile's rotate transform, and collision/overlap use the bounding box. */
+.tile.shaped{border-radius:0;border-color:transparent}
+.tile-shape{position:absolute;inset:0;overflow:hidden;z-index:0}
+.tile.shaped::before,.tile.shaped::after{content:none} /* dots + gloss move onto the clipped wrapper */
+.tile-shape::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.4) 1.5px,transparent 2px);
+  background-size:12px 12px;background-position:6px 6px;opacity:.35}
+.tile-shape::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(160deg,rgba(255,255,255,.22),transparent 45%)}
+/* ACC-2 hazard stripe still reads on a shaped overlapping tile — it moves onto the clipped wrapper
+   too (the tile's own ::before is suppressed above); the restored outline + ⚠ badge are its other
+   two non-colour signals. */
+.tile.warn .tile-shape::before{
+  background-image:repeating-linear-gradient(45deg, rgba(216,56,42,.9) 0 6px, rgba(255,255,255,.85) 6px 12px);
+  background-size:17px 17px; background-position:0 0; opacity:.5}
 .tile .rot{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:6px;z-index:2;
   background:rgba(0,0,0,.28);display:grid;place-items:center;font-size:11px;opacity:0;transition:opacity .12s}
 .tile:hover .rot{opacity:1}
@@ -370,6 +406,51 @@ button{font-family:inherit;cursor:pointer}
   100%{opacity:1;transform:scale(1) rotate(var(--rot))}
 }
 @media (prefers-reduced-motion:reduce){.tile{animation:none;transition:none}}
+
+/* ============ MOTION-3 / UI-5: canvas tools, terrain paint, notes & custom blocks ============ */
+/* Tool switcher (pointer / paint / note / block) — active tool gets the construction-yellow chip. */
+.seg.tools button{font-size:14px}
+.seg.tools button.on{background:var(--accent);color:var(--accent-ink)}
+/* Mode cursors on the board */
+.board.mode-terrain,.board.mode-rect{cursor:crosshair}
+.board.mode-note{cursor:copy}
+/* Rubber-band preview while painting terrain / drawing a block */
+.paint-preview{position:absolute;z-index:8;pointer-events:none;border-radius:3px;
+  border:1.5px dashed var(--accent-deep);background:rgba(255,207,51,.14)}
+.paint-preview.erase{border-color:var(--danger);background:rgba(216,56,42,.14)}
+.paint-preview.rect{border-color:var(--ink-soft);background:rgba(120,137,165,.14)}
+/* Floating terrain palette, top-left of the canvas while the 🖌 tool is active (mirrors .align-bar) */
+.terrain-bar{position:absolute;top:106px;left:14px;z-index:20;display:flex;align-items:center;gap:4px;
+  flex-wrap:wrap;max-width:calc(100% - 28px);background:var(--panel);border:1px solid var(--line-2);
+  border-radius:11px;padding:5px 7px;box-shadow:var(--shadow)}
+.terrain-bar[hidden]{display:none}
+.tb-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:0 4px}
+.tb-swatch{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line-2);background:var(--panel-2);
+  color:var(--ink-soft);font-size:11.5px;font-weight:600;padding:4px 8px;border-radius:8px;cursor:pointer}
+.tb-swatch i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.2);flex:none}
+.tb-swatch:hover{border-color:var(--plate);color:var(--ink)}
+.tb-swatch.on{border-color:var(--accent-deep);background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--accent-deep) inset}
+.tb-swatch.erase{color:var(--danger)}
+.tb-swatch.erase.on{border-color:var(--danger);box-shadow:0 0 0 1px var(--danger) inset}
+/* Terrain fill: a flat colour patch, painted below the baseplates. Pointer-transparent so it never
+   blocks selecting the pieces above it; no pop animation (a landscaped city has many patches). */
+.tile.terrain{pointer-events:none;box-shadow:none;border:0;border-radius:0;padding:0;animation:none;
+  opacity:.92}
+.tile.terrain::before{opacity:.18}
+.tile.terrain::after{display:none}
+/* Sticky note: a small paper label that floats above the plan. */
+.tile.note{background:#fff3b0;color:#3a2f05;border:1px solid rgba(0,0,0,.18);border-radius:4px;
+  box-shadow:0 3px 8px rgba(0,0,0,.28);padding:5px 7px;overflow:hidden}
+.tile.note::before,.tile.note::after{display:none}
+.note-text{position:absolute;inset:0;padding:5px 7px;font-size:11px;font-weight:600;line-height:1.25;
+  overflow:hidden;transform-origin:center;pointer-events:none;white-space:pre-wrap;word-break:break-word}
+/* Custom MOC-blocking rectangle: a translucent, dashed footprint placeholder. */
+.tile.custom{background:repeating-linear-gradient(45deg,rgba(120,137,165,.22),rgba(120,137,165,.22) 8px,
+  rgba(120,137,165,.10) 8px,rgba(120,137,165,.10) 16px);color:var(--ink);
+  border:1.5px dashed var(--ink-soft);box-shadow:none}
+.tile.custom::after{display:none}
+.tile.custom .tn{color:var(--ink);text-shadow:none;font-weight:700}
+.tile.custom .tsub{color:var(--ink-soft);text-shadow:none}
 
 /* ---- Summary ---- */
 .sum{padding:14px;display:flex;flex-direction:column;gap:14px}
@@ -523,6 +604,17 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   text-transform:uppercase;color:var(--accent-ink);background:var(--accent);padding:1px 6px;border-radius:999px}
 .cr-sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);margin-top:2px}
 .cr-actions{flex:none;display:flex;gap:5px}
+
+/* ============ PLAN-4: EXPORT IMAGE (PNG) DIALOG ============ */
+.png-opt{display:flex;align-items:center;gap:12px}
+.png-lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+  font-weight:700;min-width:82px}
+.png-check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--ink);cursor:pointer}
+.png-check input{margin-top:2px;width:16px;height:16px;accent-color:var(--accent-deep);flex:none}
+.png-check small{display:block;color:var(--ink-faint);font-size:11.5px;margin-top:1px}
+.png-actions{display:flex;gap:8px;margin-top:2px}
+.png-actions .btn{flex:1;justify-content:center}
+#png-note{margin:0}
 
 /* ============ TOAST ============ */
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);

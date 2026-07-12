@@ -5,6 +5,8 @@ import {
 } from './geometry.js';
 import { esc } from './util.js';
 import { schematicSVG } from './schematic.js';
+import { makeTerrain, makeNote, makeCustom, snapRect, rectsIntersect, CELL } from './objects.js';
+import { outlineClipPath } from './footprint-shapes.js';
 
 export const PX = 6; // pixels per stud
 const DARK_TXT = new Set(['modular', 'park']); // light tile bg → dark text
@@ -25,7 +27,7 @@ function prefersReducedMotion() {
 
 export function createGrid(board, {
   onChange = () => {}, onResize = () => {}, onHistory = () => {}, onSelect = () => {},
-  onAnnounce = () => {},
+  onAnnounce = () => {}, onMode = () => {}, onRequestEdit = () => {},
   // QOL-10 / QOL-8 view + interaction prefs — supplied by app.js from localStorage/sessionStorage,
   // kept OUTSIDE placed[]/undo. layerVis/layerLocks are keyed by stacking layer (0/1/2…).
   layerVis: initLayerVis = null, layerLocks: initLayerLocks = null, kidMode: initKidMode = false,
@@ -36,6 +38,12 @@ export function createGrid(board, {
   let seq = 1;
   let groupSeq = 1;
   let zoom = 1;
+  // UI-5 / MOTION-3 interaction mode: 'select' (default drag/select) | 'terrain' (paint area
+  // fills) | 'note' (drop a sticky label) | 'rect' (draw a custom footprint block). `terrainType`
+  // is the active terrain paint (a TERRAIN_TYPES key) or 'erase'. Both are pure UI state — never
+  // part of placed[]/undo — so they live here, not in the city model.
+  let mode = 'select';
+  let terrainType = 'grass';
   let gridW = DEFAULT_W, gridH = DEFAULT_H; // canvas size in studs (always whole baseplates)
   const stage = board.parentElement;
   // ACC-5 (touch): only one pointer may drive a board interaction at a time — a 2nd finger never
@@ -59,6 +67,9 @@ export function createGrid(board, {
   // are live prefs. Used to exclude locked/hidden/frozen tiles from every mutating action.
   const editable = (t) => isTileEditable(t, editOpts());
   const visible = (t) => isLayerVisible(t, layerVis);
+  // Terrain fills are paint, not pieces — they're never part of a normal selection (kept out of
+  // select-all, marquee and group/align). They're edited only through the terrain tool.
+  const isSelectable = (t) => t.kind !== 'terrain';
   const editableSelected = () => selectedTiles().filter(editable);
   // A tile placed while Kid Mode is on stays editable (the fresh pieces the kid is arranging).
   const noteNew = (t) => { if (kidMode) kidNewIds.add(t.id); };
@@ -258,23 +269,20 @@ export function createGrid(board, {
     }
     const over = anyOverlaps(placed);
     board.innerHTML = '';
-    // Paint order: baseplates always at the bottom; everything else by its z (user-adjustable).
-    const paintKey = (p) => (p.layer === 0 ? -1000 : (p.z ?? p.layer ?? 2));
+    // Paint order: terrain fills paint first (below the baseplates), baseplates next, then
+    // everything by its z (user-adjustable), and sticky notes always on top.
+    const paintKey = (p) => (
+      p.kind === 'terrain' ? -2000 :
+      p.kind === 'note' ? 9000 + (p.z ?? 3) :
+      p.layer === 0 ? -1000 : (p.z ?? p.layer ?? 2));
     const paintOrder = [...placed].sort((a, b) => paintKey(a) - paintKey(b));
     const single = selection.size === 1;
     for (const t of paintOrder) {
       // QOL-10: a hidden layer isn't painted at all (its tiles stay in placed[] — still saved,
       // still snap/overlap-computed — just invisible + non-interactive until shown again).
       if (!visible(t)) continue;
-      const layer = t.layer ?? 2;
-      const lightGround = /--g-(white|sand)/.test(t.color || '');
-      const isOver = over.has(t.id);
-      const notEditable = !editable(t); // locked tile, locked layer, or a Kid-Mode-frozen piece
+      const kind = t.kind || 'generic';
       const el = document.createElement('div');
-      el.className = 'tile' + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
-        (layer < 2 ? ' flat' : '') +
-        (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '') +
-        (t.locked ? ' locked' : '') + (notEditable ? ' noedit' : '');
       // Tile is sized to its own footprint and rotated about its centre.
       el.style.left = t.x * PX + 'px';
       el.style.top = t.y * PX + 'px';
@@ -282,30 +290,112 @@ export function createGrid(board, {
       el.style.height = t.h * PX + 'px';
       if (t.rot) el.style.transform = `rotate(${t.rot}deg)`;
       el.style.setProperty?.('--rot', (t.rot || 0) + 'deg'); // read by the pop-in keyframe (MOTION-6)
+      el.dataset.id = t.id;
+      // Labels counter-rotate so they stay upright on angled tiles.
+      const counter = t.rot ? ` style="transform:rotate(${-t.rot}deg)"` : '';
+
+      // ---- MOTION-3 / UI-5: non-catalog canvas objects render on their own paths ----
+      if (kind === 'terrain') {
+        // A flat colour fill — no label, no schematic, and pointer-transparent (CSS) so it never
+        // blocks selecting the pieces above it. Painted/erased via the terrain tool, never dragged.
+        el.className = 'tile terrain flat';
+        el.style.background = t.color || 'var(--g-green)';
+        board.appendChild(el);
+        continue;
+      }
+      const notEditable = !editable(t); // locked tile, locked layer, or a Kid-Mode-frozen piece
+      if (kind === 'note') {
+        el.className = 'tile note' + (selection.has(t.id) ? ' selected' : '') + (notEditable ? ' noedit' : '');
+        el.tabIndex = 0;
+        el.innerHTML = `<div class="note-text"${counter}>${esc(t.text || '')}</div>`;
+        if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', HANDLES);
+        board.appendChild(el);
+        continue;
+      }
+      if (kind === 'custom') {
+        // ACC-2: overlap is never colour-only — the red outline (.tile.warn) is joined by a
+        // hazard-stripe texture (CSS ::before) AND an explicit ⚠ badge naming the state in text.
+        const isOver = over.has(t.id);
+        el.className = 'tile custom' + (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '') + (notEditable ? ' noedit' : '');
+        el.tabIndex = 0;
+        el.dataset.cat = '';
+        if (t.color) el.style.background = t.color;
+        el.innerHTML = (isOver ? '<span class="ov-flag" aria-hidden="true" title="Overlap">⚠</span>' : '') +
+          `<div class="tlabel"${counter}>` +
+          `<div class="tn">${esc(t.name)}</div>` +
+          `<div class="tsub"><span>MOC</span><span>${t.w}×${t.h}</span></div></div>`;
+        if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', HANDLES);
+        board.appendChild(el);
+        continue;
+      }
+
+      // ---- normal catalog tiles ----
+      const layer = t.layer ?? 2;
+      const lightGround = /--g-(white|sand)/.test(t.color || '');
+      const isOver = over.has(t.id);
+      el.className = 'tile' + ((DARK_TXT.has(t.category) || lightGround) ? ' dark-txt' : '') +
+        (layer < 2 ? ' flat' : '') +
+        (isOver ? ' warn' : '') + (selection.has(t.id) ? ' selected' : '') +
+        (t.locked ? ' locked' : '') + (notEditable ? ' noedit' : '');
       // ACC-2c: colorblind-safe theme hook — CSS keys a texture overlay off [data-cat] when the
       // user has the colorblind-safe toggle on, so categories stay distinguishable without hue.
       el.dataset.cat = t.category || '';
-      el.style.background = t.color || catColor(t.category);
-      const schem = schematicSVG(t.kind || 'generic', { w: t.w, h: t.h }, t.name);
-      if (t.img && !schem) { // generic sets keep the tinted box photo
-        el.style.backgroundImage =
-          `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
-        el.style.backgroundSize = 'cover';
-        el.style.backgroundBlendMode = 'multiply';
+      // MOTION-4: a handful of known corner/L-shaped modulars clip to their real (non-rectangular)
+      // outline instead of the bounding-box rectangle, so corner buildings nestle at intersections.
+      // The clip MUST live on an inner `.tile-shape` fill wrapper, never on `.tile` itself: a
+      // clip-path on `.tile` would also cut away the rotate handle (a child positioned above the
+      // tile), the ACC-3 focus ring and the selection/overlap outlines (all painted OUTSIDE the box
+      // via outline/box-shadow, which clip-path clips too). So for a shaped set the background +
+      // schematic + photo + facade paint into the clipped wrapper, while the handle, rings and label
+      // stay on the unclipped tile. Every other set paints straight onto the tile, exactly as before.
+      // Purely visual — collision/overlap still use the bounding box (see footprint-shapes.js).
+      const clip = outlineClipPath(t.set_num);
+      const fill = clip ? document.createElement('div') : el; // element that carries background + art
+      if (clip) { fill.className = 'tile-shape'; fill.style.clipPath = clip; el.classList.add('shaped'); }
+      fill.style.background = t.color || catColor(t.category);
+      let schem = '';
+      if (kind === 'building' && t.img) {
+        // MOTION-1: buildings show the set's real thumbnail as the tile fill for a top-down feel,
+        // tinted just enough by the category colour that the label stays readable — no schematic art
+        // beneath it. A dark scrim under the label (.tile.photo CSS) keeps text legible on any photo.
+        el.classList.add('photo'); // label scrim/text colour live on the tile (the label isn't wrapped)
+        fill.style.backgroundImage =
+          `linear-gradient(${catColor(t.category)}80, ${catColor(t.category)}80), url("${t.img}")`;
+        fill.style.backgroundSize = 'cover';
+        fill.style.backgroundPosition = 'center';
+        fill.style.backgroundBlendMode = 'multiply';
+      } else {
+        schem = schematicSVG(kind, { w: t.w, h: t.h }, t.name);
+        if (t.img && !schem) { // generic sets keep the tinted box photo
+          fill.style.backgroundImage =
+            `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
+          fill.style.backgroundSize = 'cover';
+          fill.style.backgroundBlendMode = 'multiply';
+        }
       }
-      el.dataset.id = t.id;
+      // MOTION-1: a front-edge "facade" cue on buildings, defaulting to the tile's bottom edge. It
+      // lives in tile content (never counter-rotated like the label), so rotating the whole tile
+      // turns the facade — letting users aim each building's front at a street. Purely visual.
+      const facade = kind === 'building' ? '<div class="facade" aria-hidden="true"></div>' : '';
       el.tabIndex = 0;
-      // Labels counter-rotate so they stay upright on angled tiles.
-      const counter = t.rot ? ` style="transform:rotate(${-t.rot}deg)"` : '';
       // ACC-2: overlap is never colour-only — the red outline (.tile.warn CSS) is joined by a
       // hazard-stripe texture (CSS ::before) AND this explicit ⚠ badge naming the state in text.
       const warnBadge = isOver ? '<span class="ov-flag" aria-hidden="true" title="Overlap">⚠</span>' : '';
       // QOL-8: a lock badge names the frozen state in text/icon (only for a per-tile lock — a whole
       // locked LAYER is signalled in the Layers menu instead, to avoid badging every ground tile).
       const lockBadge = t.locked ? '<span class="lock-flag" aria-hidden="true" title="Locked">🔒</span>' : '';
-      el.innerHTML = schem + warnBadge + lockBadge + `<div class="tlabel"${counter}>` +
+      const labelHTML = `<div class="tlabel"${counter}>` +
         `<div class="tn">${esc(t.name)}${t.approx ? ' <span style="opacity:.8;font-weight:400">≈</span>' : ''}</div>` +
         `<div class="tsub"><span>${esc(t.set_num.replace(/-\d+$/, ''))}</span><span>${t.w}×${t.h}</span></div></div>`;
+      if (clip) {
+        // Shaped: the schematic + facade go INSIDE the clipped wrapper; badges + label stay on the
+        // unclipped tile so they're never cut. The wrapper sits below the label via its z-index.
+        fill.innerHTML = schem + facade;
+        el.innerHTML = warnBadge + lockBadge + labelHTML;
+        el.appendChild(fill);
+      } else {
+        el.innerHTML = schem + facade + warnBadge + lockBadge + labelHTML;
+      }
       // QOL-8/10: only an editable tile gets the free-rotate handle — a locked, layer-locked or
       // Kid-Mode-frozen tile must not expose the one gesture that would otherwise bypass the lock.
       if (single && t.id === selectedId && editable(t)) el.insertAdjacentHTML('beforeend', HANDLES);
@@ -328,6 +418,7 @@ export function createGrid(board, {
       if (!el) continue;
       const isOver = over.has(p.id);
       el.classList.toggle('warn', isOver);
+      if (p.kind === 'terrain' || p.kind === 'note') continue; // never warn, never get a badge
       const hasBadge = !!el.querySelector('.ov-flag');
       if (isOver && !hasBadge) el.insertAdjacentHTML('afterbegin', '<span class="ov-flag" aria-hidden="true" title="Overlap">⚠</span>');
       else if (!isOver && hasBadge) el.querySelectorAll('.ov-flag').forEach((b) => b.remove());
@@ -389,7 +480,7 @@ export function createGrid(board, {
   }
   // Select-all only reaches tiles you can actually see — hidden layers stay out of the selection.
   function selectAll() {
-    const vis = placed.filter(visible);
+    const vis = placed.filter((p) => visible(p) && isSelectable(p));
     selectIds(vis.map((p) => p.id), vis.length ? vis[vis.length - 1].id : null);
   }
   // Drop any now-hidden tiles from the selection (called when a layer is toggled off).
@@ -425,7 +516,7 @@ export function createGrid(board, {
     if (!el) return;
     el.style.transform = t.rot ? `rotate(${t.rot}deg)` : '';
     el.style.setProperty?.('--rot', (t.rot || 0) + 'deg');
-    const lab = el.querySelector('.tlabel');
+    const lab = el.querySelector('.tlabel') || el.querySelector('.note-text');
     if (lab) lab.style.transform = t.rot ? `rotate(${-t.rot}deg)` : '';
   }
 
@@ -597,6 +688,109 @@ export function createGrid(board, {
     refreshOverlaps(); updateSelBox(); growToFit(); finalize('Distribute');
   }
 
+  // ---- MOTION-3 / UI-5: interaction modes + non-catalog objects ---------------
+  function setMode(m) {
+    mode = (m === 'terrain' || m === 'note' || m === 'rect') ? m : 'select';
+    // classList.remove in the DOM mock only takes one arg — clear the classes individually.
+    board.classList?.remove('mode-terrain');
+    board.classList?.remove('mode-note');
+    board.classList?.remove('mode-rect');
+    if (mode !== 'select') { board.classList?.add('mode-' + mode); select(null); }
+    onMode(mode, terrainType);
+  }
+  function getMode() { return mode; }
+  function setTerrainType(t) { terrainType = t; onMode(mode, terrainType); }
+  function getTerrainType() { return terrainType; }
+
+  // Add one terrain fill of `type` over the (already snapped) rect; returns the new tile.
+  function paintTerrain(rect, type = terrainType) {
+    const t = makeTerrain({ id: 'p' + (seq++), x: rect.x, y: rect.y, w: rect.w, h: rect.h, type });
+    placed.push(t);
+    render(); growToFit(); finalize('Paint terrain');
+    return t;
+  }
+  // Remove every terrain fill whose box intersects `rect` (the eraser drag). Returns how many went.
+  function eraseTerrain(rect) {
+    const before = placed.length;
+    placed = placed.filter((p) => !(p.kind === 'terrain' && rectsIntersect(p, rect)));
+    const removed = before - placed.length;
+    if (removed) { render(); finalize('Erase terrain'); }
+    return removed;
+  }
+  // Drop a sticky note at (x,y); returns the new tile (selected, ready to edit).
+  function addNoteAt(x, y, text = 'Note') {
+    const t = makeNote({ id: 'p' + (seq++), x: Math.max(0, x), y: Math.max(0, y), text });
+    placed.push(t); noteNew(t); selectOnly(t.id); render(); growToFit(); finalize('Add note');
+    return t;
+  }
+  // Draw a custom footprint block over the (already snapped) rect; returns the new tile.
+  function addCustomRect(rect, label = 'MOC') {
+    const t = makeCustom({ id: 'p' + (seq++), x: rect.x, y: rect.y, w: rect.w, h: rect.h, label });
+    placed.push(t); noteNew(t); selectOnly(t.id); render(); growToFit(); finalize('Add block');
+    return t;
+  }
+  // Patch a note's text or a custom block's label/dimensions in place (an undoable edit).
+  function updateTile(id, patch = {}) {
+    const t = placed.find((p) => p.id === id);
+    if (!t) return null;
+    if (patch.text != null) t.text = String(patch.text);
+    if (patch.name != null) t.name = String(patch.name);
+    if (Number.isFinite(patch.w) && patch.w > 0) t.w = patch.w;
+    if (Number.isFinite(patch.h) && patch.h > 0) t.h = patch.h;
+    render(); growToFit(); finalize('Edit ' + (t.kind === 'note' ? 'note' : 'block'));
+    return t;
+  }
+
+  // Shared drag for the terrain brush and the custom-rectangle tool: rubber-band a preview, then
+  // on release paint / erase / create. A plain click (no drag) drops one default-sized object.
+  function startAreaDrag(ev, purpose) {
+    const origin = toStuds(ev.clientX, ev.clientY);
+    const erasing = purpose === 'terrain' && terrainType === 'erase';
+    const preview = document.createElement('div');
+    preview.className = 'paint-preview' + (erasing ? ' erase' : (purpose === 'rect' ? ' rect' : ''));
+    if (purpose === 'terrain' && !erasing) preview.style.background = makeTerrain({ type: terrainType }).color;
+    board.appendChild(preview);
+    let cur = origin, moved = false;
+    const step = purpose === 'terrain' ? CELL : 1;
+    const min = purpose === 'terrain' ? CELL : 4;
+    activePointerId = ev.pointerId;
+    try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
+    function draw() {
+      const r = snapRect(origin.x, origin.y, cur.x, cur.y, step, min);
+      preview.style.left = r.x * PX + 'px'; preview.style.top = r.y * PX + 'px';
+      preview.style.width = r.w * PX + 'px'; preview.style.height = r.h * PX + 'px';
+    }
+    draw();
+    function mv(e) {
+      if (e.pointerId !== ev.pointerId) return;
+      cur = toStuds(e.clientX, e.clientY);
+      if (Math.abs(cur.x - origin.x) > 1 || Math.abs(cur.y - origin.y) > 1) moved = true;
+      draw();
+    }
+    function up(e) {
+      if (e.pointerId !== ev.pointerId) return;
+      board.removeEventListener('pointermove', mv);
+      board.removeEventListener('pointerup', up);
+      board.removeEventListener('pointercancel', up);
+      activePointerId = null;
+      preview.remove();
+      if (purpose === 'terrain') {
+        const r = snapRect(origin.x, origin.y, cur.x, cur.y, CELL, CELL); // a click → one CELL cell
+        erasing ? eraseTerrain(r) : paintTerrain(r, terrainType);
+      } else { // custom rectangle — a click makes a default block
+        const r = moved ? snapRect(origin.x, origin.y, cur.x, cur.y, 1, 8)
+          : { x: Math.max(0, snap(origin.x)), y: Math.max(0, snap(origin.y)), w: 16, h: 16 };
+        const t = addCustomRect(r);
+        setMode('select');
+        if (t) onRequestEdit(t);
+      }
+    }
+    board.addEventListener('pointermove', mv);
+    board.addEventListener('pointerup', up);
+    board.addEventListener('pointercancel', up);
+    ev.preventDefault();
+  }
+
   // ---- QOL-8: per-tile lock (a model mutation → undoable + serialised) ---------------------------
   function setLocked(on) {
     const sel = selectedTiles();
@@ -700,7 +894,7 @@ export function createGrid(board, {
       rectEl.style.width = w * PX + 'px'; rectEl.style.height = h * PX + 'px';
       // Marquee only grabs tiles you can freely edit — locked, layer-locked, hidden and Kid-Mode-
       // frozen tiles are skipped so a rubber-band never sweeps up the scenery you're composing around.
-      const hits = tilesInRect(placed.filter(editable), { x, y, w, h });
+      const hits = tilesInRect(placed.filter((t) => editable(t) && isSelectable(t)), { x, y, w, h });
       selection = new Set(base);
       for (const id of hits) for (const m of groupMembers(id)) selection.add(m);
       selectedId = selection.size ? [...selection][selection.size - 1] : null;
@@ -792,6 +986,19 @@ export function createGrid(board, {
       ev.preventDefault();
       return;
     }
+    // MOTION-3 / UI-5 tool modes take over the empty-canvas gesture (grip + rotate-handle above
+    // still work in every mode). Terrain fills are pointer-transparent, so a press "on" one still
+    // starts a fresh paint stroke rather than grabbing the fill.
+    if (mode === 'terrain') { startAreaDrag(ev, 'terrain'); return; }
+    if (mode === 'rect') { startAreaDrag(ev, 'rect'); return; }
+    if (mode === 'note') {
+      const p = toStuds(ev.clientX, ev.clientY);
+      const t = addNoteAt(Math.max(0, snap(p.x)), Math.max(0, snap(p.y)));
+      setMode('select');
+      if (t) onRequestEdit(t);
+      ev.preventDefault();
+      return;
+    }
     const hit = ev.target.closest('.tile');
     if (!hit) { startMarquee(ev, ev.shiftKey || ev.ctrlKey || ev.metaKey); return; }
     const id = hit.dataset.id;
@@ -877,6 +1084,15 @@ export function createGrid(board, {
     }
   });
 
+  // UI-5: double-click a note or a custom block to edit it (text, or label + dimensions). The
+  // actual prompting is delegated to the host via onRequestEdit so grid.js stays DOM-only.
+  board.addEventListener('dblclick', (ev) => {
+    const hit = ev.target.closest?.('.tile');
+    if (!hit) return;
+    const t = placed.find((p) => p.id === hit.dataset.id);
+    if (t && (t.kind === 'note' || t.kind === 'custom')) { selectOnly(t.id); onRequestEdit(t); }
+  });
+
   // Editor-wide keyboard shortcuts (undo/redo/copy/paste/duplicate/group/select-all).
   // Ignored while typing in the catalog search or any input.
   window.addEventListener('keydown', (ev) => {
@@ -911,6 +1127,9 @@ export function createGrid(board, {
     copySelection, paste, duplicate,
     // align / distribute
     alignSelection, distributeSelection,
+    // MOTION-3 / UI-5: tool modes + non-catalog canvas objects
+    setMode, getMode, setTerrainType, getTerrainType,
+    paintTerrain, eraseTerrain, addNoteAt, addCustomRect, updateTile,
     // QOL-8: per-tile lock + Kid Mode
     lockSelected, unlockSelected, toggleLockSelected, lockAllExceptSelected, selectionLockState,
     setKidMode, getKidMode,
