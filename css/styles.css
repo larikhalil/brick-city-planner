@@ -394,6 +394,17 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .first-run{position:absolute;inset:0;z-index:15;display:flex;align-items:center;
   justify-content:center;background:var(--canvas);text-align:center;padding:24px}
 .first-run[hidden]{display:none}
+/* The empty canvas shows the faint baseplate stud grid (mirrors the .board grid) so it always reads
+   as a LEGO table rather than a blank void; the tips card paints above this. */
+.first-run::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.7;
+  background-image:
+    radial-gradient(circle,var(--grid-stud) 1px,transparent 1.4px),
+    linear-gradient(to right,var(--plate) 1px,transparent 1px),
+    linear-gradient(to bottom,var(--plate) 1px,transparent 1px),
+    linear-gradient(to right,var(--grid-fine) 1px,transparent 1px),
+    linear-gradient(to bottom,var(--grid-fine) 1px,transparent 1px);
+  background-size:6px 6px,192px 192px,192px 192px,6px 6px,6px 6px;
+  background-position:3px 3px,0 0,0 0,0 0,0 0}
 /* the tips live in a contained card so the dismiss ✕ clearly belongs to them (not floating loose) */
 .fr-card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;
   box-shadow:var(--shadow);padding:26px 30px;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:460px}
