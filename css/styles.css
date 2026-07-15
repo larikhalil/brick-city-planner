@@ -1,59 +1,86 @@
-/* ============ TOKENS ============ */
+/* ============ TOKENS ============
+   "Playful Studio" — a clean, spacious studio surface warmed with LEGO colour, a stud motif and
+   brick tactility. The variable *contract* is unchanged from the previous (blueprint) theme — every
+   name still exists and means the same thing — so all downstream rules retint automatically; only
+   the values changed, plus a few added tokens (--accent-hi, --faint, --brick-in, --s*, --stud-*). */
 :root{
-  /* cool drafting-paper neutrals, biased toward blueprint blue */
-  --bg:#e7ecf4; --panel:#ffffff; --panel-2:#f3f6fb; --sunk:#eef2f8;
-  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#5e6d84;  /* AA-checked ≥4.5:1 on panel/sunk */
-  --line:#d5ddeb; --line-2:#c2cddd; --plate:#9fb0cb;      /* baseplate rule */
-  --accent:#ffcf33;                                        /* construction yellow */
-  --accent-ink:#241905; --accent-deep:#e0a900;
-  --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;          /* warn darkened for AA text contrast */
+  /* light, cool-neutral studio surfaces */
+  --bg:#EBEEF3; --panel:#ffffff; --panel-2:#F5F7FB; --sunk:#EDF1F7;
+  --ink:#1B2330; --ink-soft:#5A6678; --ink-faint:#606C7E;  /* AA-checked ≥4.5:1 on panel/sunk */
+  --faint:#93A0B4;                                          /* decorative tertiary (not body text) */
+  --line:#E2E7EF; --line-2:#D4DBE6; --plate:#AAB6CA;        /* baseplate rule */
+  --accent:#FFCE1C; --accent-hi:#FFDD52;                    /* LEGO yellow + highlight for bevels */
+  --accent-ink:#33280A; --accent-deep:#E0A400;
+  --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;           /* warn darkened for AA text contrast */
   /* theme (set category) colours — semantic legend */
-  --t-police:#2f7fe0; --t-fire:#e8463a; --t-train:#1f9d76;
-  --t-city:#4d7194; --t-modular:#c9993c; --t-road:#7a869a;
-  --t-park:#7ba838; --t-space:#7b5bd6;
+  --t-police:#2F6BFF; --t-fire:#E8402C; --t-train:#2FA84F;
+  --t-city:#48566B; --t-modular:#C8862B; --t-road:#3A3F47;
+  --t-park:#6DA83A; --t-space:#7b5bd6;
   /* baseplate "ground" + road/track colours (theme-independent) */
-  --g-green:#7bab54; --g-blue:#4795cc; --g-gray:#949daa; --g-sand:#d6c288; --g-white:#e0e5ea;
-  --road:#5a616b; --track:#8a7d68;
-  --grid-fine:#dfe6f1; --grid-stud:#cbd6e6; --canvas:#f6f8fc;
-  --shadow:0 1px 2px rgba(15,26,43,.06),0 6px 18px rgba(15,26,43,.08);
+  --g-green:#54A048; --g-blue:#4795cc; --g-gray:#949daa; --g-sand:#d6c288; --g-white:#e0e5ea;
+  --road:#3A3F47; --track:#8a7d68;
+  --grid-fine:#DEE4EC; --grid-stud:#C6CFDD; --canvas:#EFF3F8;
+  --shadow:0 1px 2px rgba(20,30,50,.05),0 6px 18px rgba(20,30,50,.07);
+  /* brick tactility: top highlight + bottom shade, layered inside a control to read as a stud brick */
+  --brick-in:inset 0 1.5px 0 rgba(255,255,255,.6),inset 0 -2.5px 0 rgba(0,0,0,.13);
+  --stud-hi:rgba(255,255,255,.6); --stud-lo:rgba(0,0,0,.13);
+  /* spacing scale (new components; legacy rules keep their literals) */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
   --mono:ui-monospace,"Cascadia Code","SF Mono",Consolas,monospace;
   --sans:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
-  --disp:"Bahnschrift","Segoe UI Variable Display",var(--sans);
+  --disp:"Segoe UI Variable Display","Segoe UI",system-ui,var(--sans);
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --bg:#0b1220; --panel:#131f31; --panel-2:#0f1826; --sunk:#0d1522;
-    --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#7789a5;
-    --line:#243449; --line-2:#2c3f58; --plate:#3d5779;
-    --accent:#ffd23f; --accent-ink:#241905; --accent-deep:#ffbe1a;
+    --bg:#12161D; --panel:#1B2130; --panel-2:#161C28; --sunk:#131822;
+    --ink:#EAEEF6; --ink-soft:#A2AEC0; --ink-faint:#8794A8; --faint:#6C7789;
+    --line:#2A3242; --line-2:#333D4F; --plate:#455168;
+    --accent:#FFD23F; --accent-hi:#FFE070; --accent-ink:#2A2200; --accent-deep:#F0B000;
     --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
-    --t-police:#4a92ec; --t-fire:#ef5a4e; --t-train:#2fb98d;
-    --t-city:#6f92b6; --t-modular:#d8ab4e; --t-road:#8a97ab;
-    --t-park:#96c14e; --t-space:#9576e6;
-    --grid-fine:#1a2740; --grid-stud:#22314c; --canvas:#0e1826;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.35);
+    --t-police:#4A82F0; --t-fire:#EF5A4E; --t-train:#3BBE6A;
+    --t-city:#6C7E96; --t-modular:#D8A64E; --t-road:#8A97AB;
+    --t-park:#8FBE45; --t-space:#9576e6;
+    --grid-fine:#1C2637; --grid-stud:#26324A; --canvas:#141B27;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.4);
+    --brick-in:inset 0 1.5px 0 rgba(255,255,255,.14),inset 0 -2.5px 0 rgba(0,0,0,.3);
+    --stud-hi:rgba(255,255,255,.14); --stud-lo:rgba(0,0,0,.3);
   }
 }
 :root[data-theme="light"]{
-  --bg:#e7ecf4; --panel:#ffffff; --panel-2:#f3f6fb; --sunk:#eef2f8;
-  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#5e6d84;
-  --line:#d5ddeb; --line-2:#c2cddd; --plate:#9fb0cb;
-  --accent:#ffcf33; --accent-deep:#e0a900; --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;
-  --t-police:#2f7fe0; --t-fire:#e8463a; --t-train:#1f9d76; --t-city:#4d7194;
-  --t-modular:#c9993c; --t-road:#7a869a; --t-park:#7ba838; --t-space:#7b5bd6;
-  --grid-fine:#dfe6f1; --grid-stud:#cbd6e6; --canvas:#f6f8fc;
-  --shadow:0 1px 2px rgba(15,26,43,.06),0 6px 18px rgba(15,26,43,.08);
+  --bg:#EBEEF3; --panel:#ffffff; --panel-2:#F5F7FB; --sunk:#EDF1F7;
+  --ink:#1B2330; --ink-soft:#5A6678; --ink-faint:#606C7E; --faint:#93A0B4;
+  --line:#E2E7EF; --line-2:#D4DBE6; --plate:#AAB6CA;
+  --accent:#FFCE1C; --accent-hi:#FFDD52; --accent-deep:#E0A400; --accent-ink:#33280A;
+  --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;
+  --t-police:#2F6BFF; --t-fire:#E8402C; --t-train:#2FA84F; --t-city:#48566B;
+  --t-modular:#C8862B; --t-road:#3A3F47; --t-park:#6DA83A; --t-space:#7b5bd6;
+  --g-green:#54A048; --road:#3A3F47;
+  --grid-fine:#DEE4EC; --grid-stud:#C6CFDD; --canvas:#EFF3F8;
+  --shadow:0 1px 2px rgba(20,30,50,.05),0 6px 18px rgba(20,30,50,.07);
+  --brick-in:inset 0 1.5px 0 rgba(255,255,255,.6),inset 0 -2.5px 0 rgba(0,0,0,.13);
+  --stud-hi:rgba(255,255,255,.6); --stud-lo:rgba(0,0,0,.13);
 }
 :root[data-theme="dark"]{
-  --bg:#0b1220; --panel:#131f31; --panel-2:#0f1826; --sunk:#0d1522;
-  --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#7789a5;
-  --line:#243449; --line-2:#2c3f58; --plate:#3d5779;
-  --accent:#ffd23f; --accent-deep:#ffbe1a; --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
-  --t-police:#4a92ec; --t-fire:#ef5a4e; --t-train:#2fb98d; --t-city:#6f92b6;
-  --t-modular:#d8ab4e; --t-road:#8a97ab; --t-park:#96c14e; --t-space:#9576e6;
-  --grid-fine:#1a2740; --grid-stud:#22314c; --canvas:#0e1826;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.35);
+  --bg:#12161D; --panel:#1B2130; --panel-2:#161C28; --sunk:#131822;
+  --ink:#EAEEF6; --ink-soft:#A2AEC0; --ink-faint:#8794A8; --faint:#6C7789;
+  --line:#2A3242; --line-2:#333D4F; --plate:#455168;
+  --accent:#FFD23F; --accent-hi:#FFE070; --accent-deep:#F0B000; --accent-ink:#2A2200;
+  --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
+  --t-police:#4A82F0; --t-fire:#EF5A4E; --t-train:#3BBE6A; --t-city:#6C7E96;
+  --t-modular:#D8A64E; --t-road:#8A97AB; --t-park:#8FBE45; --t-space:#9576e6;
+  --g-green:#5DA84D; --road:#3A3F47;
+  --grid-fine:#1C2637; --grid-stud:#26324A; --canvas:#141B27;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.4);
+  --brick-in:inset 0 1.5px 0 rgba(255,255,255,.14),inset 0 -2.5px 0 rgba(0,0,0,.3);
+  --stud-hi:rgba(255,255,255,.14); --stud-lo:rgba(0,0,0,.3);
 }
+
+/* ============ STUD GLYPH (signature) + BRICK PRIMITIVE ============ */
+/* A tiny 2-stud glyph that precedes every small-caps section label — the motif that unifies the UI. */
+.stud{display:inline-block;width:13px;height:7px;vertical-align:middle;margin-right:7px;opacity:.75;
+  background:radial-gradient(circle at 3.5px 3.5px,currentColor 1.7px,transparent 2.1px),
+            radial-gradient(circle at 9.5px 3.5px,currentColor 1.7px,transparent 2.1px)}
+@media (pointer:coarse){.stud{margin-right:6px}}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
@@ -90,24 +117,49 @@ button{font-family:inherit;cursor:pointer}
 .save-status.saving .dot{background:var(--warn);animation:save-pulse 1s ease-in-out infinite}
 @keyframes save-pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.save-status.saving .dot{animation:none}}
+/* consistent inline-SVG icon (replaces the old emoji icon buttons) */
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
 .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);
-  background:var(--panel-2);color:var(--ink);padding:8px 12px;border-radius:9px;
-  font-size:13px;font-weight:600;transition:transform .08s,border-color .12s,background .12s}
-.btn:hover{transform:translateY(-1px);border-color:var(--plate)}
-.btn.primary{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
-.btn.icon{padding:8px 10px;font-size:15.5px;line-height:1}
+  background:var(--panel-2);color:var(--ink);padding:7px 12px;border-radius:8px;
+  font-size:12.5px;font-weight:700;white-space:nowrap;
+  transition:background .12s,border-color .12s,box-shadow .12s,filter .1s,transform .06s}
+.btn:hover{background:var(--panel);border-color:var(--line-2)}
+.btn svg.i{width:16px;height:16px;color:var(--ink-soft)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-soft)}
+.btn.ghost:hover{background:var(--sunk);color:var(--ink);border-color:transparent}
+.btn.ghost svg.i{color:var(--ink-faint)}
+/* SIGNATURE — the primary CTA is a 2-stud LEGO brick (top highlight + bottom shade bevel) */
+.btn.primary{color:var(--accent-ink);border-color:var(--accent-deep);
+  background:linear-gradient(180deg,var(--accent-hi),var(--accent));
+  box-shadow:var(--brick-in),0 1px 2px rgba(180,130,0,.26)}
+.btn.primary:hover{filter:brightness(1.03)}
+.btn.primary:active{transform:translateY(1px)}
+.btn.primary svg.i{color:var(--accent-ink)}
+.btn.icon{padding:0;width:34px;height:34px;justify-content:center;line-height:1}
+.btn.icon svg.i{color:var(--ink-soft)}
+.btn.icon:hover:not(:disabled) svg.i{color:var(--ink)}
 .btn.sm{padding:6px 10px;font-size:12px}
-.btn.icon.sm{padding:6px 8px;font-size:13px}
+.btn.icon.sm{width:30px;height:30px;padding:0}
+.btn.icon:disabled{opacity:.4;cursor:not-allowed}
 /* ---- Current-city label (QOL-5) ---- */
-.city-label{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--line-2);
-  background:transparent;color:var(--ink-soft);padding:6px 10px;border-radius:9px;font-size:12.5px;
-  font-weight:600;max-width:190px}
-.city-label:hover{border-color:var(--plate);color:var(--ink);border-style:solid}
+.city-label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);
+  background:var(--panel-2);color:var(--ink);padding:6px 11px;border-radius:999px;font-size:12.5px;
+  font-weight:700;max-width:210px}
+.city-label:hover{border-color:var(--plate);background:var(--panel)}
+.city-label svg.i{width:14px;height:14px;color:var(--t-police);flex:none}
 .city-label span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
-.seg button{border:0;background:var(--panel-2);color:var(--ink-soft);padding:8px 11px;font-weight:600}
-.seg button+button{border-left:1px solid var(--line-2)}
-.seg button.on{background:var(--sunk);color:var(--ink)}
+/* topbar zoning: a hairline divider + the grouped view-toggle cluster */
+.tb-div{width:1px;height:24px;background:var(--line-2);flex:none;align-self:center}
+.tb-cluster{display:inline-flex;align-items:center;gap:3px;background:var(--sunk);
+  border:1px solid var(--line-2);border-radius:10px;padding:3px}
+.tb-cluster .btn.icon{width:32px;height:30px;border:1px solid transparent;background:transparent}
+.tb-cluster .btn.icon:hover{background:var(--panel)}
+/* segmented control (units / zoom / tools) — padded pill with a raised "on" chip */
+.seg{display:inline-flex;background:var(--sunk);border:1px solid var(--line-2);border-radius:8px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--ink-soft);padding:5px 12px;font-weight:700;
+  font-size:12px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1),var(--brick-in)}
 
 /* ---- Shared-city read-only banner (QOL-5b) ---- */
 .shared-banner{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -120,10 +172,21 @@ button{font-family:inherit;cursor:pointer}
 /* ============ LAYOUT ============ */
 .grid3{display:grid;grid-template-columns:270px minmax(0,1fr) 258px;gap:14px;margin-top:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
-.card-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
-.card-h h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.card-h{display:flex;align-items:center;gap:8px;padding:13px 16px 12px;border-bottom:1px solid var(--line);position:relative}
+.card-h h2{font-size:14.5px;letter-spacing:-.01em;text-transform:none;color:var(--ink);font-weight:800}
+/* a short baseplate-coloured rule under each panel title ties the three panels into one system */
+#catalog-panel>.card-h::after,.canvas-wrap>.card-h::after,#summary-panel>.card-h::after{
+  content:"";position:absolute;left:16px;bottom:-1px;height:3px;width:34px;border-radius:2px}
+#catalog-panel>.card-h::after{background:var(--g-green)}
+.canvas-wrap>.card-h::after{background:var(--accent-deep)}
+#summary-panel>.card-h::after{background:var(--t-police)}
 .count-pill{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-faint);
   background:var(--sunk);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+/* Catalog count: a tidy two-line block in the panel header (never a wrapping pill) */
+#catalog-count{margin-left:auto;background:none;border:0;padding:0;border-radius:0;text-align:right;
+  line-height:1.25;font-family:var(--sans)}
+#catalog-count b{font-size:13px;font-weight:800;color:var(--ink)}
+#catalog-count small{display:block;font-size:10.5px;color:var(--faint);font-weight:600;white-space:nowrap}
 
 /* ---- Catalog ---- */
 .search{margin:12px 14px 8px;display:flex;align-items:center;gap:8px;background:var(--sunk);
@@ -163,29 +226,38 @@ button{font-family:inherit;cursor:pointer}
 /* 2a: retired badge — LEGO no longer sells the set new (tooltip carries the note) */
 .ret{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   color:var(--warn);border:1px solid currentColor;border-radius:999px;padding:1px 6px;line-height:1.3;flex:none}
-.add{flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);
-  background:var(--panel-2);color:var(--ink-soft);font-size:16px;font-weight:700;line-height:1}
-.set:hover .add{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+/* Add-to-grid is always a little yellow brick — the primary action on every catalog row */
+.add{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--accent-deep);
+  background:linear-gradient(180deg,var(--accent-hi),var(--accent));color:var(--accent-ink);
+  box-shadow:var(--brick-in);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.add svg.i{color:var(--accent-ink)}
+.set:hover .add{filter:brightness(1.04)}
 /* ---- PLAN-7: custom-baseplate action ---- */
 .cat-actions{padding:0 14px 8px}
 .cat-actions .btn{width:100%;justify-content:center}
 /* ---- Catalog sort + view toggle ---- */
-.cat-controls{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 14px 8px}
-.cat-controls .sort{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
-  text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint)}
-/* 2b: Legacy toggle — include retired sets (off by default) */
-.cat-controls .legacy{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
-  text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);cursor:pointer;user-select:none}
-.cat-controls .legacy input{width:14px;height:14px;accent-color:var(--accent-deep);cursor:pointer}
-.cat-controls select{font:inherit;font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink);
-  background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;padding:4px 6px;cursor:pointer}
+.cat-controls{display:flex;flex-direction:column;gap:8px;padding:0 14px 10px}
+.cc-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cat-controls .sort{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink)}
+.cat-controls .sort .sort-lab{color:var(--ink-soft);font-weight:600}
+.cat-controls select{font:inherit;font-size:12px;color:var(--ink);font-weight:700;
+  background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:5px 8px;cursor:pointer}
+/* 2b: Legacy toggle — its own line inside a tinted box with a description, never jammed against Sort */
+.cat-controls .legacy{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:10px;font-size:12px;font-weight:700;color:var(--ink);
+  cursor:pointer;user-select:none}
+.cat-controls .legacy input{width:16px;height:16px;accent-color:var(--t-police);cursor:pointer;flex:none}
+.cat-controls .legacy .legacy-tx{display:flex;flex-direction:column;line-height:1.2}
+.cat-controls .legacy .legacy-tx small{font-size:10px;color:var(--faint);font-weight:600}
 /* ---- UI-4: list/grid view toggle ---- */
 .view-toggle button{padding:5px 9px;font-size:13px;line-height:1}
 /* ---- Ownership + favorite + wishlist + price + buy links on a catalog row ---- */
 .set-actions{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.own,.fav,.wish{width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
-  color:var(--ink-faint);font-size:14px;line-height:1;cursor:pointer;padding:0}
-.own{font-size:15px}
+.own,.fav,.wish{width:30px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
+  color:var(--ink-soft);line-height:1;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.own svg.i,.fav svg.i,.wish svg.i,.add svg.i{width:16px;height:16px}
+/* pressed = the icon fills in with its state colour (gold star / red heart / green cart) */
+.own[aria-pressed="true"] svg.i,.fav[aria-pressed="true"] svg.i,.wish[aria-pressed="true"] svg.i{fill:currentColor}
 .own[aria-pressed="true"]{color:var(--accent-deep);border-color:var(--accent-deep);background:var(--panel)}
 .own:hover,.fav:hover,.wish:hover{border-color:var(--plate);color:var(--ink)}
 /* Three deliberately-different affordances so they never read as the same star:
@@ -236,8 +308,23 @@ button{font-family:inherit;cursor:pointer}
 
 /* ---- Canvas ---- */
 .canvas-wrap{padding:0;position:relative}
-.canvas-tools{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.canvas-tools{display:flex;align-items:stretch;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .tool-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
+/* Labeled toolbar "bays" — every control grouped under a small-caps + stud-glyph section label */
+.tgroup{display:flex;flex-direction:column;gap:5px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:11px;padding:6px 9px 7px}
+.tgroup>.slbl{display:flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-faint);padding-left:1px;white-space:nowrap}
+.tgroup .stud{width:11px;height:6px;margin-right:5px;opacity:.65}
+.tgroup .trow{display:flex;align-items:center;gap:3px}
+.tdiv{width:1px;align-self:stretch;background:var(--line-2);margin:2px 3px}
+/* icon buttons inside a bay: borderless tiles that fill in on hover */
+.tgroup .btn.icon{width:30px;height:30px;border:1px solid transparent;background:transparent;border-radius:7px}
+.tgroup .btn.icon:hover:not(:disabled){background:var(--panel);border-color:var(--line-2)}
+.tgroup .seg,.tgroup .gsize{align-self:flex-start}
+.tgroup .seg{background:var(--panel)}
+.seg.tools button{padding:5px 9px}
+.seg.tools button svg.i{width:17px;height:17px}
 /* undo / redo + history dropdown */
 .hist-group{position:relative;display:inline-flex;gap:8px}
 .btn.icon:disabled{opacity:.4;cursor:not-allowed;transform:none}
@@ -418,7 +505,13 @@ button{font-family:inherit;cursor:pointer}
 /* baseplates, roads & tracks are the ground: flat, no shadow, no hover-lift, stay beneath buildings */
 .tile.flat{box-shadow:none;border-color:rgba(0,0,0,.14)}
 .tile.flat:hover{transform:none;box-shadow:none;z-index:auto}
-.tile.flat .tn{font-weight:600;font-size:11px}
+/* Ground tiles carry a compact bottom-left NAME PILL rather than a big centred label, so a building
+   placed on top of a baseplate never collides with the plate's own name (fixes stacked-label mess). */
+.tile.flat .tlabel{inset:auto auto 5px 5px;padding:0;justify-content:flex-end;align-items:flex-start}
+.tile.flat .tn{font-weight:700;font-size:10px;background:rgba(0,0,0,.34);color:#fff;padding:2px 7px;
+  border-radius:6px;text-shadow:0 1px 1px rgba(0,0,0,.3);max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.tile.flat .tsub{display:none}
 /* schematic art fills the tile behind the label */
 .tile .schem{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform-origin:center}
 .swatch .schem{position:absolute;inset:0;width:100%;height:100%}
@@ -639,13 +732,14 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 #btn-iso.on{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
 
 /* ---- Table-size stepper (baseplates) ---- */
-.gsize{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+.gsize{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:11px;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:2px 5px}
 .gsize .lab{text-transform:uppercase;letter-spacing:.08em}
-.gstep{width:22px;height:24px;padding:0;border:1px solid var(--line-2);border-radius:6px;
-  background:var(--panel-2);color:var(--ink-soft);font-weight:700;font-size:15px;line-height:1;cursor:pointer}
-.gstep:hover{border-color:var(--plate);color:var(--ink);transform:translateY(-1px)}
-.gsize .v{min-width:14px;text-align:center;font-weight:700;color:var(--ink)}
-.gsize .x{opacity:.6}
+.gstep{width:24px;height:24px;padding:0;border:1px solid transparent;border-radius:6px;
+  background:transparent;color:var(--ink-soft);font-weight:700;font-size:15px;line-height:1;cursor:pointer}
+.gstep:hover{background:var(--sunk);color:var(--ink)}
+.gsize .v{min-width:14px;text-align:center;font-weight:800;color:var(--ink)}
+.gsize .x{opacity:.55}
 
 /* ============ WAVE 6: RESPONSIVE LAYOUT — TABLET (≤940px) & MOBILE (≤760px) ============
    Desktop (≥941px) is deliberately untouched: the 3-column .grid3, the wrapping toolbars and the
@@ -853,6 +947,22 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 .sc-row:last-child{border-bottom:0}
 .sc-row kbd{font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--sunk);
   border:1px solid var(--line-2);border-radius:5px;padding:2px 7px;white-space:nowrap}
+/* ---- Guide legend: a labeled key of every button (icon + name + what it does) ---- */
+.lg-group h3{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);
+  font-weight:700;margin:18px 0 8px;display:flex;align-items:center}
+.lg-group h3:first-child{margin-top:2px}
+.lg-group h3 .stud{opacity:.6}
+.lg-grid{display:flex;flex-direction:column;gap:2px}
+.lg-row{display:flex;align-items:flex-start;gap:11px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.lg-row:last-child{border-bottom:0}
+.lg-ico{flex:none;width:34px;height:34px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);
+  display:grid;place-items:center;color:var(--ink-soft)}
+.lg-ico svg.i{width:18px;height:18px}
+.lg-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lg-tx b{font-size:13px;font-weight:700;color:var(--ink)}
+.lg-tx span{font-size:12px;color:var(--ink-soft);line-height:1.4}
+.lg-tx kbd{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);background:var(--sunk);
+  border:1px solid var(--line-2);border-radius:4px;padding:1px 5px}
 
 /* ============ TEMPLATES GALLERY (QOL-6) ============ */
 .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
