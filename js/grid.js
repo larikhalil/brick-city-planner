@@ -475,9 +475,13 @@ export function createGrid(board, {
       const lockBadge = t.locked ? '<span class="lock-flag" aria-hidden="true" title="Locked">🔒</span>' : '';
       // Item 5a: no '≈' on the tile face any more — the estimated-footprint state stays visible in
       // the catalog card, the summary count and the Check-my-city panel.
+      // The sub-line's first span is the real LEGO set number (e.g. 60316). Synthetic catalog
+      // pieces — roads, tracks, baseplates, packs — carry a slug set_num like "piece-road-straight"
+      // that must never surface on the tile face; for those we show only the size.
+      const realSetNum = /^\d/.test(t.set_num) ? esc(t.set_num.replace(/-\d+$/, '')) : '';
       const labelHTML = `<div class="tlabel"${counter}>` +
         `<div class="tn">${esc(t.name)}</div>` +
-        `<div class="tsub"><span>${esc(t.set_num.replace(/-\d+$/, ''))}</span><span>${t.w}×${t.h}</span></div></div>`;
+        `<div class="tsub">${realSetNum ? `<span>${realSetNum}</span>` : ''}<span>${t.w}×${t.h}</span></div></div>`;
       if (clip) {
         // Shaped: the schematic + facade go INSIDE the clipped wrapper; badges + label stay on the
         // unclipped tile so they're never cut. The wrapper sits below the label via its z-index.
@@ -1215,11 +1219,12 @@ export function createGrid(board, {
     // can be unlocked from the toolbar) but never starts a drag.
     if (!editable(tile)) { ev.preventDefault(); return; }
 
-    // Alt-drag leaves the originals behind and drags fresh copies. Only the editable members of the
-    // selection actually move — locked tiles caught in the same selection stay put.
+    // Alt is reserved for ONE job while dragging: bypass magnetic snapping (see the `!e.altKey`
+    // guard in move() below and the 🧲 tooltip). It intentionally does NOT clone — hold-Alt to
+    // rest a piece on any stud must never spawn a copy. Duplicating is Ctrl+D, the ⧉ Duplicate
+    // button, or copy/paste. Only the editable members of the selection actually move — locked
+    // tiles caught in the same selection stay put.
     let group = editableSelected();
-    let altCopy = false;
-    if (ev.altKey) { group = spawnCopies(group, 0, 0); render(); altCopy = true; }
 
     const primary = placed.find((p) => p.id === selectedId) || group[0];
     const startX = ev.clientX, startY = ev.clientY;
@@ -1265,8 +1270,8 @@ export function createGrid(board, {
       activePointerId = null;
       for (const { t } of origins) tileEl(t.id)?.classList.remove('dragging');
       // A plain click that selected without dragging isn't a mutation — don't spend a history step.
-      if (dragMoved || altCopy) {
-        growToFit(); finalize(altCopy ? 'Alt-drag copy' : 'Move');
+      if (dragMoved) {
+        growToFit(); finalize('Move');
         if (mismatchNeighbour) warnRadiusMismatch(primary, mismatchNeighbour); // PLAN-10 hard-warn
       }
     }
