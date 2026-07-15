@@ -230,12 +230,15 @@ export function renderCatalog(els, sets, {
     const wished = !!isWishlisted(s.set_num);
     const el = document.createElement('div');
     el.className = 'set' + (owned ? ' owned' : '');
+    // Keep a trailing " — 48×48" size as one non-breaking unit so the title never wraps mid-phrase
+    // leaving a dangling em dash ("Baseplate —" / "48×48").
+    const nameHtml = esc(s.name).replace(/ — (.+)$/, ' <span class="nm-dim">— $1</span>');
     el.innerHTML = `
       <div class="swatch${s.img ? ' has-img' : ''}" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
         s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
           style="width:100%;height:100%;object-fit:contain"
           onerror="this.remove()">` : schematicSVG(s.kind, s.footprint, s.name)}</div>
-      <div class="set-meta"><div class="set-name" title="${esc(s.name)}${s.year ? ` (${s.year})` : ''}">${esc(s.name)}</div>
+      <div class="set-meta"><div class="set-name" title="${esc(s.name)}${s.year ? ` (${s.year})` : ''}">${nameHtml}</div>
         <div class="set-sub"><span class="set-num">${esc(s.num)}${s.year ? ` · ${s.year}` : ''}</span>
           ${s.retired ? '<span class="ret" title="Retired set — LEGO no longer sells it new; find it second-hand (BrickLink / Amazon)">Retired</span>' : ''}
           <span class="fp${approx ? ' approx' : ''}">${approx ? '≈ ' : ''}${s.footprint.w}×${s.footprint.h}</span>

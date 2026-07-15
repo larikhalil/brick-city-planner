@@ -90,7 +90,7 @@
       <section class="card" id="catalog-panel" aria-label="Set catalog">
         <div class="card-h"><h2>Catalog</h2><span class="count-pill" id="catalog-count"></span>
           <button class="sheet-close" data-sheet-close aria-label="Close catalog">✕</button></div>
-        <div class="search"><span>🔍</span>
+        <div class="search"><span class="search-i" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></span>
           <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
         <div class="chips" id="catalog-chips"></div>
         <div class="cat-actions">
@@ -217,13 +217,16 @@
         <div class="stage" id="grid-stage">
           <div class="board" id="grid-board"></div>
           <div class="first-run" id="first-run" hidden>
-            <button class="fr-close" id="fr-close" aria-label="Dismiss tips">✕</button>
-            <div class="fr-steps">
-              <div class="fr-step"><span class="fr-num">1</span>Search a set</div>
-              <div class="fr-step"><span class="fr-num">2</span>Drag it onto the grid</div>
-              <div class="fr-step"><span class="fr-num">3</span>Snap roads together</div>
+            <div class="fr-card">
+              <button class="fr-close" id="fr-close" aria-label="Dismiss tips">✕</button>
+              <div class="fr-title">Start your city</div>
+              <div class="fr-steps">
+                <div class="fr-step"><span class="fr-num">1</span>Search a set</div>
+                <div class="fr-step"><span class="fr-num">2</span>Drag it onto the grid</div>
+                <div class="fr-step"><span class="fr-num">3</span>Snap roads together</div>
+              </div>
+              <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
             </div>
-            <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
           </div>
         </div>
         <div class="iso-overlay" id="iso-overlay" role="region" aria-label="3D isometric preview" hidden>
@@ -275,9 +278,9 @@
   <div class="sheet-scrim" id="sheet-scrim"></div>
   <nav class="mobile-bar" aria-label="Panels">
     <button class="mb-btn" id="m-catalog" type="button" aria-haspopup="true" aria-expanded="false"
-      aria-controls="catalog-panel">🧱 Catalog</button>
+      aria-controls="catalog-panel"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="7" height="6" rx="1"/><rect x="13" y="5" width="7" height="6" rx="1"/><rect x="4" y="13" width="7" height="6" rx="1"/><rect x="13" y="13" width="7" height="6" rx="1"/></svg> Catalog</button>
     <button class="mb-btn" id="m-summary" type="button" aria-haspopup="true" aria-expanded="false"
-      aria-controls="summary-panel">📊 Summary</button>
+      aria-controls="summary-panel"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V4M16 20v-7M4 20h16"/></svg> Summary</button>
   </nav>
 
   <div id="toast" role="status" aria-live="polite"></div>

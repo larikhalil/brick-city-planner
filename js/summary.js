@@ -108,7 +108,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
     </div>
     ${sets.length ? `<div class="budget">
       <div class="bud-row buy"><span class="k">Still to buy</span><span class="v">${money(cost.buyCost)}</span></div>
-      <div class="bud-row own"><span class="k">Already own</span><span class="v">$0 <s>${money(cost.ownedCost)}</s></span></div>
+      <div class="bud-row own"><span class="k">Already own</span><span class="v">${cost.ownedCost > 0 ? `${money(0)} <s>${money(cost.ownedCost)}</s>` : money(0)}</span></div>
       <div class="bud-note">${cost.estimatedBuyCount
         ? `${cost.estimatedBuyCount} of the to-buy set${cost.estimatedBuyCount > 1 ? 's are' : ' is'} <b style="color:var(--warn)">estimated</b> (~$0.11/piece)`
         : `Real retail prices where known`}</div>

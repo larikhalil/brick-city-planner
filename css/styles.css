@@ -82,6 +82,13 @@
             radial-gradient(circle at 9.5px 3.5px,currentColor 1.7px,transparent 2.1px)}
 @media (pointer:coarse){.stud{margin-right:6px}}
 
+/* Asphalt + ballast surface greys (schematic.js resolves these in the road/track SVG gradients).
+   Light = the original materials; dark = darker so roads/tracks don't blow out on the dark canvas. */
+:root{--road-a:#565b62;--road-b:#494d54;--road-c:#3d4147;--bal-a:#9ba0a6;--bal-b:#878c92;--bal-c:#73787e}
+@media (prefers-color-scheme:dark){:root{--road-a:#3a3f47;--road-b:#31353c;--road-c:#282c32;--bal-a:#5b616a;--bal-b:#4e535b;--bal-c:#42474e}}
+:root[data-theme="light"]{--road-a:#565b62;--road-b:#494d54;--road-c:#3d4147;--bal-a:#9ba0a6;--bal-b:#878c92;--bal-c:#73787e}
+:root[data-theme="dark"]{--road-a:#3a3f47;--road-b:#31353c;--road-c:#282c32;--bal-a:#5b616a;--bal-b:#4e535b;--bal-c:#42474e}
+
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
      font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
@@ -192,6 +199,8 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .search{margin:12px 14px 8px;display:flex;align-items:center;gap:8px;background:var(--sunk);
   border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;color:var(--ink-faint)}
 .search input{border:0;background:transparent;color:var(--ink);width:100%;font-size:13px;outline:none}
+.search .search-i{display:inline-flex;color:var(--faint);flex:none}
+.search svg.i{width:16px;height:16px}
 /* Gentle nudge toward the search box during the first-run tip (UI-1) */
 .search.pulse{animation:search-pulse 1.7s ease-in-out infinite}
 @keyframes search-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,207,51,.45)}50%{box-shadow:0 0 0 5px rgba(255,207,51,0)}}
@@ -218,9 +227,12 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .set-name{font-weight:600;font-size:13.5px;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .set-sub{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-top:2px;
-  display:flex;gap:8px;align-items:center}
-.set-sub .set-num{color:var(--ink-faint)}
+  display:flex;gap:8px;align-items:center;min-width:0;overflow:hidden}
+.set-sub>*{flex:none}
+.set-sub .set-num{color:var(--ink-faint);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .set-sub .price{margin-left:auto}
+/* the trailing "— 48×48" size in a set title, kept together as one de-emphasised unit */
+.set-name .nm-dim{white-space:nowrap;color:var(--ink-soft);font-weight:600}
 .fp{color:var(--ink-soft)}
 .approx{color:var(--warn)}
 /* 2a: retired badge — LEGO no longer sells the set new (tooltip carries the note) */
@@ -246,7 +258,15 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .cat-controls .legacy{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--panel-2);
   border:1px solid var(--line);border-radius:10px;font-size:12px;font-weight:700;color:var(--ink);
   cursor:pointer;user-select:none}
-.cat-controls .legacy input{width:16px;height:16px;accent-color:var(--t-police);cursor:pointer;flex:none}
+/* Custom checkbox: hollow when OFF (native unchecked box rendered as a glaring white square in dark
+   mode and read as "on"), a blue tick when ON — unambiguous and theme-correct in both modes. */
+.cat-controls .legacy input{appearance:none;-webkit-appearance:none;width:18px;height:18px;flex:none;
+  border:1.5px solid var(--line-2);border-radius:5px;background:var(--panel);cursor:pointer;position:relative;
+  transition:background .12s,border-color .12s}
+.cat-controls .legacy input:checked{background:var(--t-police);border-color:var(--t-police)}
+.cat-controls .legacy input:checked::after{content:"";position:absolute;left:5.5px;top:2px;width:4px;height:8px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.cat-controls .legacy input:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
 .cat-controls .legacy .legacy-tx{display:flex;flex-direction:column;line-height:1.2}
 .cat-controls .legacy .legacy-tx small{font-size:10px;color:var(--faint);font-weight:600}
 /* ---- UI-4: list/grid view toggle ---- */
@@ -311,8 +331,8 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .canvas-tools{display:flex;align-items:stretch;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .tool-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
 /* Labeled toolbar "bays" — every control grouped under a small-caps + stud-glyph section label */
-.tgroup{display:flex;flex-direction:column;gap:5px;background:var(--panel-2);border:1px solid var(--line);
-  border-radius:11px;padding:6px 9px 7px}
+.tgroup{display:flex;flex-direction:column;justify-content:center;gap:4px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:11px;padding:5px 9px 6px}
 .tgroup>.slbl{display:flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.09em;
   text-transform:uppercase;color:var(--ink-faint);padding-left:1px;white-space:nowrap}
 .tgroup .stud{width:11px;height:6px;margin-right:5px;opacity:.65}
@@ -371,10 +391,14 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .canvas-tools .muted{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
 .stage{position:relative;overflow:auto;background:var(--canvas);border-radius:0 0 12px 12px}
 /* ---- First-run guided empty state (UI-1) ---- */
-.first-run{position:absolute;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:18px;background:var(--canvas);text-align:center;padding:24px}
+.first-run{position:absolute;inset:0;z-index:15;display:flex;align-items:center;
+  justify-content:center;background:var(--canvas);text-align:center;padding:24px}
 .first-run[hidden]{display:none}
-.fr-close{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
+/* the tips live in a contained card so the dismiss ✕ clearly belongs to them (not floating loose) */
+.fr-card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);padding:26px 30px;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:460px}
+.fr-title{font-size:16px;font-weight:800;color:var(--ink)}
+.fr-close{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;
   border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-soft);font-size:13px;display:grid;place-items:center}
 .fr-close:hover{color:var(--ink);border-color:var(--plate)}
 .fr-steps{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:420px}
@@ -427,7 +451,8 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
   background-size:12px 12px;background-position:6px 6px;opacity:.35}
 .tile::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(160deg,rgba(255,255,255,.22),transparent 45%)}
-.tile .tn{font-weight:700;font-size:12.5px;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.35);z-index:1;position:relative}
+.tile .tn{font-weight:700;font-size:12.5px;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.35);z-index:1;
+  position:relative;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tile .tsub{font-family:var(--mono);font-size:10.5px;opacity:.92;z-index:1;position:relative;
   display:flex;justify-content:space-between;align-items:flex-end;gap:6px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
 /* Item 5a: small tiles carry less writing so the art stays visible. .small (min side < 14 studs)
@@ -512,6 +537,10 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
   border-radius:6px;text-shadow:0 1px 1px rgba(0,0,0,.3);max-width:100%;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .tile.flat .tsub{display:none}
+/* Roads/tracks are matte asphalt/ballast — the white stud-dot texture + gloss made them read as a
+   washed-out light panel on the dark canvas. Nearly remove both here (baseplates keep their studs). */
+.tile[data-cat="road"]::before,.tile[data-cat="track"]::before{opacity:.1}
+.tile[data-cat="road"]::after,.tile[data-cat="track"]::after{background:linear-gradient(160deg,rgba(255,255,255,.06),transparent 40%)}
 /* schematic art fills the tile behind the label */
 .tile .schem{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform-origin:center}
 .swatch .schem{position:absolute;inset:0;width:100%;height:100%}
@@ -629,7 +658,8 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .budget{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:11px 12px;
   display:flex;flex-direction:column;gap:6px}
 .bud-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.bud-row .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.bud-row .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;white-space:nowrap}
+.bud-row .v{text-align:right}
 .bud-row .v{font-family:var(--mono);font-weight:600}
 .bud-row.buy .v{font-size:22px;color:var(--ink);line-height:1}
 .bud-row.own .v{font-size:13px;color:var(--ok)}
@@ -785,8 +815,8 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   .topbar{gap:10px;padding:10px 12px}
   .toolbar{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
     padding-bottom:2px;scrollbar-width:none;
-    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent);
-    mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent)}
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent)}
   .toolbar::-webkit-scrollbar{display:none}
   .toolbar>*{flex:none}
   .save-status{display:none}                   /* frees space; changes still autosave silently */
@@ -796,8 +826,8 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   .canvas-tools{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:7px;
     padding:8px 10px;scrollbar-width:none;
     /* fade the right edge so it's obvious the toolbar scrolls (no more "cut off" ambiguity) */
-    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);
-    mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 42px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 42px),transparent)}
   .canvas-tools::-webkit-scrollbar{display:none}
   .canvas-tools>*{flex:none}
   .canvas-tools .muted,#grid-dims,#canvas-size{display:none} /* drop the read-outs, keep every control */
@@ -855,6 +885,8 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
     border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);border-radius:11px;
     font-size:14px;font-weight:600}
   .mb-btn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+  .mb-btn svg.i{width:20px;height:20px;color:var(--ink-soft)}
+  .mb-btn[aria-expanded="true"] svg.i{color:var(--accent-ink)}
 
   /* roomier catalog rows on a phone */
   .set{padding:10px;gap:12px}
@@ -955,14 +987,16 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   display:flex;align-items:center;justify-content:center;padding:20px}
 .modal-backdrop[hidden]{display:none}
 .modal{background:var(--panel);border:1px solid var(--line-2);border-radius:14px;box-shadow:var(--shadow);
-  max-width:520px;width:100%;max-height:85vh;overflow:auto}
+  max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
 .modal-h{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:14px 16px;border-bottom:1px solid var(--line)}
 .modal-h h2{font-size:14px;font-weight:700}
 .modal-close{width:30px;height:30px;flex:none;border-radius:8px;border:1px solid var(--line-2);
   background:var(--panel-2);color:var(--ink-soft);font-size:14px}
 .modal-close:hover{color:var(--ink);border-color:var(--plate)}
-.modal-body{padding:6px 16px 16px;display:flex;flex-direction:column;gap:16px}
+.modal-body{padding:6px 16px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;min-height:0}
+.modal-body::-webkit-scrollbar{width:10px}
+.modal-body::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:10px;border:2px solid var(--panel)}
 .sc-group h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
   font-weight:700;margin:14px 0 6px}
 .sc-row{display:flex;align-items:center;justify-content:space-between;gap:14px;
@@ -1029,9 +1063,10 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 .shop-fmt.on{background:var(--sunk);border-color:var(--plate)}
 
 /* ============ TOAST ============ */
+/* A fixed dark chip in BOTH themes — using var(--ink) made it a glaring white pill in dark mode. */
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
-  background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:10px;
-  font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  background:#232c3b;color:#f4f7fb;border:1px solid rgba(255,255,255,.08);padding:10px 16px;border-radius:10px;
+  font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.2s;z-index:50}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ============ ACC-4: visually-subtle live-region announcer ============
