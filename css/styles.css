@@ -68,7 +68,7 @@
   --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
   --t-police:#4A82F0; --t-fire:#EF5A4E; --t-train:#3BBE6A; --t-city:#6C7E96;
   --t-modular:#D8A64E; --t-road:#8A97AB; --t-park:#8FBE45; --t-space:#9576e6;
-  --g-green:#5DA84D; --road:#3A3F47;
+  --g-green:#4A9243; --road:#2f343d;
   --grid-fine:#1C2637; --grid-stud:#26324A; --canvas:#141B27;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.4);
   --brick-in:inset 0 1.5px 0 rgba(255,255,255,.14),inset 0 -2.5px 0 rgba(0,0,0,.3);
@@ -85,9 +85,9 @@
 /* Asphalt + ballast surface greys (schematic.js resolves these in the road/track SVG gradients).
    Light = the original materials; dark = darker so roads/tracks don't blow out on the dark canvas. */
 :root{--road-a:#565b62;--road-b:#494d54;--road-c:#3d4147;--bal-a:#9ba0a6;--bal-b:#878c92;--bal-c:#73787e}
-@media (prefers-color-scheme:dark){:root{--road-a:#3a3f47;--road-b:#31353c;--road-c:#282c32;--bal-a:#5b616a;--bal-b:#4e535b;--bal-c:#42474e}}
+@media (prefers-color-scheme:dark){:root{--road-a:#2f343d;--road-b:#292d35;--road-c:#23272e;--bal-a:#4a4f57;--bal-b:#41454c;--bal-c:#383c42}}
 :root[data-theme="light"]{--road-a:#565b62;--road-b:#494d54;--road-c:#3d4147;--bal-a:#9ba0a6;--bal-b:#878c92;--bal-c:#73787e}
-:root[data-theme="dark"]{--road-a:#3a3f47;--road-b:#31353c;--road-c:#282c32;--bal-a:#5b616a;--bal-b:#4e535b;--bal-c:#42474e}
+:root[data-theme="dark"]{--road-a:#2f343d;--road-b:#292d35;--road-c:#23272e;--bal-a:#4a4f57;--bal-b:#41454c;--bal-c:#383c42}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
@@ -336,7 +336,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .tgroup>.slbl{display:flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.09em;
   text-transform:uppercase;color:var(--ink-faint);padding-left:1px;white-space:nowrap}
 .tgroup .stud{width:11px;height:6px;margin-right:5px;opacity:.65}
-.tgroup .trow{display:flex;align-items:center;gap:3px}
+.tgroup .trow{display:flex;align-items:center;justify-content:center;gap:3px}
 .tdiv{width:1px;align-self:stretch;background:var(--line-2);margin:2px 3px}
 /* icon buttons inside a bay: borderless tiles that fill in on hover */
 .tgroup .btn.icon{width:30px;height:30px;border:1px solid transparent;background:transparent;border-radius:7px}
@@ -539,8 +539,8 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .tile.flat .tsub{display:none}
 /* Roads/tracks are matte asphalt/ballast — the white stud-dot texture + gloss made them read as a
    washed-out light panel on the dark canvas. Nearly remove both here (baseplates keep their studs). */
-.tile[data-cat="road"]::before,.tile[data-cat="track"]::before{opacity:.1}
-.tile[data-cat="road"]::after,.tile[data-cat="track"]::after{background:linear-gradient(160deg,rgba(255,255,255,.06),transparent 40%)}
+.tile[data-cat="road"]::before,.tile[data-cat="track"]::before{opacity:.08}
+.tile[data-cat="road"]::after,.tile[data-cat="track"]::after{background:none}
 /* schematic art fills the tile behind the label */
 .tile .schem{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform-origin:center}
 .swatch .schem{position:absolute;inset:0;width:100%;height:100%}
@@ -660,6 +660,10 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .bud-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 .bud-row .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;white-space:nowrap}
 .bud-row .v{text-align:right}
+/* `.bud-row.own` shares the class name "own" with the catalog/summary ownership BUTTON, so the
+   button chrome (.own{border;width;min-width:40px on touch}) was turning this text row into a
+   bordered 40px box on mobile. Reset that chrome — this row is text, not a control. */
+.bud-row.own{border:0;background:none;width:auto;height:auto;min-width:0;min-height:0;padding:0}
 .bud-row .v{font-family:var(--mono);font-weight:600}
 .bud-row.buy .v{font-size:22px;color:var(--ink);line-height:1}
 .bud-row.own .v{font-size:13px;color:var(--ok)}

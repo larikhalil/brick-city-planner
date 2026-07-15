@@ -535,7 +535,7 @@ function drawDims() {
   // Measure the same physical set the summary's 'Total footprint' does (sets + custom blocks, but
   // NOT terrain paint or sticky notes) so the topbar readout and the summary can never diverge.
   const b = bbox(grid.getPlaced().filter(isPhysical));
-  $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'empty';
+  $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'No sets yet';
 }
 function refresh() { drawSummary(); drawDims(); drawGridSize(); updateFirstRun(); drawCityLabel(); updateCheckButton(); }
 
