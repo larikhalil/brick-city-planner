@@ -27,6 +27,21 @@ Built out across a research-driven 5-wave programme (see the roadmap above):
 
 ## Changelog
 
+- **Overhaul follow-up — feedback round 2 (2026-07-15)** — user-caught issues a screenshot-only
+  review had missed, now fixed by driving the real site:
+  - Catalog filter chips were `<span>`s (text/I-beam cursor, selectable) → now real `<button>`s
+    (pointer cursor, keyboard-operable); buttons are globally non-selectable.
+  - Summary "Sets & ownership" / wishlist: the **Retired** badge sat inside the ellipsis name span and
+    got chopped → moved outside as a compact non-shrinking badge; names ellipsise with a full-name tooltip.
+  - Catalog cards: buy links overflowed under the action buttons → row restructured so the actions sit
+    under the name/sub/buys at full width.
+  - New: **collapsible catalog & summary panels** (a ‹/› in each header collapses to a thin labeled rail
+    so the city grid widens); the empty canvas shows the faint stud grid; mobile toggle cluster made
+    borderless (never looks cut at the scroll edge); toolbar width capped so the collapsed layout doesn't
+    strand a group; the "Recent" strip gets a right-edge scroll fade.
+  - New tooling: `tools/qa/interaction-audit.mjs` drives the site with a realistic long-named/retired
+    stress city and programmatically flags wrong cursors, text-selectable buttons, clipped badges and
+    overflow — the class of bug static screenshots can't reveal. Reviewed again by the multi-agent QA loop.
 - **UI/UX overhaul — "Playful Studio" (2026-07-15)** — a full visual + UX pass driven by user
   feedback (see [`docs/superpowers/specs/2026-07-15-ui-overhaul-design.md`](docs/superpowers/specs/2026-07-15-ui-overhaul-design.md)):
   - *Bug fixes* — holding **Alt** while dragging now only bypasses snapping (it no longer clones the

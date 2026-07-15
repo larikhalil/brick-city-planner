@@ -324,7 +324,11 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .rail[hidden]{display:none}
 .rail-sec{display:flex;flex-direction:column;gap:5px}
 .rail-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
-.rail-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.rail-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;padding-right:6px;scrollbar-width:none;
+  /* fade the right edge so a partly-visible thumbnail reads as "scroll for more", not chopped */
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent)}
+.rail-strip::-webkit-scrollbar{display:none}
 .rail-item{flex:none;width:38px;height:38px;padding:0;border:0;background:transparent;border-radius:8px;
   cursor:pointer;transition:transform .08s}
 .rail-item:hover{transform:translateY(-1px)}
@@ -355,7 +359,8 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 
 /* ---- Canvas ---- */
 .canvas-wrap{padding:0;position:relative}
-.canvas-tools{display:flex;align-items:stretch;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.canvas-tools{display:flex;align-items:stretch;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line);
+  flex-wrap:wrap;max-width:1180px}
 .tool-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
 /* Labeled toolbar "bays" — every control grouped under a small-caps + stud-glyph section label */
 .tgroup{display:flex;flex-direction:column;justify-content:center;gap:4px;background:var(--panel-2);
@@ -859,11 +864,15 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   /* --- Topbar: brand on its own line, the (now long) toolbar becomes a horizontal scroll strip --- */
   .topbar{gap:10px;padding:10px 12px}
   .toolbar{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
-    padding-bottom:2px;scrollbar-width:none;
+    padding-bottom:2px;padding-right:18px;scrollbar-width:none;
     -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent);
     mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent)}
   .toolbar::-webkit-scrollbar{display:none}
   .toolbar>*{flex:none}
+  /* borderless toggle cluster on mobile: with no box outline, the horizontal-scroll edge fade never
+     bisects a hard bordered card (the toggles read as individual buttons instead) */
+  .tb-cluster{border:0;background:none;padding:0;gap:5px}
+  .tb-div{display:none}
   .save-status{display:none}                   /* frees space; changes still autosave silently */
 
   /* --- The board is the primary view and fills most of the screen --- */
