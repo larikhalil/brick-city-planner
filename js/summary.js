@@ -12,6 +12,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
   const {
     prices = {}, owned = new Set(), overrides = {}, packs = {}, onToggleOwn = null, onSetPrice = null,
     wishlist = new Set(), onPromoteWishlist = null, onRemoveWishlist = null,
+    onFind = null, onDelete = null, onFindCat = null, // click a summary row → find on grid / delete
   } = opts;
   const ownedSet = owned instanceof Set ? owned : new Set(owned);
 
@@ -116,8 +117,8 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
     <div>
       <h2 class="sec" style="margin-bottom:8px">By category</h2>
       <div class="breakdown">${cats.map(([c, n]) =>
-        `<div class="brow"><i class="dot" style="background:${catColor(c)}"></i>
-          <span class="nm">${esc(c[0].toUpperCase() + c.slice(1))}</span><span class="ct">${n}</span></div>`).join('') ||
+        `<button class="brow" data-findcat="${esc(c)}" title="Find all ${esc(c)} sets on the grid"><i class="dot" style="background:${catColor(c)}"></i>
+          <span class="nm">${esc(c[0].toUpperCase() + c.slice(1))}</span><span class="ct">${n}</span></button>`).join('') ||
         '<div class="note">No sets yet — add some from the catalog.</div>'}</div>
       ${cats.length ? `<div class="bar">${cats.map(([c, n]) =>
         `<i data-cat="${esc(c)}" title="${esc(c)}" style="width:${(n / total * 100).toFixed(1)}%;background:${catColor(c)}"></i>`).join('')}</div>` : ''}
@@ -129,11 +130,13 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
         return `<div class="orow${ln.owned ? ' is-owned' : ''}">
           <button class="own sm" data-num="${esc(ln.num)}" aria-pressed="${ln.owned}"
             aria-label="Toggle owned for ${esc(ln.num)}" title="${ln.owned ? 'You own this' : 'Mark as owned'}">${ln.owned ? '★' : '☆'}</button>
-          <span class="on" title="${esc(nameOf(ln.num))}">${esc(nameOf(ln.num))}</span>${retBadge(recOf(ln.num))}
+          <button class="on" data-find="${esc(ln.num)}" title="Find on the grid — select &amp; jump to ${esc(nameOf(ln.num))}">${esc(nameOf(ln.num))}</button>${retBadge(recOf(ln.num))}
           <span class="oq">×${ln.qty}</span>
           <button class="op ${ln.owned ? 'zero' : ''}" data-num="${esc(ln.num)}" data-price
             title="Set your own price for ${esc(ln.num)}" aria-label="Set price for ${esc(ln.num)}">${
             ln.owned ? '$0' : money(ln.lineTotal)}<i>${src}</i></button>
+          <button class="orow-del" data-del="${esc(ln.num)}" title="Delete all of this set from the grid"
+            aria-label="Delete ${esc(nameOf(ln.num))} from the grid"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12"/></svg></button>
         </div>`;
       }).join('')}</div>
     </div>` : ''}
@@ -173,12 +176,18 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
   const list = el.querySelector('.own-list');
   if (list) {
     list.onclick = (e) => {
+      const del = e.target.closest('.orow-del');
+      if (del && del.dataset.del) { onDelete?.(del.dataset.del); return; }
+      const find = e.target.closest('.on[data-find]');
+      if (find && find.dataset.find) { onFind?.(find.dataset.find); return; }
       const own = e.target.closest('.own');
       if (own && own.dataset.num) { onToggleOwn?.(own.dataset.num); return; }
       const price = e.target.closest('[data-price]');
       if (price && price.dataset.num) onSetPrice?.(price.dataset.num);
     };
   }
+  const bd = el.querySelector('.breakdown');
+  if (bd) bd.onclick = (e) => { const b = e.target.closest('.brow[data-findcat]'); if (b) onFindCat?.(b.dataset.findcat); };
   const wpanel = el.querySelector('.wishlist-panel');
   if (wpanel) {
     wpanel.onclick = (e) => {

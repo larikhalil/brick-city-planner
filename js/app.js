@@ -528,8 +528,30 @@ function toggleShortcuts() { $('shortcuts-backdrop').hidden ? openShortcuts() : 
 function drawSummary() {
   renderSummary($('summary'), grid.getPlaced(), catalog.byNum, unitState,
     { prices, owned, overrides, packs, onToggleOwn: toggleOwned, onSetPrice: setPriceOverride,
-      wishlist, onPromoteWishlist: promoteWishlist, onRemoveWishlist: toggleWishlist });
+      wishlist, onPromoteWishlist: promoteWishlist, onRemoveWishlist: toggleWishlist,
+      onFind: findSetOnGrid, onDelete: deleteSetFromGrid, onFindCat: findCatOnGrid });
   wireSummaryButtons();
+}
+// Click a "Sets & ownership" row's name → select every placed tile of that set and scroll the grid
+// to centre them (grid.focusIds also refreshes the toolbar via onSelect). Makes it easy to locate a
+// specific set — e.g. a retired/discontinued one — in a big city.
+function findSetOnGrid(num) {
+  const ids = grid.getPlaced().filter((t) => baseNum(t.set_num) === num).map((t) => t.id);
+  if (!ids.length) { toast('None of that set is on the grid.'); return; }
+  grid.focusIds(ids);
+  toast(ids.length === 1 ? 'Found it — selected on the grid.' : `Found ${ids.length} — all selected.`);
+}
+// The row's 🗑 button → delete every placed tile of that set (undoable with Ctrl+Z).
+function deleteSetFromGrid(num) {
+  const ids = grid.getPlaced().filter((t) => baseNum(t.set_num) === num).map((t) => t.id);
+  if (!ids.length) return;
+  grid.focusIds(ids); grid.deleteSelected();
+}
+// Click a "By category" row → select every placed tile of that category and scroll to them.
+function findCatOnGrid(cat) {
+  const ids = grid.getPlaced().filter((t) => t.category === cat).map((t) => t.id);
+  if (!ids.length) { toast('None of that category is on the grid.'); return; }
+  grid.focusIds(ids);
 }
 function drawDims() {
   // Measure the same physical set the summary's 'Total footprint' does (sets + custom blocks, but

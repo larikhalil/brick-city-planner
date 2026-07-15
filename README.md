@@ -27,6 +27,12 @@ Built out across a research-driven 5-wave programme (see the roadmap above):
 
 ## Changelog
 
+- **Summary → grid: click to find & delete (2026-07-15)** — in the City summary, clicking a set's
+  name in **Sets & ownership** (or a **By category** row) selects that set's placed tiles and scrolls
+  the grid to centre them — quick way to locate a specific set (e.g. a retired/discontinued one) in a
+  big city. Each set row also gets a **🗑 delete** (hover-reveal on desktop, always shown on touch)
+  that removes every copy of that set from the grid (undoable with Ctrl+Z). Reuses the grid's existing
+  `focusIds` (built for the Check-my-city "jump to issue" path).
 - **Overhaul follow-up — feedback round 2 (2026-07-15)** — user-caught issues a screenshot-only
   review had missed, now fixed by driving the real site:
   - Catalog filter chips were `<span>`s (text/I-beam cursor, selectable) → now real `<button>`s

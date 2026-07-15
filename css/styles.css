@@ -684,7 +684,11 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .stat .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
 .stat .v{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:3px}
 .breakdown{display:flex;flex-direction:column;gap:7px}
-.brow{display:flex;align-items:center;gap:9px;font-size:13px}
+/* category rows are buttons: click to find all sets of that category on the grid */
+.brow{display:flex;align-items:center;gap:9px;font-size:13px;width:100%;
+  background:none;border:0;padding:2px 0;text-align:left;cursor:pointer;font-family:inherit}
+.brow:hover .nm{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.brow:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px;border-radius:4px}
 .brow .nm{flex:1;color:var(--ink-soft)}
 .brow .ct{font-family:var(--mono);color:var(--ink-faint)}
 .bar{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;margin-top:8px;display:flex}
@@ -715,8 +719,20 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 /* ---- Sets & ownership list ---- */
 .own-list{display:flex;flex-direction:column;gap:4px}
 .orow{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:3px 0}
-.orow .on{flex:1;min-width:0;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the set name is a button now: click to select the set on the grid + scroll to it */
+.orow .on{flex:1;min-width:0;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:none;border:0;padding:0;font:inherit;text-align:left;cursor:pointer}
+.orow .on:hover{color:var(--ink);text-decoration:underline;text-underline-offset:2px}
+.orow .on:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px;border-radius:4px}
 .orow .oq{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+/* per-row delete: remove all of this set from the grid (undoable). Hover-reveal on desktop, always on touch. */
+.orow-del{width:24px;height:24px;flex:none;border:1px solid transparent;border-radius:7px;background:transparent;
+  color:var(--ink-faint);display:grid;place-items:center;cursor:pointer;opacity:0;
+  transition:opacity .12s,color .12s,border-color .12s}
+.orow:hover .orow-del,.orow:focus-within .orow-del{opacity:1}
+.orow-del:hover{color:var(--danger);border-color:var(--danger)}
+.orow-del svg.i{width:15px;height:15px}
+@media (pointer:coarse){.orow-del{opacity:1}}
 /* retired badge in the dense ownership/wishlist lists: compact + never shrinks (it sits OUTSIDE the
    truncating name span now, so the name ellipsises but the badge always shows in full) */
 .orow .ret,.wrow .ret{flex:none;font-size:8px;padding:1px 4px;letter-spacing:.02em}
