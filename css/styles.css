@@ -511,6 +511,19 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
    text legible over any thumbnail, in both themes — so photo tiles always use light text, winning
    over .dark-txt above by source order (equal specificity). */
 .tile.photo{color:#fff}
+/* "Fake 3D" relief on photo tiles (Treatment A): the set reads as a raised block sitting on the
+   baseplate — an inset top-light bevel + bottom-right inner shade (drawn INSIDE the box, so the
+   on-grid footprint stays exact), a thin solid extruded thickness to the bottom-right, and a soft
+   contact shadow. The warn / focus states below override this box-shadow by source order, and
+   selected uses an outline (not box-shadow), so those signals still read on photo tiles. Shaped
+   (L-corner) modulars reset to a plain shadow so a rectangular relief never boxes their outline. */
+.tile.photo{box-shadow:
+  inset 1.5px 1.5px 0 rgba(255,255,255,.42),
+  inset -2px -3px 5px rgba(0,0,0,.30),
+  1px 1px 0 rgba(18,26,44,.28), 2px 2px 0 rgba(18,26,44,.22),
+  3px 3px 0 rgba(18,26,44,.16), 4px 4px 0 rgba(18,26,44,.10),
+  0 10px 16px -8px rgba(15,25,45,.48)}
+.tile.photo.shaped{box-shadow:0 2px 5px rgba(0,0,0,.22)}
 .tile.photo .tn,.tile.photo .tsub{text-shadow:0 1px 3px rgba(0,0,0,.75)}
 .tile.photo .tlabel{background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent 34%,transparent 64%,rgba(0,0,0,.55))}
 /* MOTION-1: front-edge "facade" cue — a bright bar on the building's FRONT edge (default = the

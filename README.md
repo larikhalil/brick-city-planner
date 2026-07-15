@@ -27,6 +27,15 @@ Built out across a research-driven 5-wave programme (see the roadmap above):
 
 ## Changelog
 
+- **3D-relief photo tiles (2026-07-15)** — sets that have a real product photo now render that photo
+  on the board (fixing a latent bug: the tint was built as `` `${catColor()}80` `` = `var(--x)80`,
+  invalid CSS that silently dropped the whole background-image — so tiles only ever showed the flat
+  category colour). The photo now sits on a white base with a light `color-mix` category wash, and
+  gets a "low-relief" depth treatment (Treatment A, chosen from 4 CSS treatments explored in parallel
+  by subagents): an inset top-light bevel + bottom-right inner shade, a thin extruded thickness, and a
+  soft contact shadow — so each set reads as a raised block on the baseplate while staying exactly on
+  its stud footprint (no isometric tilt that would misrepresent where it sits). No image generation —
+  it's the real photo given depth in CSS. Applies to building and vehicle/generic photo tiles.
 - **Summary → grid: click to find & delete (2026-07-15)** — in the City summary, clicking a set's
   name in **Sets & ownership** (or a **By category** row) selects that set's placed tiles and scrolls
   the grid to centre them — quick way to locate a specific set (e.g. a retired/discontinued one) in a

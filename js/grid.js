@@ -37,6 +37,21 @@ function prefersReducedMotion() {
   catch { return false; }
 }
 
+// Fill a tile with the set's real product photo on a white base + a LIGHT category wash (multiply),
+// so the picture reads clearly. The .tile.photo class drives the label scrim + the raised-3D relief
+// (styles.css). ⚠ The tint MUST be a valid colour: the old `${catColor()}80` produced `var(--x)80`,
+// which is invalid CSS and silently dropped the ENTIRE background-image (photo included) — which is
+// why board tiles only ever showed the flat category colour. color-mix keeps it valid with a var().
+function applyPhotoFill(el, fill, t) {
+  el.classList.add('photo');
+  const tint = `color-mix(in srgb, ${catColor(t.category)} 22%, transparent)`;
+  fill.style.backgroundColor = '#fff';
+  fill.style.backgroundImage = `linear-gradient(${tint}, ${tint}), url("${t.img}")`;
+  fill.style.backgroundSize = 'cover';
+  fill.style.backgroundPosition = 'center';
+  fill.style.backgroundBlendMode = 'multiply';
+}
+
 export function createGrid(board, {
   onChange = () => {}, onResize = () => {}, onHistory = () => {}, onSelect = () => {},
   onAnnounce = () => {}, onMode = () => {}, onRequestEdit = () => {}, onWarn = () => {},
@@ -444,22 +459,14 @@ export function createGrid(board, {
       fill.style.background = t.color || catColor(t.category);
       let schem = '';
       if (kind === 'building' && t.img) {
-        // MOTION-1: buildings show the set's real thumbnail as the tile fill for a top-down feel,
-        // tinted just enough by the category colour that the label stays readable — no schematic art
-        // beneath it. A dark scrim under the label (.tile.photo CSS) keeps text legible on any photo.
-        el.classList.add('photo'); // label scrim/text colour live on the tile (the label isn't wrapped)
-        fill.style.backgroundImage =
-          `linear-gradient(${catColor(t.category)}80, ${catColor(t.category)}80), url("${t.img}")`;
-        fill.style.backgroundSize = 'cover';
-        fill.style.backgroundPosition = 'center';
-        fill.style.backgroundBlendMode = 'multiply';
+        // MOTION-1: buildings show the set's real thumbnail as the tile fill for a top-down feel.
+        // A dark scrim under the label (.tile.photo CSS) keeps text legible on any photo, and the
+        // .tile.photo relief (styles.css) gives it a raised-3D look on the baseplate.
+        applyPhotoFill(el, fill, t);
       } else {
         schem = schematicSVG(kind, { w: t.w, h: t.h }, t.name);
-        if (t.img && !schem) { // generic sets keep the tinted box photo
-          fill.style.backgroundImage =
-            `linear-gradient(${catColor(t.category)}cc, ${catColor(t.category)}cc), url("${t.img}")`;
-          fill.style.backgroundSize = 'cover';
-          fill.style.backgroundBlendMode = 'multiply';
+        if (t.img && !schem) { // non-building sets (vehicles, generic) also show their real photo…
+          applyPhotoFill(el, fill, t); // …with the same photo + top-light relief treatment
         }
       }
       // MOTION-1: a front-edge "facade" cue on buildings, defaulting to the tile's bottom edge. It
