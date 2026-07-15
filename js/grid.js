@@ -1232,6 +1232,7 @@ export function createGrid(board, {
     const pox = primary.x, poy = primary.y;
     let dragMoved = false;
     let mismatchNeighbour = null; // PLAN-10: the mismatched-radius neighbour the primary is snapped to
+    let connectedNow = false;     // MOTION: did the last frame land on a port-to-port join? → snap pulse
     activePointerId = ev.pointerId;
     try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
     function move(e) {
@@ -1252,8 +1253,10 @@ export function createGrid(board, {
         // PLAN-10: remember whether this port-to-port join is between mismatched radius classes, so
         // the drag-end can hard-warn. Non-blocking — the snap itself still happens.
         mismatchNeighbour = (s.connectedTo && radiusMismatch(primary, s.connectedTo)) ? s.connectedTo : null;
+        connectedNow = !!s.connectedTo;
       } else {
         mismatchNeighbour = null; // bypassed frames must clear any stale port join (no ghost warns)
+        connectedNow = false;
       }
       const dx = nx - pox, dy = ny - poy;
       for (const { t, ox, oy } of origins) {
@@ -1272,6 +1275,11 @@ export function createGrid(board, {
       // A plain click that selected without dragging isn't a mutation — don't spend a history step.
       if (dragMoved) {
         growToFit(); finalize('Move');
+        // MOTION: a satisfying "click" pulse when a road/rail piece lands on a port-to-port join.
+        if (connectedNow) {
+          const pel = tileEl(primary.id);
+          if (pel) { pel.classList.remove('snapped'); void pel.offsetWidth; pel.classList.add('snapped'); }
+        }
         if (mismatchNeighbour) warnRadiusMismatch(primary, mismatchNeighbour); // PLAN-10 hard-warn
       }
     }

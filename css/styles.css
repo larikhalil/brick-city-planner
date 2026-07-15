@@ -540,6 +540,21 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
   100%{opacity:1;transform:scale(1) rotate(var(--rot))}
 }
 @media (prefers-reduced-motion:reduce){.tile{animation:none;transition:none}}
+/* ============ MOTION / JUICE ============ */
+/* The satisfying "click" when a road/rail piece lands on a port-to-port join (grid.js adds .snapped).
+   A pure box-shadow pulse — never touches `transform`, so it can't collide with the tile's rotation. */
+@keyframes snap-pulse{
+  0%{box-shadow:0 0 0 0 rgba(47,168,79,.6),0 2px 6px rgba(0,0,0,.25)}
+  100%{box-shadow:0 0 0 11px rgba(47,168,79,0),0 2px 6px rgba(0,0,0,.22)}
+}
+.tile.snapped{animation:snap-pulse .42s ease-out}
+/* Tactile press feedback — every interactive control dips 1px like a pressed brick */
+@media (prefers-reduced-motion:no-preference){
+  .btn:active,.gstep:active,.seg button:active,.chip:active,.mb-btn:active,.add:active,
+  .ab-btn:active,.tb-swatch:active,.rail-item:active{transform:translateY(1px)}
+  .chip,.add{transition:background .12s,border-color .12s,filter .12s,transform .07s}
+}
+@media (prefers-reduced-motion:reduce){.tile.snapped{animation:none}}
 
 /* ============ MOTION-3 / UI-5: canvas tools, terrain paint, notes & custom blocks ============ */
 /* Tool switcher (pointer / paint / note / block) — active tool gets the construction-yellow chip. */
@@ -769,18 +784,26 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   /* --- Topbar: brand on its own line, the (now long) toolbar becomes a horizontal scroll strip --- */
   .topbar{gap:10px;padding:10px 12px}
   .toolbar{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
-    padding-bottom:2px;scrollbar-width:none}
+    padding-bottom:2px;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent)}
   .toolbar::-webkit-scrollbar{display:none}
   .toolbar>*{flex:none}
   .save-status{display:none}                   /* frees space; changes still autosave silently */
 
   /* --- The board is the primary view and fills most of the screen --- */
   .grid3{display:block;margin-top:10px}
-  .canvas-tools{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:6px;
-    padding:8px 10px;scrollbar-width:none}
+  .canvas-tools{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:7px;
+    padding:8px 10px;scrollbar-width:none;
+    /* fade the right edge so it's obvious the toolbar scrolls (no more "cut off" ambiguity) */
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
   .canvas-tools::-webkit-scrollbar{display:none}
   .canvas-tools>*{flex:none}
   .canvas-tools .muted,#grid-dims,#canvas-size{display:none} /* drop the read-outs, keep every control */
+  /* compact the labeled bays so more fit before scrolling */
+  .canvas-tools .tgroup{padding:5px 7px 6px;gap:4px;border-radius:9px}
+  .canvas-tools .tgroup>.slbl{font-size:9px;letter-spacing:.07em}
   #zoom-ctrl{margin-left:0}
   /* dvh grows the board when the URL bar retracts; the svh floor keeps it usable while it's shown. */
   .stage{height:max(340px,calc(100dvh - 208px));max-height:none}
