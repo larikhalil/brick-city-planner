@@ -36,32 +36,45 @@
       <div class="toolbar">
         <button class="city-label" id="btn-city-name" title="Current city — click to manage saved cities"
           aria-haspopup="dialog" aria-expanded="false">
-          🏙 <span id="city-name-text">Untitled city</span></button>
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>
+          <span id="city-name-text">Untitled city</span></button>
         <span class="save-status" id="save-status" role="status" aria-live="polite">
           <i class="dot" aria-hidden="true"></i><span class="lbl">All changes saved</span>
         </span>
+        <span class="tb-div" aria-hidden="true"></span>
         <div class="seg" id="unit-toggle" role="group" aria-label="Units">
           <button class="on" data-unit="studs">studs</button><button data-unit="cm">cm</button>
         </div>
-        <button class="btn icon" id="btn-theme" type="button" title="Switch to dark mode"
-          aria-label="Switch to dark mode" aria-pressed="false">🌙</button>
-        <button class="btn icon" id="btn-cbsafe" type="button" title="Turn on colorblind-safe patterns"
-          aria-label="Turn on colorblind-safe patterns" aria-pressed="false">◐</button>
-        <button class="btn icon" id="btn-scaleref" type="button" title="Show scale reference (minifig / car / ruler)"
-          aria-label="Show scale reference (minifig / car / ruler)" aria-pressed="false">📏</button>
-        <button class="btn icon" id="btn-snap" type="button" title="Magnetic snapping on — hold Alt while dragging to bypass"
-          aria-label="Turn off magnetic snapping" aria-pressed="true">🧲</button>
+        <div class="tb-cluster" role="group" aria-label="View options">
+          <button class="btn icon" id="btn-theme" type="button" title="Switch to dark mode"
+            aria-label="Switch to dark mode" aria-pressed="false">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg></button>
+          <button class="btn icon" id="btn-cbsafe" type="button" title="Turn on colorblind-safe patterns"
+            aria-label="Turn on colorblind-safe patterns" aria-pressed="false">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 3.8v16.4A8.2 8.2 0 0 0 12 3.8Z" fill="currentColor" stroke="none"/></svg></button>
+          <button class="btn icon" id="btn-scaleref" type="button" title="Show scale reference (minifig / car / ruler)"
+            aria-label="Show scale reference (minifig / car / ruler)" aria-pressed="false">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg></button>
+          <button class="btn icon" id="btn-snap" type="button" title="Magnetic snapping on — hold Alt while dragging to bypass"
+            aria-label="Turn off magnetic snapping" aria-pressed="true">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 4H3M18 4h3M6 8H3M18 8h3"/></svg></button>
+        </div>
         <button class="btn" id="btn-kid" type="button" aria-pressed="false"
           title="Kid Mode — freeze the layout so only new pieces can be added and arranged"
-          aria-label="Turn on Kid Mode">🧒 Kid Mode</button>
-        <button class="btn" id="btn-new">＋ New city</button>
-        <button class="btn" id="btn-templates" aria-haspopup="dialog" aria-expanded="false">▤ Templates</button>
-        <button class="btn" id="btn-save-as">💾 Save as</button>
-        <button class="btn" id="btn-cities" aria-haspopup="dialog" aria-expanded="false">📁 My cities</button>
-        <button class="btn" id="btn-import">⭳ Import</button>
+          aria-label="Turn on Kid Mode">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg> Kid Mode</button>
+        <span class="tb-div" aria-hidden="true"></span>
+        <button class="btn ghost" id="btn-new" title="Start a new, empty city">New city</button>
+        <button class="btn ghost" id="btn-templates" aria-haspopup="dialog" aria-expanded="false"
+          title="Start from a ready-made layout">Templates</button>
+        <button class="btn ghost" id="btn-save-as" title="Save this city under a name">Save as</button>
+        <button class="btn ghost" id="btn-cities" aria-haspopup="dialog" aria-expanded="false"
+          title="Open, rename or delete your saved cities">My cities</button>
+        <button class="btn ghost" id="btn-import" title="Import a city from a file">Import</button>
         <input type="file" id="file-import" accept="application/json" hidden>
-        <button class="btn" id="btn-share">🔗 Share</button>
-        <button class="btn primary" id="btn-export">⭱ Export</button>
+        <button class="btn ghost" id="btn-share" title="Copy a link to this city">Share</button>
+        <button class="btn primary" id="btn-export" title="Download this city (JSON / image / list)">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg> Export</button>
       </div>
     </div>
 
@@ -77,7 +90,7 @@
       <section class="card" id="catalog-panel" aria-label="Set catalog">
         <div class="card-h"><h2>Catalog</h2><span class="count-pill" id="catalog-count"></span>
           <button class="sheet-close" data-sheet-close aria-label="Close catalog">✕</button></div>
-        <div class="search"><span>🔍</span>
+        <div class="search"><span class="search-i" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></span>
           <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
         <div class="chips" id="catalog-chips"></div>
         <div class="cat-actions">
@@ -85,23 +98,26 @@
             title="Add a ground baseplate of any size (in studs)">＋ Custom baseplate…</button>
         </div>
         <div class="cat-controls">
-          <div class="seg view-toggle" id="catalog-view" role="group" aria-label="Catalog view">
-            <button type="button" class="on" data-view="list" aria-pressed="true" title="List view" aria-label="List view">☰</button>
-            <button type="button" data-view="grid" aria-pressed="false" title="Grid view" aria-label="Grid view">▦</button>
+          <div class="cc-top">
+            <div class="seg view-toggle" id="catalog-view" role="group" aria-label="Catalog view">
+              <button type="button" class="on" data-view="list" aria-pressed="true" title="List view" aria-label="List view">☰</button>
+              <button type="button" data-view="grid" aria-pressed="false" title="Grid view" aria-label="Grid view">▦</button>
+            </div>
+            <label class="sort" for="catalog-sort"><span class="sort-lab">Sort</span>
+              <select id="catalog-sort" aria-label="Sort catalog">
+                <option value="default">Featured</option>
+                <option value="name">Name A–Z</option>
+                <option value="price-asc">Price: low → high</option>
+                <option value="price-desc">Price: high → low</option>
+                <option value="pieces-desc">Most pieces</option>
+                <option value="year-desc">Newest</option>
+              </select>
+            </label>
           </div>
           <label class="legacy" for="catalog-legacy"
             title="Include legacy sets — retired sets LEGO no longer sells new">
-            <input type="checkbox" id="catalog-legacy"> Legacy</label>
-          <label class="sort" for="catalog-sort">Sort
-            <select id="catalog-sort" aria-label="Sort catalog">
-              <option value="default">Featured</option>
-              <option value="name">Name A–Z</option>
-              <option value="price-asc">Price: low → high</option>
-              <option value="price-desc">Price: high → low</option>
-              <option value="pieces-desc">Most pieces</option>
-              <option value="year-desc">Newest</option>
-            </select>
-          </label>
+            <input type="checkbox" id="catalog-legacy">
+            <span class="legacy-tx">Legacy <small>show retired sets</small></span></label>
         </div>
         <div class="rail" id="catalog-rail" hidden></div>
         <div class="catalog" id="catalog-list"></div>
@@ -111,61 +127,106 @@
         <div class="card-h"><h2>City grid</h2>
           <span class="muted" id="grid-dims" style="margin-left:auto"></span></div>
         <div class="canvas-tools">
-          <div class="hist-group">
-            <button class="btn icon" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
-            <button class="btn icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷</button>
-            <button class="btn icon" id="btn-history" title="History" aria-label="Edit history" aria-haspopup="true" aria-expanded="false" disabled>🕘</button>
-            <div class="hist-menu" id="history-menu" role="menu" aria-label="Edit history" hidden></div>
+          <div class="tgroup">
+            <div class="slbl"><i class="stud" aria-hidden="true"></i>History</div>
+            <div class="hist-group trow">
+              <button class="btn icon" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-3"/></svg></button>
+              <button class="btn icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5"/><path d="M20 12H9a5 5 0 0 0 0 10h3"/></svg></button>
+              <button class="btn icon" id="btn-history" title="History" aria-label="Edit history" aria-haspopup="true" aria-expanded="false" disabled>
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.2"/></svg></button>
+              <div class="hist-menu" id="history-menu" role="menu" aria-label="Edit history" hidden></div>
+            </div>
           </div>
-          <span class="tool-sep" aria-hidden="true"></span>
-          <button class="btn icon" id="btn-rotate" title="Rotate selected (R)">⟳</button>
-          <button class="btn icon" id="btn-forward" title="Bring to front">⬆</button>
-          <button class="btn icon" id="btn-back" title="Send to back (above baseplates)">⬇</button>
-          <button class="btn icon" id="btn-delete" title="Delete selected">🗑</button>
-          <button class="btn icon" id="btn-lock" title="Lock / unlock selected (L)" aria-label="Lock or unlock selected" aria-pressed="false" disabled>🔓</button>
-          <div class="layers-group">
-            <button class="btn icon" id="btn-layers" title="Layers — show / hide &amp; lock" aria-label="Layers" aria-haspopup="true" aria-expanded="false">▧</button>
-            <div class="layers-menu" id="layers-menu" role="menu" aria-label="Layers — show, hide and lock" hidden></div>
+          <div class="tgroup">
+            <div class="slbl"><i class="stud" aria-hidden="true"></i>Arrange</div>
+            <div class="trow">
+              <button class="btn icon" id="btn-rotate" title="Rotate selected (R)" aria-label="Rotate selected">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8a8 8 0 1 0 1.5 6"/><path d="M20 4v4h-4"/></svg></button>
+              <button class="btn icon" id="btn-forward" title="Bring to front" aria-label="Bring to front">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="1.5"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/></svg></button>
+              <button class="btn icon" id="btn-back" title="Send to back (above baseplates)" aria-label="Send to back">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="11" height="11" rx="1.5"/><path d="M19 9v9a1 1 0 0 1-1 1H9"/></svg></button>
+              <span class="tdiv" aria-hidden="true"></span>
+              <button class="btn icon" id="btn-delete" title="Delete selected" aria-label="Delete selected">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12"/></svg></button>
+              <button class="btn icon" id="btn-dup" title="Duplicate selected (Ctrl+D)" aria-label="Duplicate selected" disabled>
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="1.5"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/><path d="M13 11v4M11 13h4"/></svg></button>
+              <button class="btn icon" id="btn-lock" title="Lock / unlock selected (L)" aria-label="Lock or unlock selected" aria-pressed="false" disabled>
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7.5A4 4 0 0 1 15.5 6"/></svg></button>
+            </div>
           </div>
-          <span class="tool-sep" aria-hidden="true"></span>
-          <div class="seg tools" id="tool-mode" role="group" aria-label="Canvas tool">
-            <button type="button" class="on" data-mode="select" aria-pressed="true" title="Select &amp; move" aria-label="Select and move tool">⬚</button>
-            <button type="button" data-mode="terrain" aria-pressed="false" title="Paint terrain / zoning" aria-label="Paint terrain tool">🖌</button>
-            <button type="button" data-mode="note" aria-pressed="false" title="Add a sticky note" aria-label="Add note tool">🗒</button>
-            <button type="button" data-mode="rect" aria-pressed="false" title="Draw a custom block (MOC)" aria-label="Draw custom block tool">▭</button>
+          <div class="tgroup">
+            <div class="slbl"><i class="stud" aria-hidden="true"></i>Layers</div>
+            <div class="layers-group trow">
+              <button class="btn icon" id="btn-layers" title="Layers — show / hide &amp; lock" aria-label="Layers" aria-haspopup="true" aria-expanded="false">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4M4 16l8 4 8-4"/></svg></button>
+              <div class="layers-menu" id="layers-menu" role="menu" aria-label="Layers — show, hide and lock" hidden></div>
+            </div>
           </div>
-          <div class="gsize" id="grid-size" title="Table size in baseplates — or drag the corner grip">
-            <span class="lab">Table</span>
-            <button class="gstep" data-gs="wdec" aria-label="Fewer baseplates wide">−</button>
-            <span class="v" id="gs-w">4</span>
-            <button class="gstep" data-gs="winc" aria-label="More baseplates wide">＋</button>
-            <span class="x">×</span>
-            <button class="gstep" data-gs="hdec" aria-label="Fewer baseplates tall">−</button>
-            <span class="v" id="gs-h">3</span>
-            <button class="gstep" data-gs="hinc" aria-label="More baseplates tall">＋</button>
+          <div class="tgroup">
+            <div class="slbl"><i class="stud" aria-hidden="true"></i>Tools</div>
+            <div class="seg tools" id="tool-mode" role="group" aria-label="Canvas tool">
+              <button type="button" class="on" data-mode="select" aria-pressed="true" title="Select &amp; move" aria-label="Select and move tool">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 4 6 15 2.2-6.2L19 11 5 4Z"/></svg></button>
+              <button type="button" data-mode="terrain" aria-pressed="false" title="Paint terrain / zoning" aria-label="Paint terrain tool">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 11V6a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H8v3"/><rect x="6" y="13" width="4" height="5" rx="1"/></svg></button>
+              <button type="button" data-mode="note" aria-pressed="false" title="Add a sticky note" aria-label="Add note tool">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l4 4v12H6Z"/><path d="M15 4v4h4M9 13h6M9 16h4"/></svg></button>
+              <button type="button" data-mode="rect" aria-pressed="false" title="Draw a custom block (MOC)" aria-label="Draw custom block tool">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="12" rx="1.5"/></svg></button>
+            </div>
+          </div>
+          <div class="tgroup">
+            <div class="slbl"><i class="stud" aria-hidden="true"></i>Table</div>
+            <div class="gsize" id="grid-size" title="Table size in baseplates — or drag the corner grip">
+              <button class="gstep" data-gs="wdec" aria-label="Fewer baseplates wide">−</button>
+              <span class="v" id="gs-w">4</span>
+              <button class="gstep" data-gs="winc" aria-label="More baseplates wide">＋</button>
+              <span class="x">×</span>
+              <button class="gstep" data-gs="hdec" aria-label="Fewer baseplates tall">−</button>
+              <span class="v" id="gs-h">3</span>
+              <button class="gstep" data-gs="hinc" aria-label="More baseplates tall">＋</button>
+            </div>
+          </div>
+          <div class="tgroup">
+            <div class="slbl"><i class="stud" aria-hidden="true"></i>Zoom</div>
+            <div class="seg" id="zoom-ctrl">
+              <button data-zoom="out" aria-label="Zoom out">−</button><button class="on" data-zoom="reset">100%</button>
+              <button data-zoom="in" aria-label="Zoom in">＋</button><button data-zoom="fit">Fit</button></div>
+          </div>
+          <div class="tgroup">
+            <div class="slbl"><i class="stud" aria-hidden="true"></i>View</div>
+            <div class="trow">
+              <button class="btn icon" id="btn-check" type="button" title="Check my city for buildability problems"
+                aria-label="Check my city" aria-haspopup="dialog" aria-expanded="false">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v5a4 4 0 0 0 8 0V4"/><path d="M10 13v3a4 4 0 0 0 8 0v-2"/><circle cx="18" cy="12" r="1.6"/></svg></button>
+              <button class="btn icon" id="btn-iso" type="button" title="3D / isometric preview (read-only)"
+                aria-label="3D isometric preview" aria-pressed="false">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m12 3 8 4.5-8 4.5-8-4.5M12 12v9"/></svg></button>
+              <button class="btn icon" id="btn-png" type="button" title="Export as image (PNG)"
+                aria-label="Export as image" aria-haspopup="dialog" aria-expanded="false">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4.5L13 16l2.5-2.5L20 18"/></svg></button>
+              <button class="btn icon" id="btn-help" title="Guide — what every button does &amp; shortcuts (?)" aria-label="Guide and keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">
+                <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M9.5 9.4a2.6 2.6 0 0 1 5 .8c0 1.7-2.5 2-2.5 3.6"/><circle cx="12" cy="17" r=".7" fill="currentColor" stroke="none"/></svg></button>
+            </div>
           </div>
           <span class="muted" id="canvas-size"></span>
-          <div class="seg" id="zoom-ctrl" style="margin-left:auto">
-            <button data-zoom="out">−</button><button class="on" data-zoom="reset">100%</button>
-            <button data-zoom="in">＋</button><button data-zoom="fit">Fit</button></div>
-          <button class="btn icon" id="btn-check" type="button" title="Check my city for buildability problems"
-            aria-label="Check my city" aria-haspopup="dialog" aria-expanded="false">🩺</button>
-          <button class="btn icon" id="btn-iso" type="button" title="3D / isometric preview (read-only)"
-            aria-label="3D isometric preview" aria-pressed="false">🧊</button>
-          <button class="btn icon" id="btn-png" type="button" title="Export as image (PNG)"
-            aria-label="Export as image" aria-haspopup="dialog" aria-expanded="false">🖼</button>
-          <button class="btn icon" id="btn-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">?</button>
         </div>
         <div class="stage" id="grid-stage">
           <div class="board" id="grid-board"></div>
           <div class="first-run" id="first-run" hidden>
-            <button class="fr-close" id="fr-close" aria-label="Dismiss tips">✕</button>
-            <div class="fr-steps">
-              <div class="fr-step"><span class="fr-num">1</span>Search a set</div>
-              <div class="fr-step"><span class="fr-num">2</span>Drag it onto the grid</div>
-              <div class="fr-step"><span class="fr-num">3</span>Snap roads together</div>
+            <div class="fr-card">
+              <button class="fr-close" id="fr-close" aria-label="Dismiss tips">✕</button>
+              <div class="fr-title">Start your city</div>
+              <div class="fr-steps">
+                <div class="fr-step"><span class="fr-num">1</span>Search a set</div>
+                <div class="fr-step"><span class="fr-num">2</span>Drag it onto the grid</div>
+                <div class="fr-step"><span class="fr-num">3</span>Snap roads together</div>
+              </div>
+              <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
             </div>
-            <button class="btn primary" id="btn-sample">▤ Load a sample city</button>
           </div>
         </div>
         <div class="iso-overlay" id="iso-overlay" role="region" aria-label="3D isometric preview" hidden>
@@ -217,9 +278,9 @@
   <div class="sheet-scrim" id="sheet-scrim"></div>
   <nav class="mobile-bar" aria-label="Panels">
     <button class="mb-btn" id="m-catalog" type="button" aria-haspopup="true" aria-expanded="false"
-      aria-controls="catalog-panel">🧱 Catalog</button>
+      aria-controls="catalog-panel"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="7" height="6" rx="1"/><rect x="13" y="5" width="7" height="6" rx="1"/><rect x="4" y="13" width="7" height="6" rx="1"/><rect x="13" y="13" width="7" height="6" rx="1"/></svg> Catalog</button>
     <button class="mb-btn" id="m-summary" type="button" aria-haspopup="true" aria-expanded="false"
-      aria-controls="summary-panel">📊 Summary</button>
+      aria-controls="summary-panel"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11M10 20V4M16 20v-7M4 20h16"/></svg> Summary</button>
   </nav>
 
   <div id="toast" role="status" aria-live="polite"></div>
@@ -231,16 +292,49 @@
   <div class="modal-backdrop" id="shortcuts-backdrop" hidden>
     <div class="modal" id="shortcuts-modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
       <div class="modal-h">
-        <h2 id="shortcuts-title">Shortcuts &amp; gestures</h2>
-        <button class="modal-close" id="shortcuts-close" aria-label="Close shortcuts">✕</button>
+        <h2 id="shortcuts-title">Guide</h2>
+        <button class="modal-close" id="shortcuts-close" aria-label="Close guide">✕</button>
       </div>
       <div class="modal-body">
+        <div class="lg-group">
+          <h3><i class="stud" aria-hidden="true"></i>What the buttons do — top bar</h3>
+          <div class="lg-grid">
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6Z"/><path d="M9 4v5h6M9 20v-6h6v6"/></svg></span><div class="lg-tx"><b>Save as</b><span>Save this city under a name so you can reopen it later.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h4l2 2h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/></svg></span><div class="lg-tx"><b>My cities</b><span>Open, rename or delete the cities you've saved.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V4m0 0 4 4m-4-4-4 4M5 20h14"/></svg></span><div class="lg-tx"><b>Import</b><span>Load a city from a file on your device.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.4"/><circle cx="17" cy="6" r="2.4"/><circle cx="17" cy="18" r="2.4"/><path d="m8.1 10.9 6.8-3.8M8.1 13.1l6.8 3.8"/></svg></span><div class="lg-tx"><b>Share</b><span>Copy a link that reopens this exact city.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg></span><div class="lg-tx"><b>Export</b><span>Download the city — as data, a picture, or a shopping list.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><div class="lg-tx"><b>New city</b><span>Start over with an empty table.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M9 5v14M4 10h5"/></svg></span><div class="lg-tx"><b>Templates</b><span>Begin from a ready-made layout instead of a blank table.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></span><div class="lg-tx"><b>Kid Mode</b><span>Freeze the layout so pieces can be added but not moved.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg></span><div class="lg-tx"><b>Theme</b><span>Switch between light and dark.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2"/><path d="M12 3.8v16.4A8.2 8.2 0 0 0 12 3.8Z" fill="currentColor" stroke="none"/></svg></span><div class="lg-tx"><b>Colourblind-safe</b><span>Add patterns so categories are distinct without relying on colour.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg></span><div class="lg-tx"><b>Scale reference</b><span>Overlay a minifig, car and ruler at true stud scale.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 4H3M18 4h3M6 8H3M18 8h3"/></svg></span><div class="lg-tx"><b>Magnetic snap</b><span>Snaps pieces edge-to-edge. Hold <kbd>Alt</kbd> while dragging to place on any stud.</span></div></div>
+          </div>
+          <h3><i class="stud" aria-hidden="true"></i>What the buttons do — canvas toolbar</h3>
+          <div class="lg-grid">
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-3"/></svg></span><div class="lg-tx"><b>Undo / Redo / History</b><span>Step back and forward, or jump to any point in your edits.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M20 8a8 8 0 1 0 1.5 6"/><path d="M20 4v4h-4"/></svg></span><div class="lg-tx"><b>Rotate</b><span>Turn the selection 90° (or drag the handle above it for any angle).</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="1.5"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/></svg></span><div class="lg-tx"><b>Bring forward / Send back</b><span>Change which pieces sit on top.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="1.5"/><path d="M5 15V6a1 1 0 0 1 1-1h9"/><path d="M13 11v4M11 13h4"/></svg></span><div class="lg-tx"><b>Duplicate</b><span>Make a copy of the selection (also <kbd>Ctrl+D</kbd>).</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12"/></svg></span><div class="lg-tx"><b>Delete</b><span>Remove the selected pieces.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><div class="lg-tx"><b>Lock</b><span>Freeze the selection so it can't be moved by accident.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="m12 4 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4M4 16l8 4 8-4"/></svg></span><div class="lg-tx"><b>Layers</b><span>Show, hide or lock whole layers (ground, roads, buildings…).</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="m5 4 6 15 2.2-6.2L19 11 5 4Z"/></svg></span><div class="lg-tx"><b>Tools</b><span>Select &amp; move · paint terrain · drop a sticky note · draw a custom block.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M12 6v12" opacity=".4"/></svg></span><div class="lg-tx"><b>Table</b><span>Set how many baseplates wide × tall your table is.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4M9 11h4M11 9v4"/></svg></span><div class="lg-tx"><b>Zoom</b><span>Zoom in or out, or Fit the whole city on screen.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="M6 4v5a4 4 0 0 0 8 0V4"/><path d="M10 13v3a4 4 0 0 0 8 0v-2"/><circle cx="18" cy="12" r="1.6"/></svg></span><div class="lg-tx"><b>Check my city</b><span>Scan for buildability problems (off-plate, overlaps, track gaps…).</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m12 3 8 4.5-8 4.5-8-4.5M12 12v9"/></svg></span><div class="lg-tx"><b>3D preview</b><span>A read-only isometric view — drag to rotate.</span></div></div>
+            <div class="lg-row"><span class="lg-ico"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4.5L13 16l2.5-2.5L20 18"/></svg></span><div class="lg-tx"><b>Export image</b><span>Save a crisp PNG picture of your plan.</span></div></div>
+          </div>
+        </div>
         <div class="sc-group">
           <h3>Mouse &amp; touch</h3>
           <div class="sc-row"><span>Drag a set from the catalog onto the grid</span><kbd>drag &amp; drop</kbd></div>
           <div class="sc-row"><span>Drag a tile</span><kbd>move</kbd></div>
-          <div class="sc-row"><span>Alt-drag a tile</span><kbd>Alt + drag</kbd></div>
-          <div class="sc-row"><span>Hold Alt while dragging (or 🧲 off)</span><kbd>bypass snapping</kbd></div>
+          <div class="sc-row"><span>Hold Alt while dragging (or 🧲 off) — rest on any stud</span><kbd>bypass snapping</kbd></div>
+          <div class="sc-row"><span>Duplicate the selection</span><kbd>Ctrl+D</kbd></div>
           <div class="sc-row"><span>Drag the node above a selected tile</span><kbd>free rotate</kbd></div>
           <div class="sc-row"><span>Drag the bottom-right corner grip</span><kbd>resize table</kbd></div>
           <div class="sc-row"><span>Drag on empty canvas</span><kbd>box-select</kbd></div>

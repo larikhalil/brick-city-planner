@@ -475,9 +475,13 @@ export function createGrid(board, {
       const lockBadge = t.locked ? '<span class="lock-flag" aria-hidden="true" title="Locked">🔒</span>' : '';
       // Item 5a: no '≈' on the tile face any more — the estimated-footprint state stays visible in
       // the catalog card, the summary count and the Check-my-city panel.
+      // The sub-line's first span is the real LEGO set number (e.g. 60316). Synthetic catalog
+      // pieces — roads, tracks, baseplates, packs — carry a slug set_num like "piece-road-straight"
+      // that must never surface on the tile face; for those we show only the size.
+      const realSetNum = /^\d/.test(t.set_num) ? esc(t.set_num.replace(/-\d+$/, '')) : '';
       const labelHTML = `<div class="tlabel"${counter}>` +
         `<div class="tn">${esc(t.name)}</div>` +
-        `<div class="tsub"><span>${esc(t.set_num.replace(/-\d+$/, ''))}</span><span>${t.w}×${t.h}</span></div></div>`;
+        `<div class="tsub">${realSetNum ? `<span>${realSetNum}</span>` : ''}<span>${t.w}×${t.h}</span></div></div>`;
       if (clip) {
         // Shaped: the schematic + facade go INSIDE the clipped wrapper; badges + label stay on the
         // unclipped tile so they're never cut. The wrapper sits below the label via its z-index.
@@ -1215,11 +1219,12 @@ export function createGrid(board, {
     // can be unlocked from the toolbar) but never starts a drag.
     if (!editable(tile)) { ev.preventDefault(); return; }
 
-    // Alt-drag leaves the originals behind and drags fresh copies. Only the editable members of the
-    // selection actually move — locked tiles caught in the same selection stay put.
+    // Alt is reserved for ONE job while dragging: bypass magnetic snapping (see the `!e.altKey`
+    // guard in move() below and the 🧲 tooltip). It intentionally does NOT clone — hold-Alt to
+    // rest a piece on any stud must never spawn a copy. Duplicating is Ctrl+D, the ⧉ Duplicate
+    // button, or copy/paste. Only the editable members of the selection actually move — locked
+    // tiles caught in the same selection stay put.
     let group = editableSelected();
-    let altCopy = false;
-    if (ev.altKey) { group = spawnCopies(group, 0, 0); render(); altCopy = true; }
 
     const primary = placed.find((p) => p.id === selectedId) || group[0];
     const startX = ev.clientX, startY = ev.clientY;
@@ -1227,6 +1232,7 @@ export function createGrid(board, {
     const pox = primary.x, poy = primary.y;
     let dragMoved = false;
     let mismatchNeighbour = null; // PLAN-10: the mismatched-radius neighbour the primary is snapped to
+    let connectedNow = false;     // MOTION: did the last frame land on a port-to-port join? → snap pulse
     activePointerId = ev.pointerId;
     try { board.setPointerCapture(ev.pointerId); } catch { /* ignore */ }
     function move(e) {
@@ -1247,8 +1253,10 @@ export function createGrid(board, {
         // PLAN-10: remember whether this port-to-port join is between mismatched radius classes, so
         // the drag-end can hard-warn. Non-blocking — the snap itself still happens.
         mismatchNeighbour = (s.connectedTo && radiusMismatch(primary, s.connectedTo)) ? s.connectedTo : null;
+        connectedNow = !!s.connectedTo;
       } else {
         mismatchNeighbour = null; // bypassed frames must clear any stale port join (no ghost warns)
+        connectedNow = false;
       }
       const dx = nx - pox, dy = ny - poy;
       for (const { t, ox, oy } of origins) {
@@ -1265,8 +1273,13 @@ export function createGrid(board, {
       activePointerId = null;
       for (const { t } of origins) tileEl(t.id)?.classList.remove('dragging');
       // A plain click that selected without dragging isn't a mutation — don't spend a history step.
-      if (dragMoved || altCopy) {
-        growToFit(); finalize(altCopy ? 'Alt-drag copy' : 'Move');
+      if (dragMoved) {
+        growToFit(); finalize('Move');
+        // MOTION: a satisfying "click" pulse when a road/rail piece lands on a port-to-port join.
+        if (connectedNow) {
+          const pel = tileEl(primary.id);
+          if (pel) { pel.classList.remove('snapped'); void pel.offsetWidth; pel.classList.add('snapped'); }
+        }
         if (mismatchNeighbour) warnRadiusMismatch(primary, mismatchNeighbour); // PLAN-10 hard-warn
       }
     }

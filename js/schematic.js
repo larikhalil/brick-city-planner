@@ -4,12 +4,15 @@
 // Returns '' for kinds with no schematic (baseplate uses its flat colour; generic
 // sets fall back to the tinted box photo).
 
-// Road/track surface palette (theme-independent — these are painted-on materials, not UI chrome).
-const ROAD_A = '#565b62', ROAD_B = '#494d54', ROAD_C = '#3d4147'; // asphalt light→dark
-const WALK = '#c3c7cd';                                            // sidewalk light grey
+// Road/track surface palette. These asphalt/ballast greys read fine on the light canvas but wash
+// out (look near-white, brightest thing on screen) against the dark canvas, so they're now CSS
+// custom properties themed per mode in styles.css — the schematic SVG resolves them via inline
+// `style="stop-color:var(--…)"` (see grad()). The yellow lane accent stays a fixed colour.
+const ROAD_A = 'var(--road-a)', ROAD_B = 'var(--road-b)', ROAD_C = 'var(--road-c)'; // asphalt light→dark
+const WALK = '#aeb3ba';                                            // sidewalk grey (fixed — thin edges, reads OK either theme)
 const CURB = 'stroke="rgba(255,255,255,.4)" stroke-width="1.5" fill="none"';                     // kerb highlight
 const LANE = 'stroke="#f4c430" stroke-width="3" stroke-dasharray="10 8" stroke-linecap="round" fill="none"'; // centre dashes
-const BAL_A = '#9ba0a6', BAL_B = '#878c92', BAL_C = '#73787e';     // track ballast light→dark
+const BAL_A = 'var(--bal-a)', BAL_B = 'var(--bal-b)', BAL_C = 'var(--bal-c)';     // track ballast light→dark
 const TIE = '#6d5a45', TIE_SH = 'rgba(0,0,0,.28)';                 // sleeper wood + its cast shadow
 const RAILDK = '#33333a', RAILHI = '#7c7c86';                      // steel rail + top highlight
 
@@ -21,8 +24,9 @@ let _uid = 0;
 function grad(axis, a, b, c) {
   const id = 'g' + (_uid++);
   const coords = axis === 'x' ? 'x1="0" y1="0" x2="100" y2="0"' : 'x1="0" y1="0" x2="0" y2="100"';
+  // stop-color set via `style` (not the attribute) so CSS custom properties like var(--road-a) resolve.
   const def = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" ${coords}>` +
-    `<stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs>`;
+    `<stop offset="0" style="stop-color:${a}"/><stop offset=".5" style="stop-color:${b}"/><stop offset="1" style="stop-color:${c}"/></linearGradient></defs>`;
   return { id, def };
 }
 

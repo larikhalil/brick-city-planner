@@ -238,10 +238,18 @@ function effectiveTheme() {
   if (stored) return stored;
   try { return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch { return 'light'; }
 }
+// Inline-SVG icons for the two buttons whose glyph changes with state (theme + lock). Everything
+// else is static SVG in index.html; these two are swapped here so the icon set stays consistent.
+const ICON = {
+  moon: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg>',
+  sun: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  unlocked: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7.5A4 4 0 0 1 15.5 6"/></svg>',
+  locked: '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+};
 function syncThemeButton() {
   const btn = $('btn-theme'); if (!btn) return;
   const isDark = effectiveTheme() === 'dark';
-  btn.textContent = isDark ? '☀' : '🌙';
+  btn.innerHTML = isDark ? ICON.sun : ICON.moon;
   btn.setAttribute('aria-pressed', String(isDark));
   const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
   btn.title = label; btn.setAttribute('aria-label', label);
@@ -395,7 +403,7 @@ function drawLockButton() {
   const state = grid.selectionLockState(); // 'none' | 'unlocked' | 'locked' | 'mixed'
   btn.disabled = state === 'none';
   const locked = state === 'locked';
-  btn.textContent = locked ? '🔒' : '🔓';
+  btn.innerHTML = locked ? ICON.locked : ICON.unlocked;
   btn.setAttribute('aria-pressed', String(locked));
   const label = state === 'none' ? 'Lock or unlock selected' : (locked ? 'Unlock selected' : 'Lock selected');
   btn.title = `${label} (L)`; btn.setAttribute('aria-label', label);
@@ -527,7 +535,7 @@ function drawDims() {
   // Measure the same physical set the summary's 'Total footprint' does (sets + custom blocks, but
   // NOT terrain paint or sticky notes) so the topbar readout and the summary can never diverge.
   const b = bbox(grid.getPlaced().filter(isPhysical));
-  $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'empty';
+  $('grid-dims').textContent = b.w ? fmtDims(b.w, b.h, unitState) : 'No sets yet';
 }
 function refresh() { drawSummary(); drawDims(); drawGridSize(); updateFirstRun(); drawCityLabel(); updateCheckButton(); }
 
@@ -601,6 +609,7 @@ function closeHistoryMenu() {
 function drawSelection(ids = []) {
   disarmDelete();   // Wave 6: any selection change cancels a pending touch delete-confirm
   drawLockButton(); // keep the toolbar lock button in step with the selection
+  const dup = $('btn-dup'); if (dup) dup.disabled = ids.length === 0; // Duplicate needs a selection
   const bar = $('align-bar');
   if (!bar) return;
   bar.hidden = ids.length < 2;
@@ -1351,6 +1360,7 @@ async function boot() {
     refresh();
   });
   $('btn-rotate').addEventListener('click', () => grid.rotateSelected());
+  $('btn-dup')?.addEventListener('click', () => grid.duplicate()); // visible Duplicate (also Ctrl+D)
   $('btn-forward').addEventListener('click', () => grid.bringForward());
   $('btn-back').addEventListener('click', () => grid.sendBackward());
 

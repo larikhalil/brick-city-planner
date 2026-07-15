@@ -1,59 +1,93 @@
-/* ============ TOKENS ============ */
+/* ============ TOKENS ============
+   "Playful Studio" — a clean, spacious studio surface warmed with LEGO colour, a stud motif and
+   brick tactility. The variable *contract* is unchanged from the previous (blueprint) theme — every
+   name still exists and means the same thing — so all downstream rules retint automatically; only
+   the values changed, plus a few added tokens (--accent-hi, --faint, --brick-in, --s*, --stud-*). */
 :root{
-  /* cool drafting-paper neutrals, biased toward blueprint blue */
-  --bg:#e7ecf4; --panel:#ffffff; --panel-2:#f3f6fb; --sunk:#eef2f8;
-  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#5e6d84;  /* AA-checked ≥4.5:1 on panel/sunk */
-  --line:#d5ddeb; --line-2:#c2cddd; --plate:#9fb0cb;      /* baseplate rule */
-  --accent:#ffcf33;                                        /* construction yellow */
-  --accent-ink:#241905; --accent-deep:#e0a900;
-  --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;          /* warn darkened for AA text contrast */
+  /* light, cool-neutral studio surfaces */
+  --bg:#EBEEF3; --panel:#ffffff; --panel-2:#F5F7FB; --sunk:#EDF1F7;
+  --ink:#1B2330; --ink-soft:#5A6678; --ink-faint:#606C7E;  /* AA-checked ≥4.5:1 on panel/sunk */
+  --faint:#93A0B4;                                          /* decorative tertiary (not body text) */
+  --line:#E2E7EF; --line-2:#D4DBE6; --plate:#AAB6CA;        /* baseplate rule */
+  --accent:#FFCE1C; --accent-hi:#FFDD52;                    /* LEGO yellow + highlight for bevels */
+  --accent-ink:#33280A; --accent-deep:#E0A400;
+  --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;           /* warn darkened for AA text contrast */
   /* theme (set category) colours — semantic legend */
-  --t-police:#2f7fe0; --t-fire:#e8463a; --t-train:#1f9d76;
-  --t-city:#4d7194; --t-modular:#c9993c; --t-road:#7a869a;
-  --t-park:#7ba838; --t-space:#7b5bd6;
+  --t-police:#2F6BFF; --t-fire:#E8402C; --t-train:#2FA84F;
+  --t-city:#48566B; --t-modular:#C8862B; --t-road:#3A3F47;
+  --t-park:#6DA83A; --t-space:#7b5bd6;
   /* baseplate "ground" + road/track colours (theme-independent) */
-  --g-green:#7bab54; --g-blue:#4795cc; --g-gray:#949daa; --g-sand:#d6c288; --g-white:#e0e5ea;
-  --road:#5a616b; --track:#8a7d68;
-  --grid-fine:#dfe6f1; --grid-stud:#cbd6e6; --canvas:#f6f8fc;
-  --shadow:0 1px 2px rgba(15,26,43,.06),0 6px 18px rgba(15,26,43,.08);
+  --g-green:#54A048; --g-blue:#4795cc; --g-gray:#949daa; --g-sand:#d6c288; --g-white:#e0e5ea;
+  --road:#3A3F47; --track:#8a7d68;
+  --grid-fine:#DEE4EC; --grid-stud:#C6CFDD; --canvas:#EFF3F8;
+  --shadow:0 1px 2px rgba(20,30,50,.05),0 6px 18px rgba(20,30,50,.07);
+  /* brick tactility: top highlight + bottom shade, layered inside a control to read as a stud brick */
+  --brick-in:inset 0 1.5px 0 rgba(255,255,255,.6),inset 0 -2.5px 0 rgba(0,0,0,.13);
+  --stud-hi:rgba(255,255,255,.6); --stud-lo:rgba(0,0,0,.13);
+  /* spacing scale (new components; legacy rules keep their literals) */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
   --mono:ui-monospace,"Cascadia Code","SF Mono",Consolas,monospace;
   --sans:"Segoe UI Variable","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
-  --disp:"Bahnschrift","Segoe UI Variable Display",var(--sans);
+  --disp:"Segoe UI Variable Display","Segoe UI",system-ui,var(--sans);
 }
 @media (prefers-color-scheme:dark){
   :root{
-    --bg:#0b1220; --panel:#131f31; --panel-2:#0f1826; --sunk:#0d1522;
-    --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#7789a5;
-    --line:#243449; --line-2:#2c3f58; --plate:#3d5779;
-    --accent:#ffd23f; --accent-ink:#241905; --accent-deep:#ffbe1a;
+    --bg:#12161D; --panel:#1B2130; --panel-2:#161C28; --sunk:#131822;
+    --ink:#EAEEF6; --ink-soft:#A2AEC0; --ink-faint:#8794A8; --faint:#6C7789;
+    --line:#2A3242; --line-2:#333D4F; --plate:#455168;
+    --accent:#FFD23F; --accent-hi:#FFE070; --accent-ink:#2A2200; --accent-deep:#F0B000;
     --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
-    --t-police:#4a92ec; --t-fire:#ef5a4e; --t-train:#2fb98d;
-    --t-city:#6f92b6; --t-modular:#d8ab4e; --t-road:#8a97ab;
-    --t-park:#96c14e; --t-space:#9576e6;
-    --grid-fine:#1a2740; --grid-stud:#22314c; --canvas:#0e1826;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.35);
+    --t-police:#4A82F0; --t-fire:#EF5A4E; --t-train:#3BBE6A;
+    --t-city:#6C7E96; --t-modular:#D8A64E; --t-road:#8A97AB;
+    --t-park:#8FBE45; --t-space:#9576e6;
+    --grid-fine:#1C2637; --grid-stud:#26324A; --canvas:#141B27;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.4);
+    --brick-in:inset 0 1.5px 0 rgba(255,255,255,.14),inset 0 -2.5px 0 rgba(0,0,0,.3);
+    --stud-hi:rgba(255,255,255,.14); --stud-lo:rgba(0,0,0,.3);
   }
 }
 :root[data-theme="light"]{
-  --bg:#e7ecf4; --panel:#ffffff; --panel-2:#f3f6fb; --sunk:#eef2f8;
-  --ink:#0f1a2b; --ink-soft:#57667e; --ink-faint:#5e6d84;
-  --line:#d5ddeb; --line-2:#c2cddd; --plate:#9fb0cb;
-  --accent:#ffcf33; --accent-deep:#e0a900; --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;
-  --t-police:#2f7fe0; --t-fire:#e8463a; --t-train:#1f9d76; --t-city:#4d7194;
-  --t-modular:#c9993c; --t-road:#7a869a; --t-park:#7ba838; --t-space:#7b5bd6;
-  --grid-fine:#dfe6f1; --grid-stud:#cbd6e6; --canvas:#f6f8fc;
-  --shadow:0 1px 2px rgba(15,26,43,.06),0 6px 18px rgba(15,26,43,.08);
+  --bg:#EBEEF3; --panel:#ffffff; --panel-2:#F5F7FB; --sunk:#EDF1F7;
+  --ink:#1B2330; --ink-soft:#5A6678; --ink-faint:#606C7E; --faint:#93A0B4;
+  --line:#E2E7EF; --line-2:#D4DBE6; --plate:#AAB6CA;
+  --accent:#FFCE1C; --accent-hi:#FFDD52; --accent-deep:#E0A400; --accent-ink:#33280A;
+  --ok:#1f9d54; --warn:#ac570a; --danger:#d8382a;
+  --t-police:#2F6BFF; --t-fire:#E8402C; --t-train:#2FA84F; --t-city:#48566B;
+  --t-modular:#C8862B; --t-road:#3A3F47; --t-park:#6DA83A; --t-space:#7b5bd6;
+  --g-green:#54A048; --road:#3A3F47;
+  --grid-fine:#DEE4EC; --grid-stud:#C6CFDD; --canvas:#EFF3F8;
+  --shadow:0 1px 2px rgba(20,30,50,.05),0 6px 18px rgba(20,30,50,.07);
+  --brick-in:inset 0 1.5px 0 rgba(255,255,255,.6),inset 0 -2.5px 0 rgba(0,0,0,.13);
+  --stud-hi:rgba(255,255,255,.6); --stud-lo:rgba(0,0,0,.13);
 }
 :root[data-theme="dark"]{
-  --bg:#0b1220; --panel:#131f31; --panel-2:#0f1826; --sunk:#0d1522;
-  --ink:#e7eefa; --ink-soft:#93a4be; --ink-faint:#7789a5;
-  --line:#243449; --line-2:#2c3f58; --plate:#3d5779;
-  --accent:#ffd23f; --accent-deep:#ffbe1a; --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
-  --t-police:#4a92ec; --t-fire:#ef5a4e; --t-train:#2fb98d; --t-city:#6f92b6;
-  --t-modular:#d8ab4e; --t-road:#8a97ab; --t-park:#96c14e; --t-space:#9576e6;
-  --grid-fine:#1a2740; --grid-stud:#22314c; --canvas:#0e1826;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.35);
+  --bg:#12161D; --panel:#1B2130; --panel-2:#161C28; --sunk:#131822;
+  --ink:#EAEEF6; --ink-soft:#A2AEC0; --ink-faint:#8794A8; --faint:#6C7789;
+  --line:#2A3242; --line-2:#333D4F; --plate:#455168;
+  --accent:#FFD23F; --accent-hi:#FFE070; --accent-deep:#F0B000; --accent-ink:#2A2200;
+  --ok:#3bc172; --warn:#f0962c; --danger:#f0574a;
+  --t-police:#4A82F0; --t-fire:#EF5A4E; --t-train:#3BBE6A; --t-city:#6C7E96;
+  --t-modular:#D8A64E; --t-road:#8A97AB; --t-park:#8FBE45; --t-space:#9576e6;
+  --g-green:#4A9243; --road:#2f343d;
+  --grid-fine:#1C2637; --grid-stud:#26324A; --canvas:#141B27;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.4);
+  --brick-in:inset 0 1.5px 0 rgba(255,255,255,.14),inset 0 -2.5px 0 rgba(0,0,0,.3);
+  --stud-hi:rgba(255,255,255,.14); --stud-lo:rgba(0,0,0,.3);
 }
+
+/* ============ STUD GLYPH (signature) + BRICK PRIMITIVE ============ */
+/* A tiny 2-stud glyph that precedes every small-caps section label — the motif that unifies the UI. */
+.stud{display:inline-block;width:13px;height:7px;vertical-align:middle;margin-right:7px;opacity:.75;
+  background:radial-gradient(circle at 3.5px 3.5px,currentColor 1.7px,transparent 2.1px),
+            radial-gradient(circle at 9.5px 3.5px,currentColor 1.7px,transparent 2.1px)}
+@media (pointer:coarse){.stud{margin-right:6px}}
+
+/* Asphalt + ballast surface greys (schematic.js resolves these in the road/track SVG gradients).
+   Light = the original materials; dark = darker so roads/tracks don't blow out on the dark canvas. */
+:root{--road-a:#565b62;--road-b:#494d54;--road-c:#3d4147;--bal-a:#9ba0a6;--bal-b:#878c92;--bal-c:#73787e}
+@media (prefers-color-scheme:dark){:root{--road-a:#2f343d;--road-b:#292d35;--road-c:#23272e;--bal-a:#4a4f57;--bal-b:#41454c;--bal-c:#383c42}}
+:root[data-theme="light"]{--road-a:#565b62;--road-b:#494d54;--road-c:#3d4147;--bal-a:#9ba0a6;--bal-b:#878c92;--bal-c:#73787e}
+:root[data-theme="dark"]{--road-a:#2f343d;--road-b:#292d35;--road-c:#23272e;--bal-a:#4a4f57;--bal-b:#41454c;--bal-c:#383c42}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
@@ -90,24 +124,49 @@ button{font-family:inherit;cursor:pointer}
 .save-status.saving .dot{background:var(--warn);animation:save-pulse 1s ease-in-out infinite}
 @keyframes save-pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.save-status.saving .dot{animation:none}}
+/* consistent inline-SVG icon (replaces the old emoji icon buttons) */
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
 .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);
-  background:var(--panel-2);color:var(--ink);padding:8px 12px;border-radius:9px;
-  font-size:13px;font-weight:600;transition:transform .08s,border-color .12s,background .12s}
-.btn:hover{transform:translateY(-1px);border-color:var(--plate)}
-.btn.primary{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
-.btn.icon{padding:8px 10px;font-size:15.5px;line-height:1}
+  background:var(--panel-2);color:var(--ink);padding:7px 12px;border-radius:8px;
+  font-size:12.5px;font-weight:700;white-space:nowrap;
+  transition:background .12s,border-color .12s,box-shadow .12s,filter .1s,transform .06s}
+.btn:hover{background:var(--panel);border-color:var(--line-2)}
+.btn svg.i{width:16px;height:16px;color:var(--ink-soft)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-soft)}
+.btn.ghost:hover{background:var(--sunk);color:var(--ink);border-color:transparent}
+.btn.ghost svg.i{color:var(--ink-faint)}
+/* SIGNATURE — the primary CTA is a 2-stud LEGO brick (top highlight + bottom shade bevel) */
+.btn.primary{color:var(--accent-ink);border-color:var(--accent-deep);
+  background:linear-gradient(180deg,var(--accent-hi),var(--accent));
+  box-shadow:var(--brick-in),0 1px 2px rgba(180,130,0,.26)}
+.btn.primary:hover{filter:brightness(1.03)}
+.btn.primary:active{transform:translateY(1px)}
+.btn.primary svg.i{color:var(--accent-ink)}
+.btn.icon{padding:0;width:34px;height:34px;justify-content:center;line-height:1}
+.btn.icon svg.i{color:var(--ink-soft)}
+.btn.icon:hover:not(:disabled) svg.i{color:var(--ink)}
 .btn.sm{padding:6px 10px;font-size:12px}
-.btn.icon.sm{padding:6px 8px;font-size:13px}
+.btn.icon.sm{width:30px;height:30px;padding:0}
+.btn.icon:disabled{opacity:.4;cursor:not-allowed}
 /* ---- Current-city label (QOL-5) ---- */
-.city-label{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--line-2);
-  background:transparent;color:var(--ink-soft);padding:6px 10px;border-radius:9px;font-size:12.5px;
-  font-weight:600;max-width:190px}
-.city-label:hover{border-color:var(--plate);color:var(--ink);border-style:solid}
+.city-label{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);
+  background:var(--panel-2);color:var(--ink);padding:6px 11px;border-radius:999px;font-size:12.5px;
+  font-weight:700;max-width:210px}
+.city-label:hover{border-color:var(--plate);background:var(--panel)}
+.city-label svg.i{width:14px;height:14px;color:var(--t-police);flex:none}
 .city-label span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
-.seg button{border:0;background:var(--panel-2);color:var(--ink-soft);padding:8px 11px;font-weight:600}
-.seg button+button{border-left:1px solid var(--line-2)}
-.seg button.on{background:var(--sunk);color:var(--ink)}
+/* topbar zoning: a hairline divider + the grouped view-toggle cluster */
+.tb-div{width:1px;height:24px;background:var(--line-2);flex:none;align-self:center}
+.tb-cluster{display:inline-flex;align-items:center;gap:3px;background:var(--sunk);
+  border:1px solid var(--line-2);border-radius:10px;padding:3px}
+.tb-cluster .btn.icon{width:32px;height:30px;border:1px solid transparent;background:transparent}
+.tb-cluster .btn.icon:hover{background:var(--panel)}
+/* segmented control (units / zoom / tools) — padded pill with a raised "on" chip */
+.seg{display:inline-flex;background:var(--sunk);border:1px solid var(--line-2);border-radius:8px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--ink-soft);padding:5px 12px;font-weight:700;
+  font-size:12px;border-radius:6px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1),var(--brick-in)}
 
 /* ---- Shared-city read-only banner (QOL-5b) ---- */
 .shared-banner{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -120,15 +179,28 @@ button{font-family:inherit;cursor:pointer}
 /* ============ LAYOUT ============ */
 .grid3{display:grid;grid-template-columns:270px minmax(0,1fr) 258px;gap:14px;margin-top:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
-.card-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
-.card-h h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.card-h{display:flex;align-items:center;gap:8px;padding:13px 16px 12px;border-bottom:1px solid var(--line);position:relative}
+.card-h h2{font-size:14.5px;letter-spacing:-.01em;text-transform:none;color:var(--ink);font-weight:800}
+/* a short baseplate-coloured rule under each panel title ties the three panels into one system */
+#catalog-panel>.card-h::after,.canvas-wrap>.card-h::after,#summary-panel>.card-h::after{
+  content:"";position:absolute;left:16px;bottom:-1px;height:3px;width:34px;border-radius:2px}
+#catalog-panel>.card-h::after{background:var(--g-green)}
+.canvas-wrap>.card-h::after{background:var(--accent-deep)}
+#summary-panel>.card-h::after{background:var(--t-police)}
 .count-pill{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-faint);
   background:var(--sunk);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+/* Catalog count: a tidy two-line block in the panel header (never a wrapping pill) */
+#catalog-count{margin-left:auto;background:none;border:0;padding:0;border-radius:0;text-align:right;
+  line-height:1.25;font-family:var(--sans)}
+#catalog-count b{font-size:13px;font-weight:800;color:var(--ink)}
+#catalog-count small{display:block;font-size:10.5px;color:var(--faint);font-weight:600;white-space:nowrap}
 
 /* ---- Catalog ---- */
 .search{margin:12px 14px 8px;display:flex;align-items:center;gap:8px;background:var(--sunk);
   border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;color:var(--ink-faint)}
 .search input{border:0;background:transparent;color:var(--ink);width:100%;font-size:13px;outline:none}
+.search .search-i{display:inline-flex;color:var(--faint);flex:none}
+.search svg.i{width:16px;height:16px}
 /* Gentle nudge toward the search box during the first-run tip (UI-1) */
 .search.pulse{animation:search-pulse 1.7s ease-in-out infinite}
 @keyframes search-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,207,51,.45)}50%{box-shadow:0 0 0 5px rgba(255,207,51,0)}}
@@ -155,37 +227,57 @@ button{font-family:inherit;cursor:pointer}
 .set-name{font-weight:600;font-size:13.5px;line-height:1.3;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .set-sub{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-top:2px;
-  display:flex;gap:8px;align-items:center}
-.set-sub .set-num{color:var(--ink-faint)}
+  display:flex;gap:8px;align-items:center;min-width:0;overflow:hidden}
+.set-sub>*{flex:none}
+.set-sub .set-num{color:var(--ink-faint);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .set-sub .price{margin-left:auto}
+/* the trailing "— 48×48" size in a set title, kept together as one de-emphasised unit */
+.set-name .nm-dim{white-space:nowrap;color:var(--ink-soft);font-weight:600}
 .fp{color:var(--ink-soft)}
 .approx{color:var(--warn)}
 /* 2a: retired badge — LEGO no longer sells the set new (tooltip carries the note) */
 .ret{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
   color:var(--warn);border:1px solid currentColor;border-radius:999px;padding:1px 6px;line-height:1.3;flex:none}
-.add{flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);
-  background:var(--panel-2);color:var(--ink-soft);font-size:16px;font-weight:700;line-height:1}
-.set:hover .add{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+/* Add-to-grid is always a little yellow brick — the primary action on every catalog row */
+.add{flex:none;width:30px;height:30px;border-radius:8px;border:1px solid var(--accent-deep);
+  background:linear-gradient(180deg,var(--accent-hi),var(--accent));color:var(--accent-ink);
+  box-shadow:var(--brick-in);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.add svg.i{color:var(--accent-ink)}
+.set:hover .add{filter:brightness(1.04)}
 /* ---- PLAN-7: custom-baseplate action ---- */
 .cat-actions{padding:0 14px 8px}
 .cat-actions .btn{width:100%;justify-content:center}
 /* ---- Catalog sort + view toggle ---- */
-.cat-controls{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 14px 8px}
-.cat-controls .sort{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
-  text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint)}
-/* 2b: Legacy toggle — include retired sets (off by default) */
-.cat-controls .legacy{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;
-  text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);cursor:pointer;user-select:none}
-.cat-controls .legacy input{width:14px;height:14px;accent-color:var(--accent-deep);cursor:pointer}
-.cat-controls select{font:inherit;font-size:12px;text-transform:none;letter-spacing:0;color:var(--ink);
-  background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;padding:4px 6px;cursor:pointer}
+.cat-controls{display:flex;flex-direction:column;gap:8px;padding:0 14px 10px}
+.cc-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cat-controls .sort{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink)}
+.cat-controls .sort .sort-lab{color:var(--ink-soft);font-weight:600}
+.cat-controls select{font:inherit;font-size:12px;color:var(--ink);font-weight:700;
+  background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:5px 8px;cursor:pointer}
+/* 2b: Legacy toggle — its own line inside a tinted box with a description, never jammed against Sort */
+.cat-controls .legacy{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:10px;font-size:12px;font-weight:700;color:var(--ink);
+  cursor:pointer;user-select:none}
+/* Custom checkbox: hollow when OFF (native unchecked box rendered as a glaring white square in dark
+   mode and read as "on"), a blue tick when ON — unambiguous and theme-correct in both modes. */
+.cat-controls .legacy input{appearance:none;-webkit-appearance:none;width:18px;height:18px;flex:none;
+  border:1.5px solid var(--line-2);border-radius:5px;background:var(--panel);cursor:pointer;position:relative;
+  transition:background .12s,border-color .12s}
+.cat-controls .legacy input:checked{background:var(--t-police);border-color:var(--t-police)}
+.cat-controls .legacy input:checked::after{content:"";position:absolute;left:5.5px;top:2px;width:4px;height:8px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.cat-controls .legacy input:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
+.cat-controls .legacy .legacy-tx{display:flex;flex-direction:column;line-height:1.2}
+.cat-controls .legacy .legacy-tx small{font-size:10px;color:var(--faint);font-weight:600}
 /* ---- UI-4: list/grid view toggle ---- */
 .view-toggle button{padding:5px 9px;font-size:13px;line-height:1}
 /* ---- Ownership + favorite + wishlist + price + buy links on a catalog row ---- */
 .set-actions{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.own,.fav,.wish{width:28px;height:28px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
-  color:var(--ink-faint);font-size:14px;line-height:1;cursor:pointer;padding:0}
-.own{font-size:15px}
+.own,.fav,.wish{width:30px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
+  color:var(--ink-soft);line-height:1;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.own svg.i,.fav svg.i,.wish svg.i,.add svg.i{width:16px;height:16px}
+/* pressed = the icon fills in with its state colour (gold star / red heart / green cart) */
+.own[aria-pressed="true"] svg.i,.fav[aria-pressed="true"] svg.i,.wish[aria-pressed="true"] svg.i{fill:currentColor}
 .own[aria-pressed="true"]{color:var(--accent-deep);border-color:var(--accent-deep);background:var(--panel)}
 .own:hover,.fav:hover,.wish:hover{border-color:var(--plate);color:var(--ink)}
 /* Three deliberately-different affordances so they never read as the same star:
@@ -236,8 +328,23 @@ button{font-family:inherit;cursor:pointer}
 
 /* ---- Canvas ---- */
 .canvas-wrap{padding:0;position:relative}
-.canvas-tools{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.canvas-tools{display:flex;align-items:stretch;gap:9px;padding:11px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .tool-sep{width:1px;align-self:stretch;background:var(--line);margin:2px 2px}
+/* Labeled toolbar "bays" — every control grouped under a small-caps + stud-glyph section label */
+.tgroup{display:flex;flex-direction:column;justify-content:center;gap:4px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:11px;padding:5px 9px 6px}
+.tgroup>.slbl{display:flex;align-items:center;font-size:9.5px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-faint);padding-left:1px;white-space:nowrap}
+.tgroup .stud{width:11px;height:6px;margin-right:5px;opacity:.65}
+.tgroup .trow{display:flex;align-items:center;justify-content:center;gap:3px}
+.tdiv{width:1px;align-self:stretch;background:var(--line-2);margin:2px 3px}
+/* icon buttons inside a bay: borderless tiles that fill in on hover */
+.tgroup .btn.icon{width:30px;height:30px;border:1px solid transparent;background:transparent;border-radius:7px}
+.tgroup .btn.icon:hover:not(:disabled){background:var(--panel);border-color:var(--line-2)}
+.tgroup .seg,.tgroup .gsize{align-self:flex-start}
+.tgroup .seg{background:var(--panel)}
+.seg.tools button{padding:5px 9px}
+.seg.tools button svg.i{width:17px;height:17px}
 /* undo / redo + history dropdown */
 .hist-group{position:relative;display:inline-flex;gap:8px}
 .btn.icon:disabled{opacity:.4;cursor:not-allowed;transform:none}
@@ -284,10 +391,14 @@ button{font-family:inherit;cursor:pointer}
 .canvas-tools .muted{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
 .stage{position:relative;overflow:auto;background:var(--canvas);border-radius:0 0 12px 12px}
 /* ---- First-run guided empty state (UI-1) ---- */
-.first-run{position:absolute;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:18px;background:var(--canvas);text-align:center;padding:24px}
+.first-run{position:absolute;inset:0;z-index:15;display:flex;align-items:center;
+  justify-content:center;background:var(--canvas);text-align:center;padding:24px}
 .first-run[hidden]{display:none}
-.fr-close{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:8px;
+/* the tips live in a contained card so the dismiss ✕ clearly belongs to them (not floating loose) */
+.fr-card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);padding:26px 30px;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:460px}
+.fr-title{font-size:16px;font-weight:800;color:var(--ink)}
+.fr-close{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;
   border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-soft);font-size:13px;display:grid;place-items:center}
 .fr-close:hover{color:var(--ink);border-color:var(--plate)}
 .fr-steps{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:420px}
@@ -340,7 +451,8 @@ button{font-family:inherit;cursor:pointer}
   background-size:12px 12px;background-position:6px 6px;opacity:.35}
 .tile::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(160deg,rgba(255,255,255,.22),transparent 45%)}
-.tile .tn{font-weight:700;font-size:12.5px;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.35);z-index:1;position:relative}
+.tile .tn{font-weight:700;font-size:12.5px;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.35);z-index:1;
+  position:relative;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tile .tsub{font-family:var(--mono);font-size:10.5px;opacity:.92;z-index:1;position:relative;
   display:flex;justify-content:space-between;align-items:flex-end;gap:6px;text-shadow:0 1px 2px rgba(0,0,0,.3)}
 /* Item 5a: small tiles carry less writing so the art stays visible. .small (min side < 14 studs)
@@ -418,7 +530,17 @@ button{font-family:inherit;cursor:pointer}
 /* baseplates, roads & tracks are the ground: flat, no shadow, no hover-lift, stay beneath buildings */
 .tile.flat{box-shadow:none;border-color:rgba(0,0,0,.14)}
 .tile.flat:hover{transform:none;box-shadow:none;z-index:auto}
-.tile.flat .tn{font-weight:600;font-size:11px}
+/* Ground tiles carry a compact bottom-left NAME PILL rather than a big centred label, so a building
+   placed on top of a baseplate never collides with the plate's own name (fixes stacked-label mess). */
+.tile.flat .tlabel{inset:auto auto 5px 5px;padding:0;justify-content:flex-end;align-items:flex-start}
+.tile.flat .tn{font-weight:700;font-size:10px;background:rgba(0,0,0,.34);color:#fff;padding:2px 7px;
+  border-radius:6px;text-shadow:0 1px 1px rgba(0,0,0,.3);max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.tile.flat .tsub{display:none}
+/* Roads/tracks are matte asphalt/ballast — the white stud-dot texture + gloss made them read as a
+   washed-out light panel on the dark canvas. Nearly remove both here (baseplates keep their studs). */
+.tile[data-cat="road"]::before,.tile[data-cat="track"]::before{opacity:.08}
+.tile[data-cat="road"]::after,.tile[data-cat="track"]::after{background:none}
 /* schematic art fills the tile behind the label */
 .tile .schem{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transform-origin:center}
 .swatch .schem{position:absolute;inset:0;width:100%;height:100%}
@@ -447,6 +569,21 @@ button{font-family:inherit;cursor:pointer}
   100%{opacity:1;transform:scale(1) rotate(var(--rot))}
 }
 @media (prefers-reduced-motion:reduce){.tile{animation:none;transition:none}}
+/* ============ MOTION / JUICE ============ */
+/* The satisfying "click" when a road/rail piece lands on a port-to-port join (grid.js adds .snapped).
+   A pure box-shadow pulse — never touches `transform`, so it can't collide with the tile's rotation. */
+@keyframes snap-pulse{
+  0%{box-shadow:0 0 0 0 rgba(47,168,79,.6),0 2px 6px rgba(0,0,0,.25)}
+  100%{box-shadow:0 0 0 11px rgba(47,168,79,0),0 2px 6px rgba(0,0,0,.22)}
+}
+.tile.snapped{animation:snap-pulse .42s ease-out}
+/* Tactile press feedback — every interactive control dips 1px like a pressed brick */
+@media (prefers-reduced-motion:no-preference){
+  .btn:active,.gstep:active,.seg button:active,.chip:active,.mb-btn:active,.add:active,
+  .ab-btn:active,.tb-swatch:active,.rail-item:active{transform:translateY(1px)}
+  .chip,.add{transition:background .12s,border-color .12s,filter .12s,transform .07s}
+}
+@media (prefers-reduced-motion:reduce){.tile.snapped{animation:none}}
 
 /* ============ MOTION-3 / UI-5: canvas tools, terrain paint, notes & custom blocks ============ */
 /* Tool switcher (pointer / paint / note / block) — active tool gets the construction-yellow chip. */
@@ -521,7 +658,12 @@ button{font-family:inherit;cursor:pointer}
 .budget{border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:11px 12px;
   display:flex;flex-direction:column;gap:6px}
 .bud-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.bud-row .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.bud-row .k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;white-space:nowrap}
+.bud-row .v{text-align:right}
+/* `.bud-row.own` shares the class name "own" with the catalog/summary ownership BUTTON, so the
+   button chrome (.own{border;width;min-width:40px on touch}) was turning this text row into a
+   bordered 40px box on mobile. Reset that chrome — this row is text, not a control. */
+.bud-row.own{border:0;background:none;width:auto;height:auto;min-width:0;min-height:0;padding:0}
 .bud-row .v{font-family:var(--mono);font-weight:600}
 .bud-row.buy .v{font-size:22px;color:var(--ink);line-height:1}
 .bud-row.own .v{font-size:13px;color:var(--ok)}
@@ -639,13 +781,14 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 #btn-iso.on{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
 
 /* ---- Table-size stepper (baseplates) ---- */
-.gsize{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+.gsize{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:11px;color:var(--ink);
+  background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:2px 5px}
 .gsize .lab{text-transform:uppercase;letter-spacing:.08em}
-.gstep{width:22px;height:24px;padding:0;border:1px solid var(--line-2);border-radius:6px;
-  background:var(--panel-2);color:var(--ink-soft);font-weight:700;font-size:15px;line-height:1;cursor:pointer}
-.gstep:hover{border-color:var(--plate);color:var(--ink);transform:translateY(-1px)}
-.gsize .v{min-width:14px;text-align:center;font-weight:700;color:var(--ink)}
-.gsize .x{opacity:.6}
+.gstep{width:24px;height:24px;padding:0;border:1px solid transparent;border-radius:6px;
+  background:transparent;color:var(--ink-soft);font-weight:700;font-size:15px;line-height:1;cursor:pointer}
+.gstep:hover{background:var(--sunk);color:var(--ink)}
+.gsize .v{min-width:14px;text-align:center;font-weight:800;color:var(--ink)}
+.gsize .x{opacity:.55}
 
 /* ============ WAVE 6: RESPONSIVE LAYOUT — TABLET (≤940px) & MOBILE (≤760px) ============
    Desktop (≥941px) is deliberately untouched: the 3-column .grid3, the wrapping toolbars and the
@@ -675,18 +818,26 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   /* --- Topbar: brand on its own line, the (now long) toolbar becomes a horizontal scroll strip --- */
   .topbar{gap:10px;padding:10px 12px}
   .toolbar{margin-left:0;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
-    padding-bottom:2px;scrollbar-width:none}
+    padding-bottom:2px;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 34px),transparent)}
   .toolbar::-webkit-scrollbar{display:none}
   .toolbar>*{flex:none}
   .save-status{display:none}                   /* frees space; changes still autosave silently */
 
   /* --- The board is the primary view and fills most of the screen --- */
   .grid3{display:block;margin-top:10px}
-  .canvas-tools{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:6px;
-    padding:8px 10px;scrollbar-width:none}
+  .canvas-tools{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:7px;
+    padding:8px 10px;scrollbar-width:none;
+    /* fade the right edge so it's obvious the toolbar scrolls (no more "cut off" ambiguity) */
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 42px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 42px),transparent)}
   .canvas-tools::-webkit-scrollbar{display:none}
   .canvas-tools>*{flex:none}
   .canvas-tools .muted,#grid-dims,#canvas-size{display:none} /* drop the read-outs, keep every control */
+  /* compact the labeled bays so more fit before scrolling */
+  .canvas-tools .tgroup{padding:5px 7px 6px;gap:4px;border-radius:9px}
+  .canvas-tools .tgroup>.slbl{font-size:9px;letter-spacing:.07em}
   #zoom-ctrl{margin-left:0}
   /* dvh grows the board when the URL bar retracts; the svh floor keeps it usable while it's shown. */
   .stage{height:max(340px,calc(100dvh - 208px));max-height:none}
@@ -738,6 +889,8 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
     border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);border-radius:11px;
     font-size:14px;font-weight:600}
   .mb-btn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+  .mb-btn svg.i{width:20px;height:20px;color:var(--ink-soft)}
+  .mb-btn[aria-expanded="true"] svg.i{color:var(--accent-ink)}
 
   /* roomier catalog rows on a phone */
   .set{padding:10px;gap:12px}
@@ -838,14 +991,16 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
   display:flex;align-items:center;justify-content:center;padding:20px}
 .modal-backdrop[hidden]{display:none}
 .modal{background:var(--panel);border:1px solid var(--line-2);border-radius:14px;box-shadow:var(--shadow);
-  max-width:520px;width:100%;max-height:85vh;overflow:auto}
+  max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
 .modal-h{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:14px 16px;border-bottom:1px solid var(--line)}
 .modal-h h2{font-size:14px;font-weight:700}
 .modal-close{width:30px;height:30px;flex:none;border-radius:8px;border:1px solid var(--line-2);
   background:var(--panel-2);color:var(--ink-soft);font-size:14px}
 .modal-close:hover{color:var(--ink);border-color:var(--plate)}
-.modal-body{padding:6px 16px 16px;display:flex;flex-direction:column;gap:16px}
+.modal-body{padding:6px 16px 16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;min-height:0}
+.modal-body::-webkit-scrollbar{width:10px}
+.modal-body::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:10px;border:2px solid var(--panel)}
 .sc-group h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
   font-weight:700;margin:14px 0 6px}
 .sc-row{display:flex;align-items:center;justify-content:space-between;gap:14px;
@@ -853,6 +1008,22 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 .sc-row:last-child{border-bottom:0}
 .sc-row kbd{font-family:var(--mono);font-size:11px;color:var(--ink-soft);background:var(--sunk);
   border:1px solid var(--line-2);border-radius:5px;padding:2px 7px;white-space:nowrap}
+/* ---- Guide legend: a labeled key of every button (icon + name + what it does) ---- */
+.lg-group h3{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);
+  font-weight:700;margin:18px 0 8px;display:flex;align-items:center}
+.lg-group h3:first-child{margin-top:2px}
+.lg-group h3 .stud{opacity:.6}
+.lg-grid{display:flex;flex-direction:column;gap:2px}
+.lg-row{display:flex;align-items:flex-start;gap:11px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.lg-row:last-child{border-bottom:0}
+.lg-ico{flex:none;width:34px;height:34px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);
+  display:grid;place-items:center;color:var(--ink-soft)}
+.lg-ico svg.i{width:18px;height:18px}
+.lg-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lg-tx b{font-size:13px;font-weight:700;color:var(--ink)}
+.lg-tx span{font-size:12px;color:var(--ink-soft);line-height:1.4}
+.lg-tx kbd{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);background:var(--sunk);
+  border:1px solid var(--line-2);border-radius:4px;padding:1px 5px}
 
 /* ============ TEMPLATES GALLERY (QOL-6) ============ */
 .tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
@@ -896,9 +1067,10 @@ h2.sec{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--
 .shop-fmt.on{background:var(--sunk);border-color:var(--plate)}
 
 /* ============ TOAST ============ */
+/* A fixed dark chip in BOTH themes — using var(--ink) made it a glaring white pill in dark mode. */
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
-  background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:10px;
-  font-size:13px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  background:#232c3b;color:#f4f7fb;border:1px solid rgba(255,255,255,.08);padding:10px 16px;border-radius:10px;
+  font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.2s;z-index:50}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ============ ACC-4: visually-subtle live-region announcer ============

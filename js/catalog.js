@@ -16,7 +16,7 @@ const CAT_VAR = {
   modular: 'var(--t-modular)', city: 'var(--t-city)',
   park: 'var(--t-park)', space: 'var(--t-space)', arctic: 'var(--t-police)',
   harbor: 'var(--t-city)', farm: 'var(--t-park)', airport: 'var(--t-city)',
-  baseplate: 'var(--g-gray)', road: 'var(--road)', track: 'var(--track)',
+  baseplate: 'var(--g-green)', road: 'var(--road)', track: 'var(--track)',
   pack: 'var(--t-park)', other: 'var(--t-city)',
 };
 
@@ -171,7 +171,10 @@ export function renderCatalog(els, sets, {
     // how users discover the toggle.
     const hidden = legacy ? 0
       : sets.filter((s) => matchesFilter(s, { text, category, legacy: true })).length - filtered.length;
-    els.count.textContent = `${filtered.length} sets` + (hidden > 0 ? ` · ${hidden} retired hidden` : '');
+    // Two-line block: the live count, then (if any) how many retired sets the Legacy toggle hides.
+    // Kept as its own lines so it never wraps mid-phrase or spills out of the panel header.
+    els.count.innerHTML = `<b>${filtered.length} sets</b>` +
+      (hidden > 0 ? `<small>${hidden.toLocaleString()} retired hidden</small>` : '');
     const scroll = els.list.scrollTop; // preserve scroll position across in-place refreshes (owned/wishlist toggles)
     els.list.innerHTML = '';
     const frag = document.createDocumentFragment();
@@ -227,12 +230,15 @@ export function renderCatalog(els, sets, {
     const wished = !!isWishlisted(s.set_num);
     const el = document.createElement('div');
     el.className = 'set' + (owned ? ' owned' : '');
+    // Keep a trailing " — 48×48" size as one non-breaking unit so the title never wraps mid-phrase
+    // leaving a dangling em dash ("Baseplate —" / "48×48").
+    const nameHtml = esc(s.name).replace(/ — (.+)$/, ' <span class="nm-dim">— $1</span>');
     el.innerHTML = `
       <div class="swatch${s.img ? ' has-img' : ''}" data-cat="${esc(s.category)}" style="background:${s.color || catColor(s.category)}">${
         s.img ? `<img src="${s.img}" alt="" loading="lazy" draggable="false"
           style="width:100%;height:100%;object-fit:contain"
           onerror="this.remove()">` : schematicSVG(s.kind, s.footprint, s.name)}</div>
-      <div class="set-meta"><div class="set-name" title="${esc(s.name)}${s.year ? ` (${s.year})` : ''}">${esc(s.name)}</div>
+      <div class="set-meta"><div class="set-name" title="${esc(s.name)}${s.year ? ` (${s.year})` : ''}">${nameHtml}</div>
         <div class="set-sub"><span class="set-num">${esc(s.num)}${s.year ? ` · ${s.year}` : ''}</span>
           ${s.retired ? '<span class="ret" title="Retired set — LEGO no longer sells it new; find it second-hand (BrickLink / Amazon)">Retired</span>' : ''}
           <span class="fp${approx ? ' approx' : ''}">${approx ? '≈ ' : ''}${s.footprint.w}×${s.footprint.h}</span>
@@ -242,19 +248,18 @@ export function renderCatalog(els, sets, {
       </div>
       <div class="set-actions">
         <button class="own" aria-label="Mark ${esc(s.name)} as owned" aria-pressed="${owned}"
-          title="I own this set">${owned ? '★' : '☆'}</button>
+          title="I own this set"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 2.3 4.9 5.4.7-4 3.8 1 5.4L12 16.9 7.3 19.6l1-5.4-4-3.8 5.4-.7Z"/></svg></button>
         <button class="fav" aria-label="${faved ? 'Remove' : 'Add'} ${esc(s.name)} ${faved ? 'from' : 'to'} favorites"
-          aria-pressed="${faved}" title="Favorite — quick re-place from the rail above">${faved ? '♥' : '♡'}</button>
+          aria-pressed="${faved}" title="Favorite — quick re-place from the rail above"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.6-7-9.6A3.9 3.9 0 0 1 12 7a3.9 3.9 0 0 1 7 3.4c0 5-7 9.6-7 9.6Z"/></svg></button>
         <button class="wish" aria-label="${wished ? 'Remove' : 'Add'} ${esc(s.name)} ${wished ? 'from' : 'to'} wishlist"
-          aria-pressed="${wished}" title="Wishlist — save to buy later, see the summary panel">🛒</button>
-        <button class="add" aria-label="Add ${esc(s.name)}">＋</button>
+          aria-pressed="${wished}" title="Wishlist — save to buy later, see the summary panel"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2l1.6 9.4a1.5 1.5 0 0 0 1.5 1.2h7.2a1.5 1.5 0 0 0 1.5-1.2L20 8H7"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></button>
+        <button class="add" aria-label="Add ${esc(s.name)}" title="Add to the grid"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></button>
       </div>`;
     el.querySelector('.add').addEventListener('click', () => onAdd(s));
     const star = el.querySelector('.own');
     star.addEventListener('click', () => {
       const now = onToggleOwn(s.set_num);
-      star.setAttribute('aria-pressed', String(now));
-      star.textContent = now ? '★' : '☆';
+      star.setAttribute('aria-pressed', String(now)); // filled-star state is CSS-driven off aria-pressed
       el.classList.toggle('owned', now);
     });
     // Favorite (♡/♥) is distinct from "owned" (☆/★) — favoriting just pins the set to the
@@ -263,8 +268,7 @@ export function renderCatalog(els, sets, {
     const fav = el.querySelector('.fav');
     fav.addEventListener('click', () => {
       const now = onToggleFavorite(s.set_num);
-      fav.setAttribute('aria-pressed', String(now));
-      fav.textContent = now ? '♥' : '♡';
+      fav.setAttribute('aria-pressed', String(now)); // filled-heart state is CSS-driven off aria-pressed
       fav.setAttribute('aria-label', `${now ? 'Remove' : 'Add'} ${s.name} ${now ? 'from' : 'to'} favorites`);
       drawRail();
     });

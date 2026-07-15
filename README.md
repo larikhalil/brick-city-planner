@@ -27,6 +27,26 @@ Built out across a research-driven 5-wave programme (see the roadmap above):
 
 ## Changelog
 
+- **UI/UX overhaul — "Playful Studio" (2026-07-15)** — a full visual + UX pass driven by user
+  feedback (see [`docs/superpowers/specs/2026-07-15-ui-overhaul-design.md`](docs/superpowers/specs/2026-07-15-ui-overhaul-design.md)):
+  - *Bug fixes* — holding **Alt** while dragging now only bypasses snapping (it no longer clones the
+    selection); placed tiles no longer leak internal piece ids; stacked ground-tile labels no longer
+    collide.
+  - *Look* — retheme to a clean, warm "Playful Studio" palette; a consistent inline-**SVG icon set**
+    replaces all emoji toolbar icons; primary actions + toggles are tactile 2-stud **bricks**; a small
+    **stud glyph** marks section labels; per-panel baseplate-coloured header rules.
+  - *Toolbar* — the ~20 loose canvas controls are grouped into labeled **bays** (History / Arrange /
+    Layers / Tools / Table / Zoom / View) with a new visible **Duplicate** button.
+  - *Catalog* — tidy two-line count (no wrap/cut-off), Legacy toggle on its own labeled row (untangled
+    from Sort), clean card titles, SVG action icons.
+  - *Discoverability* — the help modal is now a **Guide** with a labeled legend of what every button
+    does (Save / Share / Export / every tool), plus the existing shortcuts & gestures.
+  - *Mobile* — right-edge scroll-fade on the toolbars (clear scroll affordance), SVG bottom-tab icons,
+    a contained onboarding card.
+  - *Motion* — a green "snap" pulse when road/rail pieces connect + a tactile press on every control
+    (all reduced-motion gated). Full dark-mode + colourblind-safe parity throughout.
+  - *Tooling* — a durable Playwright QA harness under `tools/qa/` (screenshots + functional/console
+    checks); reviewed by a multi-agent QA loop (UI / dark / mobile / UAT). 244 unit tests pass.
 - **Round-1 feedback (2026-07-12)** — all 11 points from the first user review:
   1. *Snapping tamed* — edge magnetism for ordinary sets reduced 6 → 2 studs (road/track port snapping and baseplate tiling keep the strong pull); new persistent 🧲 toolbar toggle + hold-Alt-while-dragging bypass, so pieces can start on **any stud**.
   2. *Retired sets* — every record now carries `retired` (curated July-2026 availability research + an 18-24-month lifecycle rule); catalog/wishlist/ownership rows show a **Retired** badge ("LEGO no longer sells it new"), and a **Legacy** toggle (default off) hides the ~1,650 retired sets from the catalog.

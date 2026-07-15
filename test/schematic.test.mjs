@@ -29,7 +29,7 @@ test('road straight: asphalt gradient + sidewalks + dashed centre lane on the 50
   assert.match(s, /fill="url\(#g\d+\)"/, 'asphalt filled from the gradient');
   assert.match(s, /stroke-dasharray="10 8"/, 'dashed lane markings');
   assert.match(s, /x1="50" y1="0" x2="50" y2="100"/, 'centre lane sits on the 50-line (port unchanged)');
-  assert.match(s, /fill="#c3c7cd"/, 'has light sidewalk strips');
+  assert.match(s, /fill="#aeb3ba"/, 'has grey sidewalk strips');
 });
 
 test('road variants are detected from the name', () => {
