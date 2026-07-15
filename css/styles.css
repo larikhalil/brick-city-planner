@@ -93,7 +93,7 @@
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
      font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
 h1,h2,h3,p{margin:0}
-button{font-family:inherit;cursor:pointer}
+button{font-family:inherit;cursor:pointer;-webkit-user-select:none;user-select:none}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 /* High-contrast keyboard focus ring (ACC-3), everywhere except .tile (which gets its own halo
    below, since it needs to stay visible over any tile colour and survive overflow:hidden). */
@@ -178,6 +178,28 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 
 /* ============ LAYOUT ============ */
 .grid3{display:grid;grid-template-columns:270px minmax(0,1fr) 258px;gap:14px;margin-top:14px}
+/* ---- Collapsible catalog / summary panels (desktop) — collapse to a thin rail to widen the grid ---- */
+.panel-collapse{width:26px;height:26px;flex:none;border-radius:7px;border:1px solid var(--line-2);
+  background:var(--panel-2);color:var(--ink-soft);display:grid;place-items:center;cursor:pointer}
+.panel-collapse:hover{color:var(--ink);border-color:var(--plate)}
+.panel-collapse svg.i{width:16px;height:16px}
+.panel-rail{display:none}
+#summary-panel>.card-h h2{margin-right:auto}
+@media (min-width:941px){
+  .grid3.cat-collapsed{grid-template-columns:46px minmax(0,1fr) 258px}
+  .grid3.sum-collapsed{grid-template-columns:270px minmax(0,1fr) 46px}
+  .grid3.cat-collapsed.sum-collapsed{grid-template-columns:46px minmax(0,1fr) 46px}
+  .grid3.cat-collapsed #catalog-panel>:not(.panel-rail),
+  .grid3.sum-collapsed #summary-panel>:not(.panel-rail){display:none}
+  .grid3.cat-collapsed #catalog-panel .panel-rail,
+  .grid3.sum-collapsed #summary-panel .panel-rail{display:flex;flex-direction:column;align-items:center;gap:14px;
+    width:100%;padding:14px 0;border:0;background:transparent;color:var(--ink-soft)}
+  .panel-rail:hover{color:var(--ink);background:var(--panel-2)}
+  .panel-rail svg.i{width:18px;height:18px;flex:none}
+  .panel-rail .rail-label{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:800;
+    letter-spacing:.12em;text-transform:uppercase}
+}
+@media (max-width:940px){.panel-collapse{display:none}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
 .card-h{display:flex;align-items:center;gap:8px;padding:13px 16px 12px;border-bottom:1px solid var(--line);position:relative}
 .card-h h2{font-size:14.5px;letter-spacing:-.01em;text-transform:none;color:var(--ink);font-weight:800}
@@ -207,11 +229,12 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 @media (prefers-reduced-motion:reduce){.search.pulse{animation:none}}
 .chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
 .chip{font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid var(--line-2);
-  background:var(--panel-2);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px}
+  background:var(--panel-2);color:var(--ink-soft);display:inline-flex;align-items:center;gap:6px;
+  cursor:pointer;-webkit-user-select:none;user-select:none;font-family:inherit}
 .chip.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
 .dot{width:8px;height:8px;border-radius:2px;flex:none}
 .catalog{padding:6px 10px 12px;display:flex;flex-direction:column;gap:6px;max-height:530px;overflow:auto}
-.set{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);
+.set{display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px solid var(--line);
   border-radius:10px;background:var(--panel);transition:transform .08s,border-color .12s,box-shadow .12s}
 .set:hover{transform:translateY(-1px);border-color:var(--plate);box-shadow:var(--shadow)}
 .swatch{width:62px;height:62px;border-radius:7px;flex:none;position:relative;overflow:hidden;
@@ -272,7 +295,10 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 /* ---- UI-4: list/grid view toggle ---- */
 .view-toggle button{padding:5px 9px;font-size:13px;line-height:1}
 /* ---- Ownership + favorite + wishlist + price + buy links on a catalog row ---- */
-.set-actions{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:5px}
+/* list view: actions are a single row UNDER the name/sub/buys (which now get the full column width,
+   so buy links no longer overflow under the buttons); the add button is pushed to the right */
+.set-actions{display:flex;align-items:center;gap:6px;margin-top:8px}
+.set-actions .add{margin-left:auto}
 .own,.fav,.wish{width:30px;height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
   color:var(--ink-soft);line-height:1;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center}
 .own svg.i,.fav svg.i,.wish svg.i,.add svg.i{width:16px;height:16px}
@@ -289,7 +315,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .set.owned .swatch{outline:2px solid var(--accent-deep);outline-offset:-2px}
 .price{color:var(--ink-soft);font-weight:600}
 .price.est{color:var(--warn);font-weight:500}
-.buys{display:flex;gap:8px;margin-top:3px}
+.buys{display:flex;flex-wrap:wrap;gap:8px;margin-top:3px;min-width:0}
 .buy{font-size:10.5px;font-weight:600;color:var(--ink-faint);text-decoration:none;border-bottom:1px dotted var(--line-2)}
 .buy:hover{color:var(--accent-deep);border-bottom-color:var(--accent-deep)}
 
@@ -322,8 +348,9 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .catalog.view-grid .set-sub>*:not(:first-child){display:none}
 .catalog.view-grid .set-sub>.ret{display:inline-flex} /* 2a: the retired badge survives grid view */
 .catalog.view-grid .buys{display:none}
-.catalog.view-grid .set-actions{position:absolute;top:6px;right:6px;opacity:0;transition:opacity .12s;
+.catalog.view-grid .set-actions{position:absolute;top:6px;right:6px;margin-top:0;opacity:0;transition:opacity .12s;
   background:var(--panel);border:1px solid var(--line-2);border-radius:8px;box-shadow:var(--shadow);padding:4px}
+.catalog.view-grid .set-actions .add{margin-left:0}
 .catalog.view-grid .set:hover .set-actions,.catalog.view-grid .set:focus-within .set-actions{opacity:1}
 
 /* ---- Canvas ---- */
@@ -685,6 +712,9 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .orow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
 .orow .on{flex:1;min-width:0;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .orow .oq{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+/* retired badge in the dense ownership/wishlist lists: compact + never shrinks (it sits OUTSIDE the
+   truncating name span now, so the name ellipsises but the badge always shows in full) */
+.orow .ret,.wrow .ret{flex:none;font-size:8px;padding:1px 4px;letter-spacing:.02em}
 .orow .op{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);display:flex;flex-direction:column;
   align-items:flex-end;line-height:1.2;min-width:52px;text-align:right;
   background:none;border:0;padding:2px 3px;border-radius:6px;cursor:pointer}

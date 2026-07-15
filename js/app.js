@@ -1423,6 +1423,21 @@ async function boot() {
   $('btn-lock').addEventListener('click', () => grid.toggleLockSelected());
   $('btn-kid').addEventListener('click', toggleKidMode);
 
+  // Collapsible catalog / summary panels (desktop): collapse either to a thin rail so the city grid
+  // gets more room to play in. State persists per browser.
+  function setPanelCollapsed(which, collapsed) {
+    const grid = document.querySelector('.grid3'); if (!grid) return;
+    grid.classList.toggle(which === 'cat' ? 'cat-collapsed' : 'sum-collapsed', collapsed);
+    try { localStorage.setItem('bcp.collapse.' + which, collapsed ? '1' : '0'); } catch { /* ignore */ }
+  }
+  document.querySelectorAll('[data-collapse]').forEach((b) =>
+    b.addEventListener('click', () => setPanelCollapsed(b.dataset.collapse, true)));
+  document.querySelectorAll('[data-expand]').forEach((b) =>
+    b.addEventListener('click', () => setPanelCollapsed(b.dataset.expand, false)));
+  for (const which of ['cat', 'sum']) {
+    try { if (localStorage.getItem('bcp.collapse.' + which) === '1') setPanelCollapsed(which, true); } catch { /* ignore */ }
+  }
+
   // QOL-10: Layers show-hide/lock menu
   updateLayersButton();
   $('btn-layers').addEventListener('click', (e) => {

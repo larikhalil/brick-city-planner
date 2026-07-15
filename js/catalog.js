@@ -137,13 +137,17 @@ export function renderCatalog(els, sets, {
 
   els.chips.innerHTML = '';
   for (const [key, label, color] of CATS) {
-    const chip = document.createElement('span');
+    const chip = document.createElement('button'); // a real button: pointer cursor, no text-select, keyboard-operable
+    chip.type = 'button';
     chip.className = 'chip' + (key === 'all' ? ' on' : '');
     chip.dataset.cat = key;
+    chip.setAttribute('aria-pressed', key === 'all' ? 'true' : 'false');
     chip.innerHTML = (color ? `<i class="dot" style="background:${color}"></i>` : '') + label;
     chip.addEventListener('click', () => {
       category = key;
-      els.chips.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === chip));
+      els.chips.querySelectorAll('.chip').forEach((c) => {
+        const on = c === chip; c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on));
+      });
       draw();
     });
     els.chips.appendChild(chip);
@@ -245,8 +249,7 @@ export function renderCatalog(els, sets, {
           ${priceLabel(s)}
         </div>
         <div class="buys">${buyLinksHtml(s)}</div>
-      </div>
-      <div class="set-actions">
+        <div class="set-actions">
         <button class="own" aria-label="Mark ${esc(s.name)} as owned" aria-pressed="${owned}"
           title="I own this set"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 2.3 4.9 5.4.7-4 3.8 1 5.4L12 16.9 7.3 19.6l1-5.4-4-3.8 5.4-.7Z"/></svg></button>
         <button class="fav" aria-label="${faved ? 'Remove' : 'Add'} ${esc(s.name)} ${faved ? 'from' : 'to'} favorites"
@@ -254,6 +257,7 @@ export function renderCatalog(els, sets, {
         <button class="wish" aria-label="${wished ? 'Remove' : 'Add'} ${esc(s.name)} ${wished ? 'from' : 'to'} wishlist"
           aria-pressed="${wished}" title="Wishlist — save to buy later, see the summary panel"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2l1.6 9.4a1.5 1.5 0 0 0 1.5 1.2h7.2a1.5 1.5 0 0 0 1.5-1.2L20 8H7"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></button>
         <button class="add" aria-label="Add ${esc(s.name)}" title="Add to the grid"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12"/></svg></button>
+        </div>
       </div>`;
     el.querySelector('.add').addEventListener('click', () => onAdd(s));
     const star = el.querySelector('.own');
@@ -354,7 +358,9 @@ export function renderCatalog(els, sets, {
       text = t;
       category = c;
       els.search.value = t;
-      els.chips.querySelectorAll('.chip').forEach((chip) => chip.classList.toggle('on', chip.dataset.cat === c));
+      els.chips.querySelectorAll('.chip').forEach((chip) => {
+        const on = chip.dataset.cat === c; chip.classList.toggle('on', on); chip.setAttribute('aria-pressed', String(on));
+      });
       draw();
     },
     refresh: draw, // re-render rows (e.g. after owned/wishlist state changes elsewhere)

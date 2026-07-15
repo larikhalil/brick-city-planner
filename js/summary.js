@@ -129,7 +129,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
         return `<div class="orow${ln.owned ? ' is-owned' : ''}">
           <button class="own sm" data-num="${esc(ln.num)}" aria-pressed="${ln.owned}"
             aria-label="Toggle owned for ${esc(ln.num)}" title="${ln.owned ? 'You own this' : 'Mark as owned'}">${ln.owned ? '★' : '☆'}</button>
-          <span class="on">${esc(nameOf(ln.num))}${retBadge(recOf(ln.num))}</span>
+          <span class="on" title="${esc(nameOf(ln.num))}">${esc(nameOf(ln.num))}</span>${retBadge(recOf(ln.num))}
           <span class="oq">×${ln.qty}</span>
           <button class="op ${ln.owned ? 'zero' : ''}" data-num="${esc(ln.num)}" data-price
             title="Set your own price for ${esc(ln.num)}" aria-label="Set price for ${esc(ln.num)}">${
@@ -147,7 +147,7 @@ export function renderSummary(el, placed, byNum, unit = 'studs', opts = {}) {
       <div class="wish-body">${wishRows.length ? wishRows.map((r) => {
         const src = r.estimated ? 'est.' : (r.source === 'override' ? 'yours' : 'MSRP');
         return `<div class="wrow">
-          <span class="wn" title="${esc(r.set.name)}">${esc(r.set.name)}${retBadge(r.set)}</span>
+          <span class="wn" title="${esc(r.set.name)}">${esc(r.set.name)}</span>${retBadge(r.set)}
           <span class="wp">${money(r.lineTotal)}<i>${src}</i></span>
           <button class="wbtn promote" data-num="${esc(r.exact)}" title="Place on grid"
             aria-label="Place ${esc(r.set.name)} on grid">➕</button>

@@ -88,7 +88,12 @@
 
     <div class="grid3">
       <section class="card" id="catalog-panel" aria-label="Set catalog">
+        <button class="panel-rail" data-expand="cat" title="Expand catalog" aria-label="Expand catalog">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          <span class="rail-label">Catalog</span></button>
         <div class="card-h"><h2>Catalog</h2><span class="count-pill" id="catalog-count"></span>
+          <button class="panel-collapse" data-collapse="cat" title="Collapse catalog to widen the grid" aria-label="Collapse catalog">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
           <button class="sheet-close" data-sheet-close aria-label="Close catalog">✕</button></div>
         <div class="search"><span class="search-i" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></span>
           <input id="catalog-search" placeholder="Search sets, e.g. 60316…" aria-label="Search sets"></div>
@@ -260,7 +265,12 @@
       </section>
 
       <aside class="card" id="summary-panel" aria-label="City summary">
+        <button class="panel-rail" data-expand="sum" title="Expand summary" aria-label="Expand summary">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+          <span class="rail-label">Summary</span></button>
         <div class="card-h"><h2>City summary</h2>
+          <button class="panel-collapse" data-collapse="sum" title="Collapse summary to widen the grid" aria-label="Collapse summary">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
           <button class="sheet-close" data-sheet-close aria-label="Close summary">✕</button></div>
         <div class="sum" id="summary"></div>
       </aside>
