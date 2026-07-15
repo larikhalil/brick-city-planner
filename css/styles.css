@@ -714,9 +714,9 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .bud-note{font-size:11px;color:var(--ink-faint)}
 /* ---- Sets & ownership list ---- */
 .own-list{display:flex;flex-direction:column;gap:4px}
-.orow{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 0}
+.orow{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:3px 0}
 .orow .on{flex:1;min-width:0;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.orow .oq{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+.orow .oq{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
 /* retired badge in the dense ownership/wishlist lists: compact + never shrinks (it sits OUTSIDE the
    truncating name span now, so the name ellipsises but the badge always shows in full) */
 .orow .ret,.wrow .ret{flex:none;font-size:8px;padding:1px 4px;letter-spacing:.02em}
@@ -724,7 +724,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
   align-items:flex-end;line-height:1.2;min-width:52px;text-align:right;
   background:none;border:0;padding:2px 3px;border-radius:6px;cursor:pointer}
 .orow .op:hover{background:var(--panel-2);color:var(--ink)}
-.orow .op i{font-style:normal;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}
+.orow .op i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
 .orow .op.zero{color:var(--ok)}
 .orow.is-owned .on{color:var(--ink-faint)}
 .own.sm{width:22px;height:22px;font-size:13px}
@@ -743,7 +743,7 @@ svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;
 .wrow .wn{flex:1;min-width:0;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wrow .wp{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);display:flex;flex-direction:column;
   align-items:flex-end;line-height:1.2;text-align:right}
-.wrow .wp i{font-style:normal;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-faint)}
+.wrow .wp i{font-style:normal;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
 .wbtn{width:22px;height:22px;flex:none;border-radius:6px;border:1px solid var(--line-2);background:var(--panel);
   color:var(--ink-faint);font-size:12px;line-height:1;padding:0;cursor:pointer}
 .wbtn:hover{border-color:var(--plate);color:var(--ink)}
